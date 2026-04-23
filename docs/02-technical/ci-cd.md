@@ -54,7 +54,7 @@ PR opened / updated
 
 Push to main
   │
-  ├── 1–7 (same as PR)
+  ├── 1-7 (same as PR)
   └── 8. flutter build appbundle --release
       └── 9. Upload AAB as GitHub Release artifact (draft)
 ```

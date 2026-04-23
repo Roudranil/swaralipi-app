@@ -36,9 +36,9 @@ Scaffold(
 ```
 How many primary destinations?
 ├── 2 destinations → Tabs (primary)
-├── 3–5 destinations
+├── 3-5 destinations
 │   ├── Compact screen (<600dp) → NavigationBar (bottom)
-│   ├── Medium screen (600–839dp) → NavigationRail (side)
+│   ├── Medium screen (600-839dp) → NavigationRail (side)
 │   └── Expanded+ screen (840dp+) → NavigationDrawer (side) or Rail
 ├── 6+ destinations
 │   ├── Compact → NavigationDrawer (modal via Scaffold.drawer)
@@ -52,19 +52,19 @@ How many primary destinations?
 
 | Component | Destinations | Screen Size | Persistence | Position |
 |-----------|-------------|-------------|-------------|----------|
-| NavigationBar | 3–5 | Compact | Persistent | Bottom |
-| NavigationRail | 3–7 | Medium | Persistent | Side (start) |
+| NavigationBar | 3-5 | Compact | Persistent | Bottom |
+| NavigationRail | 3-7 | Medium | Persistent | Side (start) |
 | NavigationDrawer | Unlimited | Expanded+ | Standard or Modal | Side (start) |
 | TabBar | 2+ related views | Any | Persistent | Top (below app bar) |
 
 ## Navigation Bar
 
-**Use when**: 3–5 primary destinations on compact (mobile) screens.
+**Use when**: 3-5 primary destinations on compact (mobile) screens.
 **Position**: Bottom of screen, always visible.
 
 ### Anatomy
 - Fixed at bottom, full width
-- 3–5 navigation destinations with icon + label
+- 3-5 navigation destinations with icon + label
 - Active destination shows filled icon + indicator pill
 - Height: 80dp
 
@@ -107,7 +107,7 @@ NavigationBar(
 
 ## Navigation Rail
 
-**Use when**: 3–7 primary destinations on medium screens (tablets).
+**Use when**: 3-7 primary destinations on medium screens (tablets).
 **Position**: Start edge (left in LTR), always visible.
 
 ### Anatomy
@@ -319,7 +319,7 @@ The key MD3 pattern: navigation component transforms across breakpoints.
 
 ```
 Compact (<600dp):   NavigationBar (bottom)
-Medium (600–839dp): NavigationRail (side)
+Medium (600-839dp): NavigationRail (side)
 Expanded (840dp+):  NavigationDrawer (side, standard)
 ```
 

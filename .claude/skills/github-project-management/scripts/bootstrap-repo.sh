@@ -243,7 +243,7 @@ pr_template_content() {
 Closes #<issue-number>
 
 ## Summary
-<!-- What does this PR do? 2–4 bullets. -->
+<!-- What does this PR do? 2-4 bullets. -->
 -
 -
 

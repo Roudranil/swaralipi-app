@@ -65,7 +65,7 @@ mcp__github__issue_write
 <!-- How do we know it's done? -->
 
 ## Priority
-<!-- p0–p5 -->
+<!-- p0-p5 -->
 
 ## Notes
 ```
@@ -97,7 +97,7 @@ mcp__github__issue_write
 ## Acceptance Criteria
 
 ## Priority
-<!-- p0–p5 -->
+<!-- p0-p5 -->
 
 ## Notes
 ```
@@ -143,7 +143,7 @@ mcp__github__issue_write
 - [ ] PR opened and linked
 
 ## Priority
-<!-- p0–p5 -->
+<!-- p0-p5 -->
 ```
 
 **Link to Feature:**
@@ -266,7 +266,7 @@ mcp__github__create_pull_request
 Closes #<issue-number>
 
 ## Summary
-<!-- What does this PR do? 2–4 bullets. -->
+<!-- What does this PR do? 2-4 bullets. -->
 -
 -
 

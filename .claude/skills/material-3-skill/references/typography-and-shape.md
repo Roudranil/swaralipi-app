@@ -95,9 +95,9 @@ ThemeData(
 ### Roboto Flex
 
 Roboto Flex is a variable font supporting multiple axes:
-- **Weight** (wght): 100–1000
-- **Width** (wdth): 25–151
-- **Optical size** (opsz): 8–144
+- **Weight** (wght): 100-1000
+- **Width** (wdth): 25-151
+- **Optical size** (opsz): 8-144
 
 In Flutter, you can load Roboto Flex via the `google_fonts` package.
 

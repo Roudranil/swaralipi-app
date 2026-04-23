@@ -258,4 +258,4 @@ gh api graphql -f query="
 
 - `gh` CLI docs: `gh --help`, `gh project --help`
 - GitHub GraphQL: `gh api graphql --help`
-- Test results: Issues #5–6 (now closed)
+- Test results: Issues #5-6 (now closed)

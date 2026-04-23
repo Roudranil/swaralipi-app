@@ -178,7 +178,7 @@ Search highlights matched field in result row.
 #### Sort
 
 Sort control in top bar. Options:
-- Title (A–Z / Z–A)
+- Title (A-Z / Z-A)
 - Date written (newest / oldest)
 - Date added (newest / oldest)
 - Play count (most / least)

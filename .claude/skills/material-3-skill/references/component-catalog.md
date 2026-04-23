@@ -212,7 +212,7 @@ Badge(
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `value` | double? | Progress (0.0–1.0); null = indeterminate |
+| `value` | double? | Progress (0.0-1.0); null = indeterminate |
 
 ```dart
 // Determinate
@@ -680,7 +680,7 @@ CustomScrollView(
 
 ### Navigation Bar
 **Widget**: `NavigationBar`
-**Use when**: 3–5 primary destinations, compact screens, persistent.
+**Use when**: 3-5 primary destinations, compact screens, persistent.
 
 ```dart
 NavigationBar(
@@ -744,7 +744,7 @@ NavigationDrawer(
 
 ### Navigation Rail
 **Widget**: `NavigationRail`
-**Use when**: 3–7 destinations, medium screens (600–839dp), persistent side navigation.
+**Use when**: 3-7 destinations, medium screens (600-839dp), persistent side navigation.
 
 ```dart
 NavigationRail(

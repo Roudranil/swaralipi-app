@@ -108,7 +108,7 @@ MD3 generates colors from a **seed color** through the tonal palette system:
 
 1. A **seed color** (hex value) is chosen
 2. The seed generates **5 tonal palettes**: Primary, Secondary, Tertiary, Neutral, Neutral-Variant
-3. Each palette uses tonal stops along **0–100** (commonly 16 key stops: 0, 10, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 95, 98, 99, 100)
+3. Each palette uses tonal stops along **0-100** (commonly 16 key stops: 0, 10, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 95, 98, 99, 100)
 4. Color roles are mapped to specific tonal values depending on light or dark scheme
 
 ### Tonal Value Mapping (Light Scheme)

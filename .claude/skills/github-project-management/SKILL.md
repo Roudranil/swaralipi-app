@@ -1,11 +1,11 @@
 ---
 name: github-project-management
 description: >
-  Full GitHub project management via MCP tools and gh CLI — label taxonomy (epic → feature → story → task / bug),
-  issue hierarchy with sub-issue linking, PR workflow (branch naming, review, merge strategies),
-  commit conventions (conventional commits extended), semantic versioning, and GitHub Actions setup.
-  Includes gh CLI for project field management and GraphQL for sub-issue creation. Use whenever creating
-  or managing issues, PRs, labels, releases, or repo scaffolding files on Swaralipi.
+    Full GitHub project management via MCP tools and gh CLI — label taxonomy (epic → feature → story → task / bug),
+    issue hierarchy with sub-issue linking, PR workflow (branch naming, review, merge strategies),
+    commit conventions (conventional commits extended), semantic versioning, and GitHub Actions setup.
+    Includes gh CLI for project field management and GraphQL for sub-issue creation. Use whenever creating
+    or managing issues, PRs, labels, releases, or repo scaffolding files on Swaralipi.
 ---
 
 # GitHub Project Management via MCP Skill
@@ -25,6 +25,7 @@ Do NOT repeat these in inline examples — they are inherited by all `mcp__githu
 **⚠️ CRITICAL BOUNDARY:**
 
 This skill operates ONLY on the Swaralipi repository and project (#4). **Other projects (variance, Lattice) are strictly off-bounds.** Do not interact with them under any circumstances. Always verify you are working with:
+
 - Repository: `Roudranil/swaralipi-app`
 - Project: `4` (Swaralipi)
 
@@ -34,35 +35,35 @@ If a request references other projects, decline and redirect to Swaralipi work o
 
 ## 2. MCP Tool Quick-Reference
 
-| Purpose | Tool | Key Parameters |
-|---|---|---|
-| Create / update issue | `mcp__github__issue_write` | `method` (`create`/`update`), `title`, `body`, `labels[]`, `assignees[]`, `issue_number` (for update) |
-| Read issue / sub-issues | `mcp__github__issue_read` | `method` (`get`/`get_comments`/`get_sub_issues`/`get_labels`), `issue_number` |
-| List issues | `mcp__github__list_issues` | `state` (`open`/`closed`), `labels[]`, `since`, `orderBy`, `direction` |
-| Search issues | `mcp__github__search_issues` | `query` (GitHub search syntax: `is:open label:task label:p0`), `sort`, `order` |
-| Comment on issue | `mcp__github__add_issue_comment` | `issue_number`, `body` |
-| Link parent ↔ child | `mcp__github__sub_issue_write` | `method` (`add`/`remove`/`reprioritize`), `issue_number` (parent), `sub_issue_id` (child **node ID**, NOT number) |
-| List issue types | `mcp__github__list_issue_types` | — |
-| Create label | `mcp__github__label_write` | `method: create`, `name`, `color` (hex without `#`), `description` |
-| List labels | `mcp__github__list_label` | — |
-| Get label | `mcp__github__get_label` | `name` |
-| Create branch | `mcp__github__create_branch` | `branch` (name), `from_branch` (defaults to repo default) |
-| Open PR | `mcp__github__create_pull_request` | `title`, `head` (branch), `base` (branch), `body`, `draft` (boolean) |
-| Update PR | `mcp__github__update_pull_request` | `pullNumber`, `title`, `body`, `state` (`open`/`closed`), `draft`, `reviewers[]`, `base` |
-| Read PR | `mcp__github__pull_request_read` | `method` (`get`/`get_diff`/`get_status`/`get_files`/`get_review_comments`/`get_reviews`/`get_comments`/`get_check_runs`), `pullNumber` |
-| Start pending review | `mcp__github__pull_request_review_write` | `method: create`, `pullNumber` (no `event` = pending) |
-| Add inline comment | `mcp__github__add_comment_to_pending_review` | `pullNumber`, `path`, `line` (or `startLine`/`endLine` for range), `side` (`LEFT`/`RIGHT`), `subjectType` (`FILE`/`LINE`), `body` |
-| Submit review | `mcp__github__pull_request_review_write` | `method: submit_pending`, `pullNumber`, `event` (`APPROVE`/`REQUEST_CHANGES`/`COMMENT`), `body` |
-| Delete pending review | `mcp__github__pull_request_review_write` | `method: delete_pending`, `pullNumber` |
-| Resolve review thread | `mcp__github__pull_request_review_write` | `method: resolve_thread`, `threadId` (node ID from `get_review_comments`) |
-| Merge PR | `mcp__github__merge_pull_request` | `pullNumber`, `merge_method` (`squash`/`merge`/`rebase`), `commit_title`, `commit_message` |
-| Update PR branch | `mcp__github__update_pull_request_branch` | `pullNumber` |
-| Write file to repo | `mcp__github__create_or_update_file` | `path`, `content`, `message`, `branch`, `sha` (required if file exists; get via `get_file_contents`) |
-| Read file from repo | `mcp__github__get_file_contents` | `path`, `ref` (branch/tag/commit, defaults to default branch) |
-| Repo tree | `mcp__github__get_repository_tree` | `tree_sha` (branch/tag, defaults to default), `recursive` (boolean) |
-| Latest release | `mcp__github__get_latest_release` | — |
-| Release by tag | `mcp__github__get_release_by_tag` | `tag` (e.g., `v1.0.0`) |
-| List releases | `mcp__github__list_releases` | `page`, `perPage` |
+| Purpose                 | Tool                                         | Key Parameters                                                                                                                         |
+| ----------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Create / update issue   | `mcp__github__issue_write`                   | `method` (`create`/`update`), `title`, `body`, `labels[]`, `assignees[]`, `issue_number` (for update)                                  |
+| Read issue / sub-issues | `mcp__github__issue_read`                    | `method` (`get`/`get_comments`/`get_sub_issues`/`get_labels`), `issue_number`                                                          |
+| List issues             | `mcp__github__list_issues`                   | `state` (`open`/`closed`), `labels[]`, `since`, `orderBy`, `direction`                                                                 |
+| Search issues           | `mcp__github__search_issues`                 | `query` (GitHub search syntax: `is:open label:task label:p0`), `sort`, `order`                                                         |
+| Comment on issue        | `mcp__github__add_issue_comment`             | `issue_number`, `body`                                                                                                                 |
+| Link parent ↔ child     | `mcp__github__sub_issue_write`               | `method` (`add`/`remove`/`reprioritize`), `issue_number` (parent), `sub_issue_id` (child **node ID**, NOT number)                      |
+| List issue types        | `mcp__github__list_issue_types`              | —                                                                                                                                      |
+| Create label            | `mcp__github__label_write`                   | `method: create`, `name`, `color` (hex without `#`), `description`                                                                     |
+| List labels             | `mcp__github__list_label`                    | —                                                                                                                                      |
+| Get label               | `mcp__github__get_label`                     | `name`                                                                                                                                 |
+| Create branch           | `mcp__github__create_branch`                 | `branch` (name), `from_branch` (defaults to repo default)                                                                              |
+| Open PR                 | `mcp__github__create_pull_request`           | `title`, `head` (branch), `base` (branch), `body`, `draft` (boolean)                                                                   |
+| Update PR               | `mcp__github__update_pull_request`           | `pullNumber`, `title`, `body`, `state` (`open`/`closed`), `draft`, `reviewers[]`, `base`                                               |
+| Read PR                 | `mcp__github__pull_request_read`             | `method` (`get`/`get_diff`/`get_status`/`get_files`/`get_review_comments`/`get_reviews`/`get_comments`/`get_check_runs`), `pullNumber` |
+| Start pending review    | `mcp__github__pull_request_review_write`     | `method: create`, `pullNumber` (no `event` = pending)                                                                                  |
+| Add inline comment      | `mcp__github__add_comment_to_pending_review` | `pullNumber`, `path`, `line` (or `startLine`/`endLine` for range), `side` (`LEFT`/`RIGHT`), `subjectType` (`FILE`/`LINE`), `body`      |
+| Submit review           | `mcp__github__pull_request_review_write`     | `method: submit_pending`, `pullNumber`, `event` (`APPROVE`/`REQUEST_CHANGES`/`COMMENT`), `body`                                        |
+| Delete pending review   | `mcp__github__pull_request_review_write`     | `method: delete_pending`, `pullNumber`                                                                                                 |
+| Resolve review thread   | `mcp__github__pull_request_review_write`     | `method: resolve_thread`, `threadId` (node ID from `get_review_comments`)                                                              |
+| Merge PR                | `mcp__github__merge_pull_request`            | `pullNumber`, `merge_method` (`squash`/`merge`/`rebase`), `commit_title`, `commit_message`                                             |
+| Update PR branch        | `mcp__github__update_pull_request_branch`    | `pullNumber`                                                                                                                           |
+| Write file to repo      | `mcp__github__create_or_update_file`         | `path`, `content`, `message`, `branch`, `sha` (required if file exists; get via `get_file_contents`)                                   |
+| Read file from repo     | `mcp__github__get_file_contents`             | `path`, `ref` (branch/tag/commit, defaults to default branch)                                                                          |
+| Repo tree               | `mcp__github__get_repository_tree`           | `tree_sha` (branch/tag, defaults to default), `recursive` (boolean)                                                                    |
+| Latest release          | `mcp__github__get_latest_release`            | —                                                                                                                                      |
+| Release by tag          | `mcp__github__get_release_by_tag`            | `tag` (e.g., `v1.0.0`)                                                                                                                 |
+| List releases           | `mcp__github__list_releases`                 | `page`, `perPage`                                                                                                                      |
 
 **Critical callout:** `sub_issue_id` is the GitHub **node ID** (format: `I_kwDO...`), **NOT the issue number**. Always fetch via `issue_read method: get` first and extract the `node_id` field.
 
@@ -72,16 +73,16 @@ If a request references other projects, decline and redirect to Swaralipi work o
 
 The `gh` CLI provides complementary capabilities to MCP tools, especially for project management and sub-issue linking.
 
-| Purpose | Command | Parameters |
-|---|---|---|
-| List projects | `gh project list --owner Roudranil` | — |
-| View project details | `gh project view 4 --owner Roudranil` | project number |
-| List project items | `gh project item-list 4 --owner Roudranil` | project number |
-| Add issue to project | `gh project item-add 4 --owner Roudranil --url <issue-url>` | project number, issue URL |
+| Purpose                 | Command                                                                                                               | Parameters                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| List projects           | `gh project list --owner Roudranil`                                                                                   | —                                        |
+| View project details    | `gh project view 4 --owner Roudranil`                                                                                 | project number                           |
+| List project items      | `gh project item-list 4 --owner Roudranil`                                                                            | project number                           |
+| Add issue to project    | `gh project item-add 4 --owner Roudranil --url <issue-url>`                                                           | project number, issue URL                |
 | Edit project item field | `gh project item-edit --id <item-id> --project-id <proj-id> --field-id <field-id> --single-select-option-id <opt-id>` | item ID, project ID, field ID, option ID |
-| Create issue | `gh issue create --repo Roudranil/swaralipi-app --title "<title>" --body "<body>" --label label1,label2` | title, body, labels |
-| Close issue | `gh issue close <number> --repo Roudranil/swaralipi-app` | issue number |
-| Add sub-issue (GraphQL) | `gh api graphql -f query='mutation { addSubIssue(input: {...}) { ... } }'` | See Section 2.2 |
+| Create issue            | `gh issue create --repo Roudranil/swaralipi-app --title "<title>" --body "<body>" --label label1,label2`              | title, body, labels                      |
+| Close issue             | `gh issue close <number> --repo Roudranil/swaralipi-app`                                                              | issue number                             |
+| Add sub-issue (GraphQL) | `gh api graphql -f query='mutation { addSubIssue(input: {...}) { ... } }'`                                            | See Section 2.2                          |
 
 ### 2.2 Sub-Issue Management via GraphQL
 
@@ -108,6 +109,7 @@ gh api graphql -f query='
 ```
 
 **Parameters:**
+
 - `issueId` (required): Parent issue node ID
 - `subIssueUrl` (required): URL of child issue to link
 - `replaceParent` (optional): Set true to replace existing parent relationship
@@ -162,21 +164,21 @@ gh api graphql -f query='
 
 **Current Swaralipi Project field mapping (project ID: `PVT_kwHOA51EZs4BVe4H`):**
 
-| Field | Field ID | Option | Option ID |
-|---|---|---|---|
-| Status | `PVTSSF_lAHOA51EZs4BVe4HzhQ6YbE` | Backlog | `f75ad846` |
-| | | Ready | `e18bf179` |
-| | | In progress | `47fc9ee4` |
-| | | In review | `aba860b9` |
-| | | Done | `98236657` |
-| Priority | `PVTSSF_lAHOA51EZs4BVe4HzhQ6Yig` | P0 | `79628723` |
-| | | P1 | `0a877460` |
-| | | P2 | `da944a9c` |
-| Size | `PVTSSF_lAHOA51EZs4BVe4HzhQ6Yik` | XS | `911790be` |
-| | | S | `b277fb01` |
-| | | M | `86db8eb3` |
-| | | L | `853c8207` |
-| | | XL | `2d0801e2` |
+| Field    | Field ID                         | Option      | Option ID  |
+| -------- | -------------------------------- | ----------- | ---------- |
+| Status   | `PVTSSF_lAHOA51EZs4BVe4HzhQ6YbE` | Backlog     | `f75ad846` |
+|          |                                  | Ready       | `e18bf179` |
+|          |                                  | In progress | `47fc9ee4` |
+|          |                                  | In review   | `aba860b9` |
+|          |                                  | Done        | `98236657` |
+| Priority | `PVTSSF_lAHOA51EZs4BVe4HzhQ6Yig` | P0          | `79628723` |
+|          |                                  | P1          | `0a877460` |
+|          |                                  | P2          | `da944a9c` |
+| Size     | `PVTSSF_lAHOA51EZs4BVe4HzhQ6Yik` | XS          | `911790be` |
+|          |                                  | S           | `b277fb01` |
+|          |                                  | M           | `86db8eb3` |
+|          |                                  | L           | `853c8207` |
+|          |                                  | XL          | `2d0801e2` |
 
 **Step 2: Update item field**
 
@@ -192,6 +194,7 @@ gh project item-edit \
 Repeat for Priority and Size fields using their respective field IDs and option IDs.
 
 **Tested capabilities:**
+
 - ✅ `gh project item-add` — adds issues to project
 - ✅ `gh project item-edit` — updates Status, Priority, Size fields
 - ✅ GraphQL `addSubIssue` — creates parent-child relationships
@@ -204,8 +207,8 @@ Repeat for Priority and Size fields using their respective field IDs and option 
 **Decision: INCLUDE story level. Rationale:**
 
 - **Features** span multiple UI screens, data models, and test surfaces → too coarse for atomic tasks
-- **Stories** represent user-observable slices of a feature (e.g., "As a musician, I can capture a notation via camera") → independently shippable in 1–2 days
-- **Tasks** are atomic technical steps within a story (e.g., "Wire CameraX to ViewModel", "Write unit tests") → 1–4 hours each
+- **Stories** represent user-observable slices of a feature (e.g., "As a musician, I can capture a notation via camera") → independently shippable in 1-2 days
+- **Tasks** are atomic technical steps within a story (e.g., "Wire CameraX to ViewModel", "Write unit tests") → 1-4 hours each
 - **Without stories**, features collapse into 15+ unrelated tasks; narrative grouping and priority visibility is lost
 
 **Final Hierarchy:**
@@ -224,22 +227,22 @@ Bug  (label: bug)                  ← standalone or linked to any level
 
 ### 4.1 Color Palette
 
-| Group | Label | Hex (no `#`) | Purpose |
-|---|---|---|---|
-| Hierarchy | epic | `7B2FBE` | Top-level initiatives |
-| Hierarchy | feature | `9B59B6` | Major capabilities |
-| Hierarchy | story | `B185DB` | User-observable slices |
-| Hierarchy | task | `D2A8FF` | Atomic work items |
-| Hierarchy | bug | `E74C3C` | Defects |
-| Status | planned | `F1C40F` | Scoped, not started |
-| Status | in-progress | `E67E22` | Actively being worked |
-| Status | blocked | `C0392B` | Blocked — blocker named in comments |
-| Priority | p0 | `C0392B` | Critical — drop everything |
-| Priority | p1 | `E74C3C` | High — current sprint |
-| Priority | p2 | `E67E22` | Medium-high — next sprint |
-| Priority | p3 | `F39C12` | Medium — backlog top |
-| Priority | p4 | `2980B9` | Low — backlog |
-| Priority | p5 | `95A5A6` | Negligible — someday/maybe |
+| Group     | Label       | Hex (no `#`) | Purpose                             |
+| --------- | ----------- | ------------ | ----------------------------------- |
+| Hierarchy | epic        | `7B2FBE`     | Top-level initiatives               |
+| Hierarchy | feature     | `9B59B6`     | Major capabilities                  |
+| Hierarchy | story       | `B185DB`     | User-observable slices              |
+| Hierarchy | task        | `D2A8FF`     | Atomic work items                   |
+| Hierarchy | bug         | `E74C3C`     | Defects                             |
+| Status    | planned     | `F1C40F`     | Scoped, not started                 |
+| Status    | in-progress | `E67E22`     | Actively being worked               |
+| Status    | blocked     | `C0392B`     | Blocked — blocker named in comments |
+| Priority  | p0          | `C0392B`     | Critical — drop everything          |
+| Priority  | p1          | `E74C3C`     | High — current sprint               |
+| Priority  | p2          | `E67E22`     | Medium-high — next sprint           |
+| Priority  | p3          | `F39C12`     | Medium — backlog top                |
+| Priority  | p4          | `2980B9`     | Low — backlog                       |
+| Priority  | p5          | `95A5A6`     | Negligible — someday/maybe          |
 
 ### 4.2 Bootstrap SOP
 
@@ -267,71 +270,92 @@ mcp__github__label_write
 ### 5.1 Body Templates
 
 **Epic:**
+
 ```markdown
 ## Goal
+
 <!-- What outcome does this epic deliver? -->
 
 ## Scope
+
 <!-- Features included. Add issue refs once created. -->
+
 - [ ] #<feature-number>
 
 ## Out of Scope
+
 <!-- Explicitly excluded. -->
 
 ## Acceptance Criteria
+
 <!-- How do we know it's done? -->
 
 ## Priority
-<!-- p0–p5 -->
+
+<!-- p0-p5 -->
 
 ## Notes
 ```
 
 **Feature:**
+
 ```markdown
 ## Parent Epic
+
 <!-- #<epic-number> -->
 
 ## Goal
+
 <!-- What capability does this feature add? -->
 
 ## Stories
+
 - [ ] #<story-number>
 
 ## Acceptance Criteria
 
 ## Priority
-<!-- p0–p5 -->
+
+<!-- p0-p5 -->
 
 ## Notes
 ```
 
 **Story:**
+
 ```markdown
 ## Parent Feature
+
 <!-- #<feature-number> -->
 
 ## User Story
+
 As a <role>, I can <action> so that <value>.
 
 ## Tasks
+
 - [ ] #<task-number>
 
 ## Acceptance Criteria
 
 ## Priority
-<!-- p0–p5 -->
+
+<!-- p0-p5 -->
 ```
 
 **Task:**
+
 ```markdown
 ## Parent Story
+
 <!-- #<story-number> -->
 
 ## What
+
 <!-- Concise technical description. -->
 
 ## Definition of Done
+
 - [ ] Tests written and passing
 - [ ] Coverage ≥ 80%
 - [ ] `flutter analyze` clean
@@ -339,15 +363,19 @@ As a <role>, I can <action> so that <value>.
 - [ ] PR opened and linked
 
 ## Priority
-<!-- p0–p5 -->
+
+<!-- p0-p5 -->
 ```
 
 **Bug:**
+
 ```markdown
 ## Summary
+
 <!-- One-sentence description. -->
 
 ## Steps to Reproduce
+
 1.
 2.
 
@@ -356,14 +384,17 @@ As a <role>, I can <action> so that <value>.
 ## Actual Behavior
 
 ## Environment
+
 Device: Samsung Galaxy S25
 Flutter version:
 App version:
 
 ## Severity / Priority
-<!-- p0–p5 -->
+
+<!-- p0-p5 -->
 
 ## Linked Issue (if applicable)
+
 <!-- #<issue-number> -->
 ```
 
@@ -553,13 +584,13 @@ mcp__github__search_issues
 
 ### 6.1 Template Locations
 
-| Type | File |
-|---|---|
-| Epic | `.github/ISSUE_TEMPLATE/epic.yml` |
+| Type    | File                                 |
+| ------- | ------------------------------------ |
+| Epic    | `.github/ISSUE_TEMPLATE/epic.yml`    |
 | Feature | `.github/ISSUE_TEMPLATE/feature.yml` |
-| Story | `.github/ISSUE_TEMPLATE/story.yml` |
-| Task | `.github/ISSUE_TEMPLATE/task.yml` |
-| Bug | `.github/ISSUE_TEMPLATE/bug.yml` |
+| Story   | `.github/ISSUE_TEMPLATE/story.yml`   |
+| Task    | `.github/ISSUE_TEMPLATE/task.yml`    |
+| Bug     | `.github/ISSUE_TEMPLATE/bug.yml`     |
 
 ### 6.2 SOP: Write a Template
 
@@ -591,39 +622,39 @@ name: Epic
 description: Top-level initiative spanning multiple features
 labels: ["epic", "planned"]
 body:
-  - type: textarea
-    id: goal
-    attributes:
-      label: Goal
-      description: What outcome does this epic deliver?
-    validations:
-      required: true
-  - type: textarea
-    id: scope
-    attributes:
-      label: Scope
-      description: Features included (add issue refs once created)
-  - type: textarea
-    id: out_of_scope
-    attributes:
-      label: Out of Scope
-  - type: textarea
-    id: acceptance_criteria
-    attributes:
-      label: Acceptance Criteria
-    validations:
-      required: true
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Priority
-      options: ["p0", "p1", "p2", "p3", "p4", "p5"]
-    validations:
-      required: true
-  - type: textarea
-    id: notes
-    attributes:
-      label: Notes
+    - type: textarea
+      id: goal
+      attributes:
+          label: Goal
+          description: What outcome does this epic deliver?
+      validations:
+          required: true
+    - type: textarea
+      id: scope
+      attributes:
+          label: Scope
+          description: Features included (add issue refs once created)
+    - type: textarea
+      id: out_of_scope
+      attributes:
+          label: Out of Scope
+    - type: textarea
+      id: acceptance_criteria
+      attributes:
+          label: Acceptance Criteria
+      validations:
+          required: true
+    - type: dropdown
+      id: priority
+      attributes:
+          label: Priority
+          options: ["p0", "p1", "p2", "p3", "p4", "p5"]
+      validations:
+          required: true
+    - type: textarea
+      id: notes
+      attributes:
+          label: Notes
 ```
 
 **Feature template (`feature.yml`):**
@@ -633,42 +664,42 @@ name: Feature
 description: Product capability; sub-issue of an epic
 labels: ["feature", "planned"]
 body:
-  - type: input
-    id: parent_epic
-    attributes:
-      label: Parent Epic
-      placeholder: "#123"
-    validations:
-      required: true
-  - type: textarea
-    id: goal
-    attributes:
-      label: Goal
-      description: What capability does this feature add?
-    validations:
-      required: true
-  - type: textarea
-    id: stories
-    attributes:
-      label: Stories
-      description: Add story issue refs once created (one per line)
-  - type: textarea
-    id: acceptance_criteria
-    attributes:
-      label: Acceptance Criteria
-    validations:
-      required: true
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Priority
-      options: ["p0", "p1", "p2", "p3", "p4", "p5"]
-    validations:
-      required: true
-  - type: textarea
-    id: notes
-    attributes:
-      label: Notes
+    - type: input
+      id: parent_epic
+      attributes:
+          label: Parent Epic
+          placeholder: "#123"
+      validations:
+          required: true
+    - type: textarea
+      id: goal
+      attributes:
+          label: Goal
+          description: What capability does this feature add?
+      validations:
+          required: true
+    - type: textarea
+      id: stories
+      attributes:
+          label: Stories
+          description: Add story issue refs once created (one per line)
+    - type: textarea
+      id: acceptance_criteria
+      attributes:
+          label: Acceptance Criteria
+      validations:
+          required: true
+    - type: dropdown
+      id: priority
+      attributes:
+          label: Priority
+          options: ["p0", "p1", "p2", "p3", "p4", "p5"]
+      validations:
+          required: true
+    - type: textarea
+      id: notes
+      attributes:
+          label: Notes
 ```
 
 **Story template (`story.yml`):**
@@ -678,38 +709,38 @@ name: Story
 description: User-observable slice of a feature
 labels: ["story", "planned"]
 body:
-  - type: input
-    id: parent_feature
-    attributes:
-      label: Parent Feature
-      placeholder: "#123"
-    validations:
-      required: true
-  - type: textarea
-    id: user_story
-    attributes:
-      label: User Story
-      description: "As a <role>, I can <action> so that <value>."
-    validations:
-      required: true
-  - type: textarea
-    id: tasks
-    attributes:
-      label: Tasks
-      description: Add task issue refs once created (one per line)
-  - type: textarea
-    id: acceptance_criteria
-    attributes:
-      label: Acceptance Criteria
-    validations:
-      required: true
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Priority
-      options: ["p0", "p1", "p2", "p3", "p4", "p5"]
-    validations:
-      required: true
+    - type: input
+      id: parent_feature
+      attributes:
+          label: Parent Feature
+          placeholder: "#123"
+      validations:
+          required: true
+    - type: textarea
+      id: user_story
+      attributes:
+          label: User Story
+          description: "As a <role>, I can <action> so that <value>."
+      validations:
+          required: true
+    - type: textarea
+      id: tasks
+      attributes:
+          label: Tasks
+          description: Add task issue refs once created (one per line)
+    - type: textarea
+      id: acceptance_criteria
+      attributes:
+          label: Acceptance Criteria
+      validations:
+          required: true
+    - type: dropdown
+      id: priority
+      attributes:
+          label: Priority
+          options: ["p0", "p1", "p2", "p3", "p4", "p5"]
+      validations:
+          required: true
 ```
 
 **Task template (`task.yml`):**
@@ -719,34 +750,34 @@ name: Task
 description: Atomic technical work item
 labels: ["task", "planned"]
 body:
-  - type: input
-    id: parent_story
-    attributes:
-      label: Parent Story
-      placeholder: "#123"
-    validations:
-      required: true
-  - type: textarea
-    id: what
-    attributes:
-      label: What
-      description: Concise technical description
-    validations:
-      required: true
-  - type: textarea
-    id: definition_of_done
-    attributes:
-      label: Definition of Done
-      value: "- [ ] Tests written and passing\n- [ ] Coverage ≥ 80%\n- [ ] flutter analyze clean\n- [ ] dart format applied\n- [ ] PR opened and linked"
-    validations:
-      required: true
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Priority
-      options: ["p0", "p1", "p2", "p3", "p4", "p5"]
-    validations:
-      required: true
+    - type: input
+      id: parent_story
+      attributes:
+          label: Parent Story
+          placeholder: "#123"
+      validations:
+          required: true
+    - type: textarea
+      id: what
+      attributes:
+          label: What
+          description: Concise technical description
+      validations:
+          required: true
+    - type: textarea
+      id: definition_of_done
+      attributes:
+          label: Definition of Done
+          value: "- [ ] Tests written and passing\n- [ ] Coverage ≥ 80%\n- [ ] flutter analyze clean\n- [ ] dart format applied\n- [ ] PR opened and linked"
+      validations:
+          required: true
+    - type: dropdown
+      id: priority
+      attributes:
+          label: Priority
+          options: ["p0", "p1", "p2", "p3", "p4", "p5"]
+      validations:
+          required: true
 ```
 
 **Bug template (`bug.yml`):**
@@ -756,46 +787,46 @@ name: Bug
 description: Defect — functional regression or crash
 labels: ["bug"]
 body:
-  - type: textarea
-    id: summary
-    attributes:
-      label: Summary
-      description: One-sentence description
-    validations:
-      required: true
-  - type: textarea
-    id: steps
-    attributes:
-      label: Steps to Reproduce
-    validations:
-      required: true
-  - type: textarea
-    id: expected
-    attributes:
-      label: Expected Behavior
-  - type: textarea
-    id: actual
-    attributes:
-      label: Actual Behavior
-  - type: textarea
-    id: environment
-    attributes:
-      label: Environment
-      value: "Device: Samsung Galaxy S25\nFlutter version:\nApp version:"
-    validations:
-      required: true
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Severity / Priority
-      options: ["p0", "p1", "p2", "p3", "p4", "p5"]
-    validations:
-      required: true
-  - type: input
-    id: linked
-    attributes:
-      label: Linked Issue (optional)
-      placeholder: "#123"
+    - type: textarea
+      id: summary
+      attributes:
+          label: Summary
+          description: One-sentence description
+      validations:
+          required: true
+    - type: textarea
+      id: steps
+      attributes:
+          label: Steps to Reproduce
+      validations:
+          required: true
+    - type: textarea
+      id: expected
+      attributes:
+          label: Expected Behavior
+    - type: textarea
+      id: actual
+      attributes:
+          label: Actual Behavior
+    - type: textarea
+      id: environment
+      attributes:
+          label: Environment
+          value: "Device: Samsung Galaxy S25\nFlutter version:\nApp version:"
+      validations:
+          required: true
+    - type: dropdown
+      id: priority
+      attributes:
+          label: Severity / Priority
+          options: ["p0", "p1", "p2", "p3", "p4", "p5"]
+      validations:
+          required: true
+    - type: input
+      id: linked
+      attributes:
+          label: Linked Issue (optional)
+          placeholder: "#123"
 ```
 
 ---
@@ -804,14 +835,14 @@ body:
 
 ### 7.1 Branch Naming Convention
 
-| Issue type | Pattern | Example |
-|---|---|---|
-| Feature | `feature/<number>-<slug>` | `feature/12-image-capture` |
-| Story | `story/<number>-<slug>` | `story/15-camera-ui` |
-| Task | `task/<number>-<slug>` | `task/18-camerax-wiring` |
-| Bug | `bug/<number>-<slug>` | `bug/23-crash-rotate` |
-| Chore | `chore/<slug>` | `chore/update-flutter` |
-| Release | `release/<version>` | `release/1.2.0` |
+| Issue type | Pattern                   | Example                    |
+| ---------- | ------------------------- | -------------------------- |
+| Feature    | `feature/<number>-<slug>` | `feature/12-image-capture` |
+| Story      | `story/<number>-<slug>`   | `story/15-camera-ui`       |
+| Task       | `task/<number>-<slug>`    | `task/18-camerax-wiring`   |
+| Bug        | `bug/<number>-<slug>`     | `bug/23-crash-rotate`      |
+| Chore      | `chore/<slug>`            | `chore/update-flutter`     |
+| Release    | `release/<version>`       | `release/1.2.0`            |
 
 ### 7.2 SOP: Open a PR for a Task / Bug
 
@@ -847,12 +878,12 @@ mcp__github__update_pull_request
 
 ### 7.3 Merge Strategies
 
-| Scenario | Method | Rationale |
-|---|---|---|
-| Task / Story into main | `squash` | Clean linear history |
-| Feature integration | `squash` | Collapses branch noise |
-| Release → main | `merge` | Preserves merge commit marking release point |
-| Hotfix | `squash` | Same as task |
+| Scenario               | Method   | Rationale                                    |
+| ---------------------- | -------- | -------------------------------------------- |
+| Task / Story into main | `squash` | Clean linear history                         |
+| Feature integration    | `squash` | Collapses branch noise                       |
+| Release → main         | `merge`  | Preserves merge commit marking release point |
+| Hotfix                 | `squash` | Same as task                                 |
 
 ```
 mcp__github__merge_pull_request
@@ -880,14 +911,17 @@ mcp__github__create_or_update_file
 
 ```markdown
 ## Linked Issue
+
 Closes #<issue-number>
 
 ## Summary
-<!-- What does this PR do? 2–4 bullets. -->
--
+
+## <!-- What does this PR do? 2-4 bullets. -->
+
 -
 
 ## Type of Change
+
 - [ ] feat — new capability
 - [ ] fix — bug fix
 - [ ] refactor — no behavior change
@@ -897,9 +931,11 @@ Closes #<issue-number>
 - [ ] ci — CI/CD changes
 
 ## Commit Convention
+
 <!-- Verify your squash commit follows: type(scope): description (#issue) -->
 
 ## Test Plan
+
 - [ ] Unit tests written / updated
 - [ ] `flutter test --coverage` passes locally
 - [ ] Coverage ≥ 80%
@@ -908,9 +944,11 @@ Closes #<issue-number>
 - [ ] Tested on Samsung Galaxy S25 (if UI change)
 
 ## Screenshots / Recordings
+
 <!-- Required for any UI change. -->
 
 ## Checklist
+
 - [ ] No `print` statements (use `dart:developer` `log`)
 - [ ] No relative imports
 - [ ] No `late` without guaranteed init
@@ -1032,29 +1070,29 @@ BREAKING CHANGE: <description>
 
 ### 8.2 Types
 
-| Type | When |
-|---|---|
-| `feat` | New user-visible capability |
-| `fix` | Bug fix |
-| `refactor` | Restructure without behavior change |
-| `docs` | Documentation only |
-| `test` | Test code only |
-| `chore` | Build, deps, tooling, generated files |
-| `perf` | Performance improvement |
-| `ci` | GitHub Actions / workflow files |
+| Type       | When                                  |
+| ---------- | ------------------------------------- |
+| `feat`     | New user-visible capability           |
+| `fix`      | Bug fix                               |
+| `refactor` | Restructure without behavior change   |
+| `docs`     | Documentation only                    |
+| `test`     | Test code only                        |
+| `chore`    | Build, deps, tooling, generated files |
+| `perf`     | Performance improvement               |
+| `ci`       | GitHub Actions / workflow files       |
 
 ### 8.3 Scopes (Swaralipi)
 
-| Scope | Covers |
-|---|---|
+| Scope      | Covers                         |
+| ---------- | ------------------------------ |
 | `notation` | Image capture, import, display |
-| `metadata` | Fields, search, filter |
-| `storage` | Local DB, file system |
-| `ui` | Widgets, theming, layout |
-| `nav` | GoRouter routes |
-| `vm` | ViewModels |
-| `test` | Test infrastructure |
-| `ci` | Workflow files |
+| `metadata` | Fields, search, filter         |
+| `storage`  | Local DB, file system          |
+| `ui`       | Widgets, theming, layout       |
+| `nav`      | GoRouter routes                |
+| `vm`       | ViewModels                     |
+| `test`     | Test infrastructure            |
+| `ci`       | Workflow files                 |
 
 ### 8.4 Breaking Changes
 
@@ -1105,21 +1143,21 @@ Refs: #7
 
 `MAJOR.MINOR.PATCH+BUILD` — matches Flutter pubspec.yaml standard.
 
-| Segment | Bump when |
-|---|---|
-| MAJOR | Breaking data model change requiring migration; incompatible API change |
-| MINOR | New feature (epic or feature issue closed) |
-| PATCH | Bug fix, performance improvement, non-breaking refactor |
-| BUILD | Auto-injected by CI (`${{ github.run_number }}`) — never set manually |
+| Segment | Bump when                                                               |
+| ------- | ----------------------------------------------------------------------- |
+| MAJOR   | Breaking data model change requiring migration; incompatible API change |
+| MINOR   | New feature (epic or feature issue closed)                              |
+| PATCH   | Bug fix, performance improvement, non-breaking refactor                 |
+| BUILD   | Auto-injected by CI (`${{ github.run_number }}`) — never set manually   |
 
 ### 9.2 Version Decision Table
 
-| Change | Version bump | Example |
-|---|---|---|
-| Storage schema migration (v1→v2) | MAJOR | `1.0.0` → `2.0.0` |
-| New image capture feature shipped | MINOR | `1.0.0` → `1.1.0` |
-| Crash fix on rotate | PATCH | `1.0.0` → `1.0.1` |
-| Performance improvement (no new API) | PATCH | `1.0.0` → `1.0.1` |
+| Change                               | Version bump | Example           |
+| ------------------------------------ | ------------ | ----------------- |
+| Storage schema migration (v1→v2)     | MAJOR        | `1.0.0` → `2.0.0` |
+| New image capture feature shipped    | MINOR        | `1.0.0` → `1.1.0` |
+| Crash fix on rotate                  | PATCH        | `1.0.0` → `1.0.1` |
+| Performance improvement (no new API) | PATCH        | `1.0.0` → `1.0.1` |
 
 ### 9.3 SOP: Create a Release
 
@@ -1141,7 +1179,7 @@ chore: bump version to 1.2.0
 
 5. Create git tag locally: `git tag v1.2.0 && git push origin v1.2.0`.
 
-   **Gap:** MCP has no create-release or create-tag tool. The CI `release.yml` workflow creates GitHub Release automatically on tag push.
+    **Gap:** MCP has no create-release or create-tag tool. The CI `release.yml` workflow creates GitHub Release automatically on tag push.
 
 6. Monitor release — confirm creation:
 
@@ -1154,17 +1192,18 @@ mcp__github__get_release_by_tag
 
 ### 9.4 Tag Strategy
 
-| Tag | Meaning |
-|---|---|
-| `v1.0.0` | Full release |
+| Tag             | Meaning                 |
+| --------------- | ----------------------- |
+| `v1.0.0`        | Full release            |
 | `v1.0.0-beta.1` | Pre-release for testing |
-| `v1.0.0-rc.1` | Release candidate |
+| `v1.0.0-rc.1`   | Release candidate       |
 
 ---
 
 ## 10. GitHub Actions Workflows
 
 **Gap:** MCP has no workflow trigger, dispatch, or run-status tools. Workarounds:
+
 - Create / update workflow YAML files via `create_or_update_file`
 - Check CI status on a PR via `pull_request_read method: get_check_runs`
 - Cannot trigger `workflow_dispatch` or view Actions logs directly
@@ -1196,49 +1235,49 @@ mcp__github__create_or_update_file
 name: PR Check
 
 on:
-  pull_request:
-    branches: [main]
+    pull_request:
+        branches: [main]
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
+    check:
+        runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.24.x'
-          channel: 'stable'
-          cache: true
+            - name: Setup Flutter
+              uses: subosito/flutter-action@v2
+              with:
+                  flutter-version: "3.24.x"
+                  channel: "stable"
+                  cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
+            - name: Install dependencies
+              run: flutter pub get
 
-      - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed .
+            - name: Check formatting
+              run: dart format --output=none --set-exit-if-changed .
 
-      - name: Analyze
-        run: flutter analyze --fatal-infos --fatal-warnings
+            - name: Analyze
+              run: flutter analyze --fatal-infos --fatal-warnings
 
-      - name: Run code generation
-        run: dart run build_runner build --delete-conflicting-outputs
+            - name: Run code generation
+              run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Run tests
-        run: flutter test --coverage --reporter=github
+            - name: Run tests
+              run: flutter test --coverage --reporter=github
 
-      - name: Check coverage threshold
-        run: |
-          COVERAGE=$(lcov --summary coverage/lcov.info 2>&1 | grep "lines" | awk '{print $2}' | tr -d '%')
-          echo "Coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-            echo "Coverage ${COVERAGE}% is below 80% threshold"
-            exit 1
-          fi
+            - name: Check coverage threshold
+              run: |
+                  COVERAGE=$(lcov --summary coverage/lcov.info 2>&1 | grep "lines" | awk '{print $2}' | tr -d '%')
+                  echo "Coverage: ${COVERAGE}%"
+                  if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+                    echo "Coverage ${COVERAGE}% is below 80% threshold"
+                    exit 1
+                  fi
 
-      - name: Build APK (debug)
-        run: flutter build apk --debug
+            - name: Build APK (debug)
+              run: flutter build apk --debug
 ```
 
 ### 10.2 SOP: Install Release Workflow
@@ -1260,55 +1299,55 @@ mcp__github__create_or_update_file
 name: Release Build
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-    inputs:
-      version_bump:
-        description: 'Version bump type (patch|minor|major)'
-        required: false
-        default: 'patch'
+    push:
+        branches: [main]
+    workflow_dispatch:
+        inputs:
+            version_bump:
+                description: "Version bump type (patch|minor|major)"
+                required: false
+                default: "patch"
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+    release:
+        runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.24.x'
-          channel: 'stable'
-          cache: true
+            - name: Setup Flutter
+              uses: subosito/flutter-action@v2
+              with:
+                  flutter-version: "3.24.x"
+                  channel: "stable"
+                  cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
+            - name: Install dependencies
+              run: flutter pub get
 
-      - name: Analyze
-        run: flutter analyze --fatal-infos --fatal-warnings
+            - name: Analyze
+              run: flutter analyze --fatal-infos --fatal-warnings
 
-      - name: Run code generation
-        run: dart run build_runner build --delete-conflicting-outputs
+            - name: Run code generation
+              run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Run tests
-        run: flutter test --coverage
+            - name: Run tests
+              run: flutter test --coverage
 
-      - name: Build release AAB
-        run: flutter build appbundle --release
+            - name: Build release AAB
+              run: flutter build appbundle --release
 
-      - name: Build release APK
-        run: flutter build apk --release --split-per-abi
+            - name: Build release APK
+              run: flutter build apk --release --split-per-abi
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: swaralipi-release-${{ github.sha }}
-          path: |
-            build/app/outputs/bundle/release/app-release.aab
-            build/app/outputs/apk/release/app-arm64-v8a-release.apk
-          retention-days: 30
+            - name: Upload artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: swaralipi-release-${{ github.sha }}
+                  path: |
+                      build/app/outputs/bundle/release/app-release.aab
+                      build/app/outputs/apk/release/app-arm64-v8a-release.apk
+                  retention-days: 30
 ```
 
 ### 10.3 SOP: Check CI on a PR
@@ -1327,18 +1366,18 @@ Check `conclusion` field per run: `success` / `failure` / `in_progress` / `neutr
 
 ## 11. Gaps and Workarounds
 
-| Capability | MCP support | Workaround |
-|---|---|---|
-| GitHub Milestones | None | Use `p0`–`p5` priority labels + epic/feature hierarchy |
-| Branch protection rules | None | Set manually in GitHub web UI once |
-| GitHub Projects v2 | None | Use `search_issues` with label filters as kanban view |
-| Workflow trigger / dispatch | None | Push tag or commit; CI fires automatically |
-| View Actions run logs | None | Use `get_check_runs` on PR for pass/fail only |
-| Create GitHub Release | None | CI `release.yml` creates on tag push; confirm via `get_release_by_tag` |
-| Milestone on issues | `issue_write` supports `milestone` field | Milestone must be pre-created in GitHub web UI |
-| Delete default labels | `label_write method: delete` | Call for each default label by exact name |
-| Auto-assign reviewers on open | None | Call `update_pull_request` with `reviewers` after opening |
-| `sub_issue_id` vs number | Must be node ID | Always call `issue_read method: get` first; extract `node_id` |
+| Capability                    | MCP support                              | Workaround                                                             |
+| ----------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
+| GitHub Milestones             | None                                     | Use `p0`-`p5` priority labels + epic/feature hierarchy                 |
+| Branch protection rules       | None                                     | Set manually in GitHub web UI once                                     |
+| GitHub Projects v2            | None                                     | Use `search_issues` with label filters as kanban view                  |
+| Workflow trigger / dispatch   | None                                     | Push tag or commit; CI fires automatically                             |
+| View Actions run logs         | None                                     | Use `get_check_runs` on PR for pass/fail only                          |
+| Create GitHub Release         | None                                     | CI `release.yml` creates on tag push; confirm via `get_release_by_tag` |
+| Milestone on issues           | `issue_write` supports `milestone` field | Milestone must be pre-created in GitHub web UI                         |
+| Delete default labels         | `label_write method: delete`             | Call for each default label by exact name                              |
+| Auto-assign reviewers on open | None                                     | Call `update_pull_request` with `reviewers` after opening              |
+| `sub_issue_id` vs number      | Must be node ID                          | Always call `issue_read method: get` first; extract `node_id`          |
 
 ---
 
@@ -1551,6 +1590,7 @@ Seven production-ready bash scripts automate multi-step workflows, output machin
 **Purpose:** Create or verify all 14 taxonomy labels; optionally delete GitHub defaults.
 
 **Usage:**
+
 ```bash
 ./bootstrap-labels.sh [--delete-defaults] [--force-update] [--dry-run]
 ```
@@ -1563,9 +1603,10 @@ Seven production-ready bash scripts automate multi-step workflows, output machin
 
 ### 14.2 `create-issue.sh`
 
-**Purpose:** Create GitHub issue + auto-link parent + add to project + set Status/Priority/Size fields (5–6 MCP calls → 1 command).
+**Purpose:** Create GitHub issue + auto-link parent + add to project + set Status/Priority/Size fields (5-6 MCP calls → 1 command).
 
 **Usage:**
+
 ```bash
 ./create-issue.sh --type <epic|feature|story|task|bug> --title "<title>" \
   [--parent <number>] [--priority <p0..p5>] [--status <status>] [--size <xs..xl>] \
@@ -1574,7 +1615,7 @@ Seven production-ready bash scripts automate multi-step workflows, output machin
 
 **Output:** JSON with `issue_number`, `node_id`, `url`, `labels`, `parent_linked`, `project_item_id`, `project_fields_set`.
 
-**When to use:** In place of Sections 5.2–5.6 multi-step SOPs.
+**When to use:** In place of Sections 5.2-5.6 multi-step SOPs.
 
 ---
 
@@ -1583,13 +1624,14 @@ Seven production-ready bash scripts automate multi-step workflows, output machin
 **Purpose:** Link existing child to parent via GraphQL `addSubIssue` (2 calls → 1 command).
 
 **Usage:**
+
 ```bash
 ./link-sub-issue.sh --parent <number> --child <number> [--replace-parent] [--dry-run]
 ```
 
 **Output:** JSON with parent/child details and `success` flag.
 
-**When to use:** In place of Section 2.2 / Section 5.3–5.5 step 3.
+**When to use:** In place of Section 2.2 / Section 5.3-5.5 step 3.
 
 ---
 
@@ -1598,6 +1640,7 @@ Seven production-ready bash scripts automate multi-step workflows, output machin
 **Purpose:** Add issue to project + set Status/Priority/Size fields (4 calls → 1 command).
 
 **Usage:**
+
 ```bash
 ./set-project-fields.sh --issue <number> \
   [--status <backlog|ready|in_progress|in_review|done>] \
@@ -1616,6 +1659,7 @@ Seven production-ready bash scripts automate multi-step workflows, output machin
 **Purpose:** Change issue state (update labels, set project Status, optionally close/comment) — delta label updates, not full replacement.
 
 **Usage:**
+
 ```bash
 ./transition-issue.sh --issue <number> --to <ready|in_progress|in_review|done|blocked> \
   --type <epic|feature|story|task|bug> --priority <p0..p5> \
@@ -1633,6 +1677,7 @@ Seven production-ready bash scripts automate multi-step workflows, output machin
 **Purpose:** Create branch + open draft PR with pre-filled template (3 calls → 1 command).
 
 **Usage:**
+
 ```bash
 ./create-branch-pr.sh --issue <number> --type <feature|story|task|bug|chore|release> --slug <kebab-slug> \
   [--title "<title>"] [--scope <scope>] [--base <branch>] [--from <branch>] [--no-draft] [--dry-run]
@@ -1649,6 +1694,7 @@ Seven production-ready bash scripts automate multi-step workflows, output machin
 **Purpose:** One-command full repo setup: labels + issue templates + PR template + CI workflows.
 
 **Usage:**
+
 ```bash
 ./bootstrap-repo.sh [--delete-default-labels] \
   [--skip-labels] [--skip-templates] [--skip-pr-template] [--skip-workflows] \
@@ -1664,6 +1710,7 @@ Seven production-ready bash scripts automate multi-step workflows, output machin
 ### 14.8 Shared Library: `lib/constants.sh`
 
 **Purpose:** Sourced by all scripts. Provides:
+
 - Fixed IDs: `OWNER`, `REPO`, `PROJECT_NUMBER`, `PROJECT_ID`
 - Field/option ID maps: `STATUS_OPTS`, `PRIORITY_OPTS`, `SIZE_OPTS` (bash associative arrays)
 - Label taxonomy: `LABEL_COLOR`, `LABEL_DESC`
@@ -1677,8 +1724,8 @@ Seven production-ready bash scripts automate multi-step workflows, output machin
 
 1. **Error handling:** `set -euo pipefail` + bash 4+ check (for associative arrays)
 2. **Output discipline:**
-   - **stdout:** Machine-parseable JSON only (for agent parsing)
-   - **stderr:** Human-readable progress via `log()`, errors via `die()`
+    - **stdout:** Machine-parseable JSON only (for agent parsing)
+    - **stderr:** Human-readable progress via `log()`, errors via `die()`
 3. **Dry-run support:** Pass `--dry-run` flag or set `DRY_RUN=1` env var
 4. **Help text:** Every script supports `--help` / `-h`
 5. **Tools verification:** Each script calls `require_cmd gh jq` etc. at startup
@@ -1688,12 +1735,12 @@ Seven production-ready bash scripts automate multi-step workflows, output machin
 
 ### 14.10 Integration with SKILL.md Sections
 
-| SKILL.md Section | Corresponding Script | Usage |
-|---|---|---|
-| 4.2 (Bootstrap SOP) | `bootstrap-labels.sh` | `./bootstrap-labels.sh [--delete-defaults]` |
-| 5.2–5.6 (Issue creation SOPs) | `create-issue.sh` | `./create-issue.sh --type <type> --title <title> [--parent <n>]` |
-| 2.2 (Sub-issue linking) | `link-sub-issue.sh` | `./link-sub-issue.sh --parent <n> --child <m>` |
-| 2.3 (Project field management) | `set-project-fields.sh` | `./set-project-fields.sh --issue <n> --status <s> --priority <P>` |
-| 5.7 (Update issue status) | `transition-issue.sh` | `./transition-issue.sh --issue <n> --to <state> --type <type> --priority <p>` |
-| 7.2 (Open a PR) | `create-branch-pr.sh` | `./create-branch-pr.sh --issue <n> --type <type> --slug <slug>` |
-| 13 (Activation Checklist) | `bootstrap-repo.sh` | `./bootstrap-repo.sh [--dry-run]` |
+| SKILL.md Section               | Corresponding Script    | Usage                                                                         |
+| ------------------------------ | ----------------------- | ----------------------------------------------------------------------------- |
+| 4.2 (Bootstrap SOP)            | `bootstrap-labels.sh`   | `./bootstrap-labels.sh [--delete-defaults]`                                   |
+| 5.2-5.6 (Issue creation SOPs)  | `create-issue.sh`       | `./create-issue.sh --type <type> --title <title> [--parent <n>]`              |
+| 2.2 (Sub-issue linking)        | `link-sub-issue.sh`     | `./link-sub-issue.sh --parent <n> --child <m>`                                |
+| 2.3 (Project field management) | `set-project-fields.sh` | `./set-project-fields.sh --issue <n> --status <s> --priority <P>`             |
+| 5.7 (Update issue status)      | `transition-issue.sh`   | `./transition-issue.sh --issue <n> --to <state> --type <type> --priority <p>` |
+| 7.2 (Open a PR)                | `create-branch-pr.sh`   | `./create-branch-pr.sh --issue <n> --type <type> --slug <slug>`               |
+| 13 (Activation Checklist)      | `bootstrap-repo.sh`     | `./bootstrap-repo.sh [--dry-run]`                                             |

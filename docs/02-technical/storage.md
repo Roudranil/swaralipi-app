@@ -125,7 +125,7 @@ date: 2026-04-23
 4. FileStorageService.deleteNotationDirectory(notationId) [removes now-empty dir]
 ```
 
-File deletion is best-effort after DB delete. Orphaned files (from crash between steps 2–4) are cleaned at startup via reconciliation.
+File deletion is best-effort after DB delete. Orphaned files (from crash between steps 2-4) are cleaned at startup via reconciliation.
 
 ---
 
@@ -197,7 +197,7 @@ No special cleanup needed. SQLite WAL is checkpointed on connection close (Drift
 | Storage quota | None (app-private dir has no hard quota) | OS-level device storage |
 | Max custom field definitions | 20 | App layer (CustomFieldRepository) |
 
-**Storage estimate:** Average JPEG from S25 camera ≈ 3–8 MB. 100 notations × 3 pages × 5 MB = ~1.5 GB worst case. No automatic compression in v1; user is responsible for device storage.
+**Storage estimate:** Average JPEG from S25 camera ≈ 3-8 MB. 100 notations × 3 pages × 5 MB = ~1.5 GB worst case. No automatic compression in v1; user is responsible for device storage.
 
 ---
 

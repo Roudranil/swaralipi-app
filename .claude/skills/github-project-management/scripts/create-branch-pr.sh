@@ -32,7 +32,7 @@ pr_template() {
 Closes #$issue
 
 ## Summary
-<!-- What does this PR do? 2–4 bullets. -->
+<!-- What does this PR do? 2-4 bullets. -->
 -
 -
 

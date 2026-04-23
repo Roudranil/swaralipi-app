@@ -511,7 +511,7 @@ Stored as JSON in `notation_pages.render_params`.
 ```
 
 **Notes:**
-- `crop` values are normalized (0.0–1.0 fractions of original dimensions). Device-resolution-independent.
+- `crop` values are normalized (0.0-1.0 fractions of original dimensions). Device-resolution-independent.
 - `rotation_degrees`: one of `0 | 90 | 180 | 270`.
 - Default (`{}`): treated as `filter=original, rotation=0, auto_straighten=false, crop=full`.
 - Deserialized into `RenderParams` Dart class (json_serializable); never constructed from raw JSON at display time.

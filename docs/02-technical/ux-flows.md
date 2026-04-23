@@ -126,7 +126,7 @@ FAB (bottom-right)
 
 | Option | Default direction |
 |--------|-------------------|
-| Title | A–Z |
+| Title | A-Z |
 | Date written | Newest first |
 | Date added | Newest first |
 | Play count | Most first |

@@ -496,7 +496,7 @@ Positioned (bottom-right)
 
 | Label | Default Direction | Secondary Icon |
 |-------|-----------------|---------------|
-| Title | A–Z | `Icons.arrow_upward` / `Icons.arrow_downward` |
+| Title | A-Z | `Icons.arrow_upward` / `Icons.arrow_downward` |
 | Date written | Newest first | same |
 | Date added | Newest first | same |
 | Play count | Most first | same |

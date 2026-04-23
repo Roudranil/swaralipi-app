@@ -97,7 +97,7 @@ Run independent agents in parallel.
 ### General
 
 - KISS → DRY → YAGNI, in that order
-- Files: 200–400 lines typical, 800 max; organize by feature/domain
+- Files: 200-400 lines typical, 800 max; organize by feature/domain
 - Functions: < 50 lines; < 20 lines preferred
 - No magic numbers — named constants only
 - No deep nesting (> 4 levels) — prefer early returns
@@ -132,7 +132,7 @@ For more rules, please read the `.claude/rules/` directory
 - Use numbered headings everywhere possible.
 - Be liberal with using headings on markdown files. This will help you to read the file easily.
 - Add a docstring comment block to the top of any code file that you generate.
-- **Docs: decision only. Reason optional, 3–5 words max.** "UUID. Sync-friendly." enough. No paragraphs.
+- **Docs: decision only. Reason optional, 3-5 words max.** "UUID. Sync-friendly." enough. No paragraphs.
 - Tables and bullets. No prose. No summaries.
 
 ### Never

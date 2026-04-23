@@ -19,9 +19,9 @@ MD3 defines 5 breakpoint classes:
 | Class | Width Range | Typical Devices | Columns |
 |-------|-----------|----------------|---------|
 | Compact | < 600dp | Phone portrait | 4 |
-| Medium | 600–839dp | Tablet portrait, foldable | 8 |
-| Expanded | 840–1199dp | Tablet landscape, small desktop | 12 |
-| Large | 1200–1599dp | Desktop | 12 |
+| Medium | 600-839dp | Tablet portrait, foldable | 8 |
+| Expanded | 840-1199dp | Tablet landscape, small desktop | 12 |
+| Large | 1200-1599dp | Desktop | 12 |
 | Extra-large | 1600dp+ | Ultra-wide, large desktop | 12 |
 
 ### Flutter Breakpoints
@@ -333,7 +333,7 @@ For tablets, Chromebooks, desktop, and large foldables (Expanded, Large, Extra-l
 
 **Content width constraints:**
 - Don't stretch content to fill ultra-wide screens — reading lines longer than ~80 characters become hard to scan
-- Constrain body content to a max width (typically 840–1040dp) and center it
+- Constrain body content to a max width (typically 840-1040dp) and center it
 - Use the extra space for multi-pane layouts, not wider single columns
 
 ```dart
@@ -349,9 +349,9 @@ ConstrainedBox(
 | Window class | Columns | Recommended layout |
 |-------------|---------|-------------------|
 | Compact (<600dp) | 4 | Single pane. Full-screen navigation between views. |
-| Medium (600–839dp) | 8 | Optional second pane. List-detail with narrow list. Rail navigation. |
-| Expanded (840–1199dp) | 12 | Two panes standard. List-detail or supporting pane. Drawer navigation. |
-| Large (1200–1599dp) | 12 | Two or three panes. Feed with side panel. Persistent supporting pane. |
+| Medium (600-839dp) | 8 | Optional second pane. List-detail with narrow list. Rail navigation. |
+| Expanded (840-1199dp) | 12 | Two panes standard. List-detail or supporting pane. Drawer navigation. |
+| Large (1200-1599dp) | 12 | Two or three panes. Feed with side panel. Persistent supporting pane. |
 | Extra-large (1600dp+) | 12 | Three panes or constrained two-pane with generous margins. |
 
 **Adaptive input in Flutter:**

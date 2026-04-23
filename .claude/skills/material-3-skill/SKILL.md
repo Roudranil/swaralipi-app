@@ -161,7 +161,7 @@ Flutter easing equivalents:
 
 | Component          | Flutter Widget                                                                         | Key Variants                                                     | Category      |
 | ------------------ | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------- |
-| Button             | `FilledButton`, `OutlinedButton`, `TextButton`, `ElevatedButton`, `FilledButton.tonal` | Filled, Outlined, Text, Elevated, Tonal; 5 sizes (XS–XL); toggle | Actions       |
+| Button             | `FilledButton`, `OutlinedButton`, `TextButton`, `ElevatedButton`, `FilledButton.tonal` | Filled, Outlined, Text, Elevated, Tonal; 5 sizes (XS-XL); toggle | Actions       |
 | Button group       | `SegmentedButton`                                                                      | Standard, connected                                              | Actions       |
 | Extended FAB       | `FloatingActionButton.extended`                                                        | Surface, Primary, Secondary, Tertiary                            | Actions       |
 | FAB                | `FloatingActionButton`                                                                 | Small, Medium, Large                                             | Actions       |
@@ -353,7 +353,7 @@ More patterns: `references/navigation-patterns.md`, `references/layout-and-respo
 - **Use shadows for elevation by default**: MD3 communicates elevation through tonal surface color, not shadows. With `useMaterial3: true`, `Material(elevation: X)` applies tonal overlay automatically. Only add explicit shadows when elements need extra separation from busy backgrounds.
 - **Apply frontend-design "avoid Roboto" rule**: On **Flutter/Android**, **Roboto** is the default Material typeface. Replace only when intentionally customizing the type scale.
 - **Ignore foldables and large screens**: MD3 is designed for all screen sizes. Don't ship phone-only layouts — use canonical layouts, multi-pane at 600dp+, and test on foldable/tablet emulators. Place no interactive content across the fold/hinge.
-- **Stretch content to fill wide screens**: On Large (1200dp+) and Extra-large (1600dp+) windows, constrain content to a max width (840–1040dp). Endless-width text lines are unreadable.
+- **Stretch content to fill wide screens**: On Large (1200dp+) and Extra-large (1600dp+) windows, constrain content to a max width (840-1040dp). Endless-width text lines are unreadable.
 
 ## Platform Notes
 
@@ -387,7 +387,7 @@ The Expressive update adds visual richness while maintaining usability. **Availa
 | Spring / motion physics                    | Varies by Flutter Material version; check current Flutter docs and Material package changelog |
 | Emphasized typography                      | Via theme / type scale                                                                        |
 | Shape morphing                             | Check current Flutter docs                                                                    |
-| New button sizes (XS–XL), toggle           | Follow Flutter MD3 widget docs                                                                |
+| New button sizes (XS-XL), toggle           | Follow Flutter MD3 widget docs                                                                |
 | Extra corner tokens (e.g. large-increased) | Theme shapes                                                                                  |
 | 3 contrast levels                          | Plugins / manual scheme builders                                                              |
 
@@ -402,7 +402,7 @@ When invoked with `audit` as the argument (e.g., `/material-3 audit`), or when a
 ### Audit Procedure
 
 1. **Identify the target**: The user provides a URL (use browser tools to inspect), file paths (read source), or a running app.
-2. **Inspect the following categories** and score each 0–10:
+2. **Inspect the following categories** and score each 0-10:
 
 | Category          | What to check                                                                                                                                                                                    |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

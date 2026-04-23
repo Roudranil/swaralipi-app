@@ -42,7 +42,7 @@ template_epic() {
 <!-- How do we know it's done? -->
 
 ## Priority
-<!-- p0–p5 -->
+<!-- p0-p5 -->
 
 ## Notes
 EOF
@@ -63,7 +63,7 @@ template_feature() {
 <!-- How do we know this is done? -->
 
 ## Priority
-<!-- p0–p5 -->
+<!-- p0-p5 -->
 
 ## Notes
 EOF
@@ -84,7 +84,7 @@ As a <role>, I can <action> so that <value>.
 <!-- How do we know this is done? -->
 
 ## Priority
-<!-- p0–p5 -->
+<!-- p0-p5 -->
 EOF
 }
 
@@ -104,7 +104,7 @@ template_task() {
 - [ ] PR opened and linked
 
 ## Priority
-<!-- p0–p5 -->
+<!-- p0-p5 -->
 EOF
 }
 
@@ -127,7 +127,7 @@ Flutter version:
 App version:
 
 ## Severity / Priority
-<!-- p0–p5 -->
+<!-- p0-p5 -->
 
 ## Linked Issue (if applicable)
 <!-- #<issue-number> -->
