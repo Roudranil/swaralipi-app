@@ -1523,7 +1523,15 @@ mcp__github__issue_write method: update
 
 ## 13. Activation Checklist
 
-Before any project management operation, confirm:
+**Shortcut:** Run the `bootstrap-repo.sh` script to execute all checklist items in a single command:
+
+```bash
+./.claude/skills/github-project-management/scripts/bootstrap-repo.sh --dry-run
+# Review the JSON output, then:
+./.claude/skills/github-project-management/scripts/bootstrap-repo.sh
+```
+
+**Manual checklist** (if not using the script):
 
 - [ ] `OWNER = Roudranil`, `REPO = swaralipi-app` (or query with user if different repo)
 - [ ] All 14 labels exist → run `mcp__github__list_label`; bootstrap if missing (Section 4.2)
@@ -1531,3 +1539,161 @@ Before any project management operation, confirm:
 - [ ] PR template exists at `.github/pull_request_template.md` → check via `get_file_contents`; write if missing (Section 7.4)
 - [ ] Workflow files exist at `.github/workflows/pr-check.yml` and `release.yml` → check; write if missing (Section 10)
 - [ ] **Critical:** `sub_issue_id` must be `node_id` (e.g., `I_kwDO...`), NOT issue number — always fetch `node_id` via `issue_read method: get` first
+
+---
+
+## 14. Scripts Reference
+
+Seven production-ready bash scripts automate multi-step workflows, output machine-parseable JSON, and support `--dry-run` mode. Located in `.claude/skills/github-project-management/scripts/`.
+
+### 14.1 `bootstrap-labels.sh`
+
+**Purpose:** Create or verify all 14 taxonomy labels; optionally delete GitHub defaults.
+
+**Usage:**
+```bash
+./bootstrap-labels.sh [--delete-defaults] [--force-update] [--dry-run]
+```
+
+**Output:** JSON with `created`, `already_existed`, `deleted_defaults`, `missing_after` arrays and `success` flag.
+
+**When to use:** Before any project work; after merging SKILL.md label changes.
+
+---
+
+### 14.2 `create-issue.sh`
+
+**Purpose:** Create GitHub issue + auto-link parent + add to project + set Status/Priority/Size fields (5–6 MCP calls → 1 command).
+
+**Usage:**
+```bash
+./create-issue.sh --type <epic|feature|story|task|bug> --title "<title>" \
+  [--parent <number>] [--priority <p0..p5>] [--status <status>] [--size <xs..xl>] \
+  [--body <text> | --body-file <path>] [--assignee <login>] [--no-project] [--dry-run]
+```
+
+**Output:** JSON with `issue_number`, `node_id`, `url`, `labels`, `parent_linked`, `project_item_id`, `project_fields_set`.
+
+**When to use:** In place of Sections 5.2–5.6 multi-step SOPs.
+
+---
+
+### 14.3 `link-sub-issue.sh`
+
+**Purpose:** Link existing child to parent via GraphQL `addSubIssue` (2 calls → 1 command).
+
+**Usage:**
+```bash
+./link-sub-issue.sh --parent <number> --child <number> [--replace-parent] [--dry-run]
+```
+
+**Output:** JSON with parent/child details and `success` flag.
+
+**When to use:** In place of Section 2.2 / Section 5.3–5.5 step 3.
+
+---
+
+### 14.4 `set-project-fields.sh`
+
+**Purpose:** Add issue to project + set Status/Priority/Size fields (4 calls → 1 command).
+
+**Usage:**
+```bash
+./set-project-fields.sh --issue <number> \
+  [--status <backlog|ready|in_progress|in_review|done>] \
+  [--priority <P0|P1|P2>] [--size <xs|s|m|l|xl>] \
+  [--item-id <id>] [--dry-run]
+```
+
+**Output:** JSON with `issue_number`, `project_item_id`, `fields_set` object.
+
+**When to use:** In place of Section 2.3 manual project field edits.
+
+---
+
+### 14.5 `transition-issue.sh`
+
+**Purpose:** Change issue state (update labels, set project Status, optionally close/comment) — delta label updates, not full replacement.
+
+**Usage:**
+```bash
+./transition-issue.sh --issue <number> --to <ready|in_progress|in_review|done|blocked> \
+  --type <epic|feature|story|task|bug> --priority <p0..p5> \
+  [--blocked-by <number> --blocked-reason "<text>"] [--dry-run]
+```
+
+**Output:** JSON with `from_state`, `to_state`, `labels_updated`, `project_status_set`, `issue_closed`, `comment_posted` flags.
+
+**When to use:** In place of Section 5.7 workflow transitions.
+
+---
+
+### 14.6 `create-branch-pr.sh`
+
+**Purpose:** Create branch + open draft PR with pre-filled template (3 calls → 1 command).
+
+**Usage:**
+```bash
+./create-branch-pr.sh --issue <number> --type <feature|story|task|bug|chore|release> --slug <kebab-slug> \
+  [--title "<title>"] [--scope <scope>] [--base <branch>] [--from <branch>] [--no-draft] [--dry-run]
+```
+
+**Output:** JSON with `branch`, `pr_number`, `pr_url`, `pr_title`, `draft` flag.
+
+**When to use:** In place of Section 7.2 manual branch + PR creation.
+
+---
+
+### 14.7 `bootstrap-repo.sh`
+
+**Purpose:** One-command full repo setup: labels + issue templates + PR template + CI workflows.
+
+**Usage:**
+```bash
+./bootstrap-repo.sh [--delete-default-labels] \
+  [--skip-labels] [--skip-templates] [--skip-pr-template] [--skip-workflows] \
+  [--branch <branch>] [--dry-run]
+```
+
+**Output:** JSON with nested reports for labels, issue templates, PR template, and workflows.
+
+**When to use:** Fresh repo setup or Section 13 Activation Checklist.
+
+---
+
+### 14.8 Shared Library: `lib/constants.sh`
+
+**Purpose:** Sourced by all scripts. Provides:
+- Fixed IDs: `OWNER`, `REPO`, `PROJECT_NUMBER`, `PROJECT_ID`
+- Field/option ID maps: `STATUS_OPTS`, `PRIORITY_OPTS`, `SIZE_OPTS` (bash associative arrays)
+- Label taxonomy: `LABEL_COLOR`, `LABEL_DESC`
+- Helper functions: `die()`, `log()`, `dry_run_or_exec()`, `json_output()`, etc.
+
+**Never executed directly** — only sourced via `source "$SCRIPT_DIR/lib/constants.sh"` at the top of each script.
+
+---
+
+### 14.9 Common Patterns Across All Scripts
+
+1. **Error handling:** `set -euo pipefail` + bash 4+ check (for associative arrays)
+2. **Output discipline:**
+   - **stdout:** Machine-parseable JSON only (for agent parsing)
+   - **stderr:** Human-readable progress via `log()`, errors via `die()`
+3. **Dry-run support:** Pass `--dry-run` flag or set `DRY_RUN=1` env var
+4. **Help text:** Every script supports `--help` / `-h`
+5. **Tools verification:** Each script calls `require_cmd gh jq` etc. at startup
+6. **Idempotency:** `bootstrap-labels.sh`, `set-project-fields.sh`, and `bootstrap-repo.sh` are re-runnable; others create new state by design
+
+---
+
+### 14.10 Integration with SKILL.md Sections
+
+| SKILL.md Section | Corresponding Script | Usage |
+|---|---|---|
+| 4.2 (Bootstrap SOP) | `bootstrap-labels.sh` | `./bootstrap-labels.sh [--delete-defaults]` |
+| 5.2–5.6 (Issue creation SOPs) | `create-issue.sh` | `./create-issue.sh --type <type> --title <title> [--parent <n>]` |
+| 2.2 (Sub-issue linking) | `link-sub-issue.sh` | `./link-sub-issue.sh --parent <n> --child <m>` |
+| 2.3 (Project field management) | `set-project-fields.sh` | `./set-project-fields.sh --issue <n> --status <s> --priority <P>` |
+| 5.7 (Update issue status) | `transition-issue.sh` | `./transition-issue.sh --issue <n> --to <state> --type <type> --priority <p>` |
+| 7.2 (Open a PR) | `create-branch-pr.sh` | `./create-branch-pr.sh --issue <n> --type <type> --slug <slug>` |
+| 13 (Activation Checklist) | `bootstrap-repo.sh` | `./bootstrap-repo.sh [--dry-run]` |
