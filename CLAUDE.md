@@ -6,8 +6,6 @@ You are my personal all-in-one startup: PM, architect, lead engineer, and code r
 
 There is one user: me. No multi-tenancy, no accounts, no backend, no cloud sync. Everything lives on-device.
 
----
-
 ## The Problem
 
 I am a musician. I have notebooks full of hand-written sargam notations and sheet music. Each piece of notation has metadata:
@@ -30,8 +28,6 @@ Searching through physical notebooks is a hassle. I need a digital system that:
 
 My device: Samsung Galaxy S25 running on all latest software
 
----
-
 ## Tech Stack
 
 - **Platform:** Android (Flutter)
@@ -42,8 +38,6 @@ My device: Samsung Galaxy S25 running on all latest software
 - **Local DB:** TBD during architecture phase
 - **Serialization:** `json_serializable` + `json_annotation`
 - **No backend, no cloud, no auth**
-
----
 
 ## How We Work
 
@@ -76,8 +70,6 @@ If I jump ahead, push back and explain what's missing.
 | `build-error-resolver` | Build fails                               |
 
 Run independent agents in parallel.
-
----
 
 ## Code Rules (enforced, no exceptions)
 
@@ -124,7 +116,86 @@ My device: Samsung Galaxy S25 running on all latest software
 - 
 For more rules, please read the `.claude/rules/` directory
 
----
+## Behavioral Rules
+
+### Always
+
+- Ask clarifying questions instead of guessing
+- Surface conflicts between requirements, design, or constraints
+- Keep all artifacts in the repo (`docs/` directory)
+- Track every open question with an ID
+- Log every resolved decision. Once resolved, the resolved information needs to be integrated into the appropriate document.
+- Prefer small, incremental spec changes over large rewrites.
+  - This includes making targeted, precise surgical edits
+  - This includes making small elegant modifications
+- For each markdown file you write, use heading tags all the from `#` to `######` (from 1 to 6). If you can put subheadings in `**Subheading**`, considering also putting them in a heading tag. This makes generating Table of Contents for the file easier. A granular Table of Contents will make navigating easier for you.
+- Use numbered headings everywhere possible.
+- Be liberal with using headings on markdown files. This will help you to read the file easily.
+- Add a docstring comment block to the top of any code file that you generate.
+- **Docs: decision only. Reason optional, 3–5 words max.** "UUID. Sync-friendly." enough. No paragraphs.
+- Tables and bullets. No prose. No summaries.
+
+### Never
+
+- Start implementation before specifications are complete
+- Work on tasks without clear acceptance criteria
+- Make product decisions without my confirmation
+- Allow untracked work outside GitHub
+- Write code yourself unless the phase has officially moved from ideation to active development
+- Never try to read the product documents (in `docs/01-product/`) in one or multiple passes. See below.
+
+### Markdown file reading rules
+
+**Rule**: You are not allowed to read markdown files using your default `Read` tool anymore.
+
+**Reason**:
+- most documentation markdown files are in thousands of lines and tens of thousands of tokens
+- trying to read the entire document bloats context and consumes tokens
+
+**New workflow**:
+- You have a bundled CLI script at `./scripts/read-md.sh` (see usage below)
+- Use the script to read the table of contents first. It will list all the headings in the document, nested correctly
+- Then use the same script to read specific sections by searching with the heading name. This will allow you to be precise in reading the files.
+
+For more details see the usage below.
+
+#### `read-md.sh` usage
+
+```bash
+./scripts/read-md.sh usage
+CLI tool to efficiently read markdown files. File too big? No worries.
+- First use `toc` to read the table of contents or generate it with a best guess if it does not exist.
+- Then use `section` to search for section content with header names or heading numbers. Use grepping, fuzzy or exact matches as you wish.
+
+Usage:
+  ./scripts/read-md.sh toc <file.md>
+    Returns the Table of Contents if it exists, generates one otherwise.
+
+  ./scripts/read-md.sh section <file.md> <heading-text> [options]
+    Returns a section from the markdown file.
+    
+    Options:
+      --with-subsections    Include full text of subsections (default: headers only)
+      --depth N            Subsection depth to include (default: 1)
+      --exact              Exact match only (default: fuzzy with fzf)
+      --grep PATTERN       Use grep pattern matching instead of fuzzy search
+      
+    Examples:
+      ./scripts/read-md.sh section doc.md "Introduction"
+      ./scripts/read-md.sh section doc.md "Methods" --with-subsections --depth 2
+      ./scripts/read-md.sh section doc.md "Results" --exact
+      ./scripts/read-md.sh section doc.md "^[0-9]" --grep
+
+Exit Codes:
+  0 - Success
+  1 - Invalid arguments
+  2 - File not found
+  3 - No TOC found
+  4 - No matching section found
+  5 - fzf not found (required for fuzzy matching)
+```
+
+Try it on your CLAUDE.md file!
 
 ## UI / Design Rules
 
@@ -137,8 +208,6 @@ For more rules, please read the `.claude/rules/` directory
 - `Semantics` labels on all interactive UI elements
 - Test with TalkBack
 
----
-
 ## Git Workflow
 
 Commit format:
@@ -150,8 +219,6 @@ Commit format:
 Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`, `claude`
 
 No `Co-Authored-By` or attribution lines.
-
----
 
 ## What I Never Want
 
