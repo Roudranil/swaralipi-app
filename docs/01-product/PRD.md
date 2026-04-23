@@ -492,3 +492,4 @@ None. PRD closed.
 | D-32 | SVG icons for InstrumentClass: v2 | 2026-04-23 |
 | D-33 | Notation Instruments picker shows InstrumentInstances (not classes) | 2026-04-23 |
 | D-34 | Instruments use soft delete only; archived instruments stay visible on existing notations | 2026-04-23 |
+| D-35 | Tag delete cascades — tag removed from all notations automatically; no block | 2026-04-23 |
