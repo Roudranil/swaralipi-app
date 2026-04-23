@@ -178,10 +178,19 @@ if [[ -z "$PR_TITLE" ]]; then
   # Convert slug to title case (hyphens → spaces)
   slug_title="${SLUG//-/ }"
 
-  if [[ -n "$COMMIT_SCOPE" ]]; then
-    PR_TITLE="feat($COMMIT_SCOPE): $slug_title"
+  # Map branch type to conventional commit prefix
+  case "$BRANCH_TYPE" in
+    bug)                commit_type="fix" ;;
+    chore)              commit_type="chore" ;;
+    release)            commit_type="chore(release)" ;;
+    feature|story|task) commit_type="feat" ;;
+    *)                  commit_type="feat" ;;
+  esac
+
+  if [[ -n "$COMMIT_SCOPE" && "$BRANCH_TYPE" != "release" ]]; then
+    PR_TITLE="$commit_type($COMMIT_SCOPE): $slug_title"
   else
-    PR_TITLE="feat: $slug_title"
+    PR_TITLE="$commit_type: $slug_title"
   fi
 fi
 

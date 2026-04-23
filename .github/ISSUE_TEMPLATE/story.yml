@@ -3,6 +3,13 @@ description: User-observable slice of a feature
 labels: ["story", "planned"]
 body:
   - type: input
+    id: parent_epic
+    attributes:
+      label: Parent Epic
+      placeholder: "#123"
+    validations:
+      required: true
+  - type: input
     id: parent_feature
     attributes:
       label: Parent Feature
@@ -27,6 +34,11 @@ body:
       label: Acceptance Criteria
     validations:
       required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to relevant sections or files in /docs (one per line)
   - type: dropdown
     id: priority
     attributes:
@@ -34,3 +46,7 @@ body:
       options: ["p0", "p1", "p2", "p3", "p4", "p5"]
     validations:
       required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes

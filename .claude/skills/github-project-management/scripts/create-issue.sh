@@ -41,6 +41,9 @@ template_epic() {
 ## Acceptance Criteria
 <!-- How do we know it's done? -->
 
+## References
+<!-- Links to /docs sections or files (one per line) -->
+
 ## Priority
 <!-- p0-p5 -->
 
@@ -56,11 +59,20 @@ template_feature() {
 ## Goal
 <!-- What capability does this feature add? -->
 
+## Scope
+<!-- What is explicitly in scope? -->
+
+## Out of Scope
+<!-- What is explicitly excluded? -->
+
 ## Stories
 - [ ] #<story-number>
 
 ## Acceptance Criteria
 <!-- How do we know this is done? -->
+
+## References
+<!-- Links to /docs sections or files (one per line) -->
 
 ## Priority
 <!-- p0-p5 -->
@@ -71,6 +83,9 @@ EOF
 
 template_story() {
   cat <<'EOF'
+## Parent Epic
+<!-- #<epic-number> -->
+
 ## Parent Feature
 <!-- #<feature-number> -->
 
@@ -83,8 +98,13 @@ As a <role>, I can <action> so that <value>.
 ## Acceptance Criteria
 <!-- How do we know this is done? -->
 
+## References
+<!-- Links to /docs sections or files (one per line) -->
+
 ## Priority
 <!-- p0-p5 -->
+
+## Notes
 EOF
 }
 
@@ -103,8 +123,13 @@ template_task() {
 - [ ] `dart format` applied
 - [ ] PR opened and linked
 
+## References
+<!-- Links to /docs sections or files (one per line) -->
+
 ## Priority
 <!-- p0-p5 -->
+
+## Notes
 EOF
 }
 
@@ -131,6 +156,11 @@ App version:
 
 ## Linked Issue (if applicable)
 <!-- #<issue-number> -->
+
+## References
+<!-- Links to /docs sections or files (one per line) -->
+
+## Notes
 EOF
 }
 

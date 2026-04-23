@@ -19,10 +19,14 @@ body:
     id: expected
     attributes:
       label: Expected Behavior
+    validations:
+      required: true
   - type: textarea
     id: actual
     attributes:
       label: Actual Behavior
+    validations:
+      required: true
   - type: textarea
     id: environment
     attributes:
@@ -42,3 +46,12 @@ body:
     attributes:
       label: Linked Issue (optional)
       placeholder: "#123"
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to relevant sections or files in /docs (one per line)
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes

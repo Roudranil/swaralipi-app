@@ -18,12 +18,19 @@ body:
     id: out_of_scope
     attributes:
       label: Out of Scope
+      description: Explicitly excluded from this epic
   - type: textarea
     id: acceptance_criteria
     attributes:
       label: Acceptance Criteria
+      description: How do we know it's done?
     validations:
       required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to relevant sections or files in /docs (one per line)
   - type: dropdown
     id: priority
     attributes:

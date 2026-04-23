@@ -17,6 +17,16 @@ body:
     validations:
       required: true
   - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is explicitly in scope for this feature?
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of Scope
+      description: What is explicitly excluded from this feature?
+  - type: textarea
     id: stories
     attributes:
       label: Stories
@@ -27,6 +37,11 @@ body:
       label: Acceptance Criteria
     validations:
       required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to relevant sections or files in /docs (one per line)
   - type: dropdown
     id: priority
     attributes:

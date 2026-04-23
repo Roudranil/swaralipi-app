@@ -23,6 +23,11 @@ body:
       value: "- [ ] Tests written and passing\n- [ ] Coverage ≥ 80%\n- [ ] flutter analyze clean\n- [ ] dart format applied\n- [ ] PR opened and linked"
     validations:
       required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to relevant sections or files in /docs (one per line)
   - type: dropdown
     id: priority
     attributes:
@@ -30,3 +35,7 @@ body:
       options: ["p0", "p1", "p2", "p3", "p4", "p5"]
     validations:
       required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
