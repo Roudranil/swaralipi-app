@@ -1,25 +1,34 @@
 ---
 name: github-project-management
 description: >
-  Full GitHub project management via MCP tools — label taxonomy (epic → feature → story → task / bug),
+  Full GitHub project management via MCP tools and gh CLI — label taxonomy (epic → feature → story → task / bug),
   issue hierarchy with sub-issue linking, PR workflow (branch naming, review, merge strategies),
   commit conventions (conventional commits extended), semantic versioning, and GitHub Actions setup.
-  No gh CLI available. Use whenever creating or managing issues, PRs, labels, releases, or repo
-  scaffolding files on Swaralipi.
+  Includes gh CLI for project field management and GraphQL for sub-issue creation. Use whenever creating
+  or managing issues, PRs, labels, releases, or repo scaffolding files on Swaralipi.
 ---
 
 # GitHub Project Management via MCP Skill
 
-## 1. Constants
+## 1. Constants & Scope
 
 Every tool call in this skill uses these values:
 
 ```
 OWNER = Roudranil
 REPO  = swaralipi-app
+PROJECT = 4 (Swaralipi)
 ```
 
 Do NOT repeat these in inline examples — they are inherited by all `mcp__github__*` calls.
+
+**⚠️ CRITICAL BOUNDARY:**
+
+This skill operates ONLY on the Swaralipi repository and project (#4). **Other projects (variance, Lattice) are strictly off-bounds.** Do not interact with them under any circumstances. Always verify you are working with:
+- Repository: `Roudranil/swaralipi-app`
+- Project: `4` (Swaralipi)
+
+If a request references other projects, decline and redirect to Swaralipi work only.
 
 ---
 
@@ -56,6 +65,137 @@ Do NOT repeat these in inline examples — they are inherited by all `mcp__githu
 | List releases | `mcp__github__list_releases` | `page`, `perPage` |
 
 **Critical callout:** `sub_issue_id` is the GitHub **node ID** (format: `I_kwDO...`), **NOT the issue number**. Always fetch via `issue_read method: get` first and extract the `node_id` field.
+
+---
+
+## 2.1 GitHub CLI (`gh`) Quick-Reference
+
+The `gh` CLI provides complementary capabilities to MCP tools, especially for project management and sub-issue linking.
+
+| Purpose | Command | Parameters |
+|---|---|---|
+| List projects | `gh project list --owner Roudranil` | — |
+| View project details | `gh project view 4 --owner Roudranil` | project number |
+| List project items | `gh project item-list 4 --owner Roudranil` | project number |
+| Add issue to project | `gh project item-add 4 --owner Roudranil --url <issue-url>` | project number, issue URL |
+| Edit project item field | `gh project item-edit --id <item-id> --project-id <proj-id> --field-id <field-id> --single-select-option-id <opt-id>` | item ID, project ID, field ID, option ID |
+| Create issue | `gh issue create --repo Roudranil/swaralipi-app --title "<title>" --body "<body>" --label label1,label2` | title, body, labels |
+| Close issue | `gh issue close <number> --repo Roudranil/swaralipi-app` | issue number |
+| Add sub-issue (GraphQL) | `gh api graphql -f query='mutation { addSubIssue(input: {...}) { ... } }'` | See Section 2.2 |
+
+### 2.2 Sub-Issue Management via GraphQL
+
+**Note:** Sub-issues cannot be created via `gh issue` flags; use GraphQL `addSubIssue` mutation instead.
+
+**Tested and working mutation:**
+
+```bash
+gh api graphql -f query='
+  mutation {
+    addSubIssue(input: {
+      issueId: "I_kwDOSKa3F88AAAABAUB0IA"
+      subIssueUrl: "https://github.com/Roudranil/swaralipi-app/issues/6"
+      replaceParent: false
+    }) {
+      issue {
+        id
+        number
+        title
+      }
+    }
+  }
+'
+```
+
+**Parameters:**
+- `issueId` (required): Parent issue node ID
+- `subIssueUrl` (required): URL of child issue to link
+- `replaceParent` (optional): Set true to replace existing parent relationship
+
+**To verify sub-issue relationship:**
+
+```bash
+gh api graphql -f query='
+  query {
+    repository(owner: "Roudranil", name: "swaralipi-app") {
+      issue(number: 5) {
+        number
+        subIssues(first: 10) {
+          nodes {
+            number
+            title
+          }
+        }
+      }
+    }
+  }
+'
+```
+
+### 2.3 Project Field Management via `gh project item-edit`
+
+**Step 1: Get field IDs and option IDs** (one-time setup)
+
+```bash
+gh api graphql -f query='
+  query {
+    user(login: "Roudranil") {
+      projectV2(number: 4) {
+        id
+        fields(first: 20) {
+          nodes {
+            ... on ProjectV2SingleSelectField {
+              id
+              name
+              options {
+                id
+                name
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+'
+```
+
+**Current Swaralipi Project field mapping (project ID: `PVT_kwHOA51EZs4BVe4H`):**
+
+| Field | Field ID | Option | Option ID |
+|---|---|---|---|
+| Status | `PVTSSF_lAHOA51EZs4BVe4HzhQ6YbE` | Backlog | `f75ad846` |
+| | | Ready | `e18bf179` |
+| | | In progress | `47fc9ee4` |
+| | | In review | `aba860b9` |
+| | | Done | `98236657` |
+| Priority | `PVTSSF_lAHOA51EZs4BVe4HzhQ6Yig` | P0 | `79628723` |
+| | | P1 | `0a877460` |
+| | | P2 | `da944a9c` |
+| Size | `PVTSSF_lAHOA51EZs4BVe4HzhQ6Yik` | XS | `911790be` |
+| | | S | `b277fb01` |
+| | | M | `86db8eb3` |
+| | | L | `853c8207` |
+| | | XL | `2d0801e2` |
+
+**Step 2: Update item field**
+
+```bash
+# Example: Set Status to "In progress" on item PVTI_lAHOA51EZs4BVe4Hzgqxpms
+gh project item-edit \
+  --id PVTI_lAHOA51EZs4BVe4Hzgqxpms \
+  --project-id PVT_kwHOA51EZs4BVe4H \
+  --field-id PVTSSF_lAHOA51EZs4BVe4HzhQ6YbE \
+  --single-select-option-id 47fc9ee4
+```
+
+Repeat for Priority and Size fields using their respective field IDs and option IDs.
+
+**Tested capabilities:**
+- ✅ `gh project item-add` — adds issues to project
+- ✅ `gh project item-edit` — updates Status, Priority, Size fields
+- ✅ GraphQL `addSubIssue` — creates parent-child relationships
+- ✅ Field values persisted correctly
 
 ---
 
