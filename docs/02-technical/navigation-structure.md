@@ -50,6 +50,7 @@ date: 2026-04-23
 | `captureEditor` | `/capture/editor` | `PageEditorScreen` | **No** |
 | `captureMetadata` | `/capture/metadata` | `MetadataFormScreen` | **No** |
 | `settings` | `/settings` | `SettingsScreen` | Yes |
+| `appearance` | `/settings/appearance` | `AppearanceScreen` | Yes |
 | `tags` | `/settings/tags` | `TagsScreen` | Yes |
 | `tagCreate` | `/settings/tags/new` | `TagFormScreen` | Yes |
 | `tagEdit` | `/settings/tags/:tagId/edit` | `TagFormScreen` | Yes |
@@ -72,6 +73,7 @@ GoRouter
 │   ├── /                       → LibraryScreen
 │   │   └── /notation/:id       → NotationDetailScreen
 │   └── /settings               → SettingsScreen
+│       ├── /settings/appearance → AppearanceScreen
 │       ├── /settings/tags      → TagsScreen
 │       │   ├── /new            → TagFormScreen
 │       │   └── /:tagId/edit    → TagFormScreen
@@ -121,6 +123,7 @@ GoRoute path: /
 
 ```
 GoRoute path: /settings
+  ├── GoRoute path: appearance
   ├── GoRoute path: tags
   │   ├── GoRoute path: new
   │   └── GoRoute path: :tagId/edit

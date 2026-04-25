@@ -601,7 +601,7 @@ Tap [Archive] on InstrumentInstanceDetailScreen
   → Confirmation dialog: "Archive instrument? It will no longer appear in pickers."
     [Cancel] → dismiss
     [Archive]
-      → instance.archived_at = now()
+      → instance.deleted_at = now()
       → removed from notation metadata pickers
       → still displayed on existing notations that reference it (greyed out / badge)
       → back to InstrumentsScreen
@@ -665,7 +665,7 @@ Accessed via Settings > Appearance. See [PRD §5.10](../01-product/PRD.md#510-ap
 
 ```
 Three-option toggle: Light · Dark · System
-Tap → applies immediately. Persists to SharedPreferences.
+Tap → applies immediately. Persists to `user_preferences` table via `PreferencesRepository`.
 ```
 
 ### 16.2 Color Scheme
@@ -692,7 +692,7 @@ All other color pickers in-app (tags, instrument color) use Catppuccin palette o
 
 ## 17. Custom Fields
 
-Route: `/settings/custom-fields`. See [PRD §5.2 Custom Fields](../01-product/PRD.md#52-metadata) · [Feature DAG F02](./feature-dag.md#32-features).
+Route: `/settings/custom-fields`. See [PRD §5.2 Custom Fields](../01-product/PRD.md#52-metadata) · [Data Model §2.8–2.9](./data-model.md#28-custom_field_definitions) · [State Management §5.10](./state-management.md#510-customfieldsviewmodel).
 
 ```
 CustomFieldsScreen (/settings/custom-fields)

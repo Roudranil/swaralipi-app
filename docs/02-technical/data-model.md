@@ -254,10 +254,11 @@ CREATE TABLE user_preferences (
                       CHECK (theme_mode IN ('light', 'dark', 'system')),
   color_scheme_mode TEXT NOT NULL DEFAULT 'catppuccin'
                       CHECK (color_scheme_mode IN ('catppuccin', 'monet')),
-  seed_color        TEXT,                               -- hex; used only when color_scheme_mode = 'custom' (v2)
-  default_sort      TEXT NOT NULL DEFAULT 'updated_at_desc'
+  seed_color        TEXT,                               -- Catppuccin hex picked from palette; used when color_scheme_mode = 'catppuccin'
+  default_sort      TEXT NOT NULL DEFAULT 'created_at_desc'
                       CHECK (default_sort IN (
-                        'updated_at_desc', 'updated_at_asc',
+                        'created_at_desc', 'created_at_asc',
+                        'date_written_desc', 'date_written_asc',
                         'title_asc', 'title_desc',
                         'play_count_desc', 'last_played_at_desc'
                       )),
@@ -421,8 +422,8 @@ CREATE INDEX idx_custom_fields_notation
 **Seed data (migration v1):**
 
 ```
-tags: ['Sargam', 'Bandish', 'Bhajan', 'Ghazal', 'Folk']
-  with Catppuccin Mocha accent colors
+tags: ['practice', 'raag', 'song', 'classical', 'piece']
+  with distinct Catppuccin Mocha accent colors
 user_preferences: insert with all defaults (id = 1)
 ```
 
@@ -462,7 +463,7 @@ SELECT * FROM notations
 WHERE deleted_at IS NULL
   AND last_played_at IS NOT NULL
 ORDER BY last_played_at DESC
-LIMIT 10;
+LIMIT 5;
 ```
 
 ### 8.4 Trash Screen

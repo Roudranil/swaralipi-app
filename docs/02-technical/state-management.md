@@ -23,6 +23,8 @@ date: 2026-04-23
    6. [TagsViewModel](#56-tagsviewmodel)
    7. [TrashViewModel](#57-trashviewmodel)
    8. [SettingsViewModel](#58-settingsviewmodel)
+   9. [AppearanceViewModel](#59-appearanceviewmodel)
+   10. [CustomFieldsViewModel](#510-customfieldsviewmodel)
 6. [Widget Integration Pattern](#6-widget-integration-pattern)
 7. [Reactive DB Streams](#7-reactive-db-streams)
 8. [Immutability Rules](#8-immutability-rules)
@@ -297,7 +299,44 @@ InstrumentsState {
 
 **State type:** `AsyncState<UserPreferences>`
 
-**Methods:** `init()`, `updateThemeMode(ThemeMode)`, `updateColorSchemeMode(...)`, `updateDefaultSort(...)`.
+**Methods:** `init()`, `updateUserName(String)`, `updateDefaultSort(SortOption)`.
+
+> **Note:** Theme mode and color scheme are managed by `AppearanceViewModel` (§5.9), not here.
+
+---
+
+### 5.9 AppearanceViewModel
+
+**State type:** `AsyncState<AppearanceState>`
+
+```
+AppearanceState {
+  themeMode: ThemeMode,                // light | dark | system
+  colorSchemeMode: ColorSchemeMode,    // catppuccin | monet
+  seedColor: Color?,                   // selected Catppuccin swatch; null = use default
+}
+```
+
+**Methods:**
+
+| Method | Trigger |
+|---|---|
+| `init()` | Screen mount |
+| `updateThemeMode(ThemeMode)` | SegmentedButton selection |
+| `updateColorSchemeMode(ColorSchemeMode)` | Radio button selection |
+| `updateSeedColor(Color)` | Catppuccin swatch tap |
+
+**DB stream:** Watches `user_preferences` via `PreferencesRepository.watch()`. Changes apply immediately to `MaterialApp.themeMode` and `ColorScheme`.
+
+---
+
+### 5.10 CustomFieldsViewModel
+
+**State type:** `AsyncState<List<CustomFieldDefinition>>`
+
+**Methods:** `init()`, `createField(name, type)`, `updateField(id, name, type)`, `deleteField(id)`.
+
+**DB stream:** Watches `custom_field_definitions` table via `CustomFieldRepository.watchAll()`.
 
 ---
 

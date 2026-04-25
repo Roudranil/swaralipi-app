@@ -190,18 +190,18 @@ void main() {
 
     await vm.loadNotations();
 
-    expect(vm.state, isA<AsyncData<List<Notation>>>());
+    expect(vm.state, isA<Success<List<Notation>>>());
     expect(notifyCount, greaterThanOrEqualTo(2)); // loading + data
   });
 
-  test('loadNotations emits AsyncError on repository failure', () async {
+  test('loadNotations emits Failure on repository error', () async {
     when(mockRepo.watchAll()).thenAnswer(
       (_) => Stream.error(StorageException('db error')),
     );
 
     await vm.loadNotations();
 
-    expect(vm.state, isA<AsyncError>());
+    expect(vm.state, isA<Failure>());
   });
 }
 ```
@@ -251,7 +251,7 @@ Widget tests use `flutter_test`'s `WidgetTester`. Each test:
 | **Library** | Empty state, list renders n items, filter chip tap triggers filter, search input debounce |
 | **Capture** | Camera placeholder, metadata form validation errors, save button disabled when invalid, save success snackbar |
 | **Notation Detail** | Title + metadata rendered, edit navigation tap |
-| **Player** | Image displayed, auto-scroll toggle, speed slider value change, orientation scaffold |
+| **Player** | Page displayed, swipe between pages, pinch-zoom gesture, chrome fade on inactivity, orientation lock toggle |
 | **Trash** | Empty state, item restore tap, purge confirmation dialog |
 | **Tags** | Tag list, add tag inline field, delete confirmation |
 | **Instruments** | Class list, instance accordion expand, add instance tap |
@@ -305,8 +305,7 @@ void main() {
 
 | Mock | Real in |
 |---|---|
-| `NotationRepository` | Unit: ViewModel tests |
-| `CaptureRepository` | Unit: CaptureViewModel tests |
+| `NotationRepository` | Unit: ViewModel tests (LibraryViewModel, CaptureViewModel, NotationDetailViewModel) |
 | `SearchService` | Unit: LibraryViewModel tests |
 | `FileStorageService` | Unit: service consumer tests |
 | `ImageProcessingService` | Unit: CaptureViewModel tests |
@@ -328,7 +327,6 @@ import 'package:swaralipi_app/core/search/search_service.dart';
 
 @GenerateMocks([
   NotationRepository,
-  CaptureRepository,
   TrashRepository,
   TagsRepository,
   InstrumentsRepository,

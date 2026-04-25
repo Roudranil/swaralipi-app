@@ -8,6 +8,23 @@ date: 2026-04-23
 
 # Swaralipi — System Design Spec
 
+## Related Documents
+
+| Document | Role |
+|---|---|
+| [PRD](../01-product/PRD.md) | Product requirements and feature acceptance criteria |
+| [Data Model](./data-model.md) | Full schema, indexes, constraints, query patterns |
+| [Navigation Structure](./navigation-structure.md) | Route registry, shell layout, transition specs |
+| [State Management](./state-management.md) | ViewModel catalog, AsyncState, DI wiring |
+| [Storage](./storage.md) | File layout, write/delete protocols, lifecycle tasks |
+| [Tech Stack](./tech-stack.md) | Package list, pubspec template, Android config |
+| [Error Handling](./error-handling.md) | Exception taxonomy, layer strategy, UI patterns |
+| [Logging](./logging.md) | AppLogger API, levels, tag conventions |
+| [Testing Strategy](./testing-strategy.md) | Pyramid, tooling, coverage targets, TDD workflow |
+| [UI Spec](./ui-spec.md) | Widget choices, MD3 tokens, component patterns |
+| [UX Flows](./ux-flows.md) | Screen-by-screen interaction flows |
+| [CI/CD](./ci-cd.md) | Pipeline stages, quality gates, release strategy |
+
 ## 1. Context & Goals
 
 ### 1.1 Problem Statement
@@ -265,6 +282,7 @@ Switch on this at the widget layer — exhaustive, no `default` wildcard.
 |---|---|---|
 | Library (shell) | `/` | `LibraryScreen` |
 | Settings (shell) | `/settings` | `SettingsScreen` |
+| Appearance | `/settings/appearance` | `AppearanceScreen` |
 | Add Notation | `/capture` | `CaptureEntrySheet` (bottom sheet) |
 | Page Editor | `/capture/editor` | `PageEditorScreen` |
 | Metadata Form | `/capture/metadata` | `MetadataFormScreen` |
@@ -316,6 +334,15 @@ Switch on this at the widget layer — exhaustive, no `default` wildcard.
 - Output: transformed `Uint8List` for display
 - Runs on isolate via `compute()` to avoid UI jank
 - **Library:** `image` (pub.dev) for filter/crop/rotate operations
+
+**Two rendering contexts:**
+
+| Context | Strategy | Reason |
+|---|---|---|
+| Page Editor preview | `ColorFiltered` widget (GPU) for simple filters; `image` package + `compute()` for crop/rotate | Fast interactive preview; no full decode for filter-only changes |
+| Notation Player | `ImageProcessingService.apply()` via `compute()` always — full RenderParams applied | Player needs final pixel-accurate output; GPU widget not sufficient for composite transforms |
+
+Simple filters (B&W, grayscale, tint) in the Editor never call `ImageProcessingService`; they use `ColorFiltered` for zero-decode cost. In the Player, all pages are fully decoded and all RenderParams applied before display.
 
 ### 6.4 Search Service
 
@@ -529,8 +556,6 @@ Hybrid approach:
 - **Options considered:** `sqflite` (raw), `isar` (NoSQL), `objectbox` (NoSQL).
 - **Tradeoffs:** Code-gen overhead accepted for type safety and reactive streams.
 
-
-use drift
 ---
 
 ### ADR-02: ChangeNotifier MVVM (no Riverpod/BLoC)
@@ -540,7 +565,6 @@ use drift
 - **Decision:** `ChangeNotifier` ViewModels; `provider` for injection only.
 - **Tradeoffs:** Less reactive power than Riverpod; simpler mental model.
 
-use the industry standard state of the art
 ---
 
 ### ADR-03: Non-destructive image pipeline via RenderParams

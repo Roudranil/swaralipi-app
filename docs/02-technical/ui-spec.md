@@ -367,10 +367,10 @@ All values as `BorderRadius.circular(X)` or `RoundedRectangleBorder`.
 | Player chrome fade | `AnimatedOpacity` | 300ms |
 | Snackbar entry | `Curves.easeOutCubic` | 250ms |
 | Snackbar exit | `Curves.easeInCubic` | 200ms |
-| Filter chip toggle | Flutter Material spring | — |
+| Filter chip toggle | `SpringSimulation(SpringDescription(mass: 1, stiffness: 800, damping: 80))` — or use `Curves.easeInOutCubicEmphasized` as approximation | ~300ms |
 | Swipe action reveal | Linear (follows finger) | — |
-| FAB collapse (scroll down) | MD3 spring | — |
-| FAB expand (scroll up) | MD3 spring | — |
+| FAB collapse (scroll down) | `SpringDescription(mass: 1, stiffness: 800, damping: 80)` via `AnimationController` + `SpringSimulation` | ~250ms |
+| FAB expand (scroll up) | Same spring | ~250ms |
 | Active filter banner appear | `AnimatedSwitcher` | 200ms |
 
 ---
@@ -504,7 +504,7 @@ Positioned (bottom-right)
 
 - **Active option:** `ListTile(selected: true)` with `selectedColor: colorScheme.primary`; trailing direction icon shown
 - **Re-tap active:** toggles ASC/DESC
-- **Persistence:** stored in `SharedPreferences` as default sort; survives restarts
+- **Persistence:** stored in `user_preferences` table via `PreferencesRepository`; survives restarts
 
 #### 4.1.7 Tag Chip Quick-Filter Row
 
@@ -655,8 +655,8 @@ Scaffold(
 
 - `AnimatedOpacity(opacity: _chromeVisible ? 1.0 : 0.0, duration: Duration(milliseconds: 300))`
 - **Visible on entry:** true
-- **Auto-hide:** `Timer(Duration(seconds: 2), () => setState(() => _chromeVisible = false))` reset on any interaction
-- **Tap to restore:** `GestureDetector(onTap: _showChrome)` overlaid on entire screen
+- **Auto-hide:** managed by `PlayerViewModel.scheduleChromeHide()` which starts a 2-second `Timer`; ViewModel cancels it in `dispose()`. Widget reads `viewModel.isChromeVisible` via `ListenableBuilder` — no `setState` in the widget.
+- **Tap to restore:** `GestureDetector(onTap: viewModel.showChrome)` overlaid on entire screen
 
 #### 4.3.3 Top Overlay
 
@@ -779,6 +779,7 @@ Scaffold:
 - `Center` → `AspectRatio(aspectRatio: 3/4)` (portrait default; ignored in landscape)
 - `ClipRRect(borderRadius: BorderRadius.circular(12))`
 - `Image.file(fit: BoxFit.contain)` wrapped with `ColorFiltered` when filter ≠ Original
+- **Optimization:** when `filter == FilterOption.original`, omit `ColorFiltered` entirely — do not wrap in a no-op `ColorFilter.mode(Colors.transparent, BlendMode.multiply)`. Conditional: `filter == original ? Image.file(...) : ColorFiltered(colorFilter: ..., child: Image.file(...))`
 
 ##### Filter ColorMatrix Values
 
@@ -958,7 +959,7 @@ ListView:
 
 - `SegmentedButton<ThemeMode>` with 3 segments: Light / Dark / System
 - `selected: {currentMode}`, `onSelectionChanged: _applyMode`
-- Apply immediately via `ThemeViewModel`; persist to `SharedPreferences`
+- Apply immediately via `AppearanceViewModel`; persist to `user_preferences` table via `PreferencesRepository`
 
 #### 4.9.3 Catppuccin Swatch Picker
 

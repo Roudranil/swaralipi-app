@@ -107,12 +107,11 @@ date: 2026-04-23
 
 | Package | Version | Role |
 |---|---|---|
-| `image_picker` | ^1.1.2 | Gallery multi-select (wraps Android photo picker) |
-| `camera` | ^0.11.0 | In-process camera preview (fallback; primary is intent-based) |
+| `image_picker` | ^1.1.2 | Gallery multi-select + camera capture (wraps Android photo picker and camera intent) |
 
-**Camera strategy (D-09, AQ-01 resolved):** Primary = device camera via `image_picker` with `ImageSource.camera` (single capture) + gallery picker for multi-select. For the "take multiple, then select" flow (camera intent → return → MediaStore query): use `image_picker` with gallery source after camera session; `image_picker` handles permissions cleanly. No raw `MethodChannel` needed for v1.
+**Camera strategy (D-09, AQ-01 resolved):** `image_picker` handles both gallery and camera flows. For the "take multiple, then select" flow: record a `launch_timestamp`, invoke `ImageSource.camera` for individual shots, then use `ImageSource.gallery` to let the user select photos taken after `launch_timestamp`. No raw `MethodChannel` or separate `camera` package needed for v1.
 
-**Why `image_picker`:** Flutter-team maintained; handles scoped storage (Android 13+) and photo picker API automatically; avoids raw `MediaStore` query complexity.
+**Why `image_picker`:** Flutter-team maintained; handles scoped storage (Android 13+) and the Android photo picker API automatically; runtime permissions handled internally.
 
 ---
 

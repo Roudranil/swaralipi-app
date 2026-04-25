@@ -124,6 +124,7 @@ flowchart TD
 | F09  | Trash | Soft-deleted notation list; restore or purge; auto-purge after 30 days. [PRD §5.9](../01-product/PRD.md#59-trash) · [Data Model](./data-model.md) |
 | F10  | Appearance & Theming | Light/Dark/System toggle; Dynamic Monet or Catppuccin seed color. [PRD §5.10](../01-product/PRD.md#510-appearance--theming) |
 | F11  | Settings | Top-level shell aggregating Tags, Instruments, Trash, Appearance, Custom Fields, and app info. [PRD §5.11](../01-product/PRD.md#511-settings) · [Navigation](./navigation-structure.md) |
+| F12  | Custom Fields | CRUD for user-defined custom field definitions (name + type); fields appear in the metadata form. [PRD §5.2](../01-product/PRD.md#52-metadata) · [Data Model §2.8](./data-model.md) · [State Management §5.10](./state-management.md) |
 
 ---
 
@@ -139,13 +140,14 @@ flowchart TD
 | F06  | SVC1, SVC2 | instances persisted in DB; photo on disk |
 | F10  | SVC1       | UserPreferences written to DB |
 | F09  | SVC1, SVC2 | soft-delete flag in DB; files retained until purge |
-| F02  | SVC1, F07, F06 | metadata form embeds tag and instrument pickers |
+| F12  | SVC1       | custom field definitions persisted in DB |
+| F02  | SVC1, F07, F06, F12 | metadata form embeds tag, instrument, and custom field pickers |
 | F01  | SVC1, SVC2, F02 | capture saves pages to disk, metadata to DB |
 | F08  | F01, F09   | edit re-enters capture flow; delete lands in trash |
 | F03  | SVC4, F01, F07, F08, F04 | list needs saved notations, tag filter, search, and navigation target |
 | F04  | SVC1, F08, F05 | reads notation from DB; hosts edit/delete; launches player |
 | F05  | SVC1, SVC2, SVC3 | fetches pages from DB + disk; renders with image pipeline |
-| F11  | F07, F06, F09, F10 | settings shell aggregates all four sub-sections |
+| F11  | F07, F06, F09, F10, F12 | settings shell aggregates all sub-sections |
 
 ---
 
@@ -179,8 +181,9 @@ Branch work (parallel once blocker is done):
 | SVC4 (SearchService) | SVC1 |
 | F06 (Instrument Tracker) | SVC1, SVC2 |
 | F10 (Appearance & Theming) | SVC1 |
+| F12 (Custom Fields) | SVC1 |
 | F05 (Notation Player) | SVC1, SVC2, SVC3 |
-| F11 (Settings) | F07, F06, F09, F10 |
+| F11 (Settings) | F07, F06, F09, F10, F12 |
 
 ---
 
@@ -203,3 +206,4 @@ Branch work (parallel once blocker is done):
 | F09  | S         | Low    | Soft-delete list + scheduled auto-purge |
 | F10  | S         | Low    | Preference write + theme rebuild; no data flow |
 | F11  | M         | Low    | Shell only; no new logic |
+| F12  | S         | Low    | Simple CRUD; no async surprises; no file I/O |
