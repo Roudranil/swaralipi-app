@@ -8,29 +8,6 @@ date: 2026-04-23
 
 # Swaralipi — State Management
 
-## Table of Contents
-
-1. [Pattern Overview](#1-pattern-overview)
-2. [AsyncState Sealed Class](#2-asyncstate-sealed-class)
-3. [ViewModel Contract](#3-viewmodel-contract)
-4. [Dependency Injection](#4-dependency-injection)
-5. [ViewModel Catalog](#5-viewmodel-catalog)
-   1. [LibraryViewModel](#51-libraryviewmodel)
-   2. [CaptureViewModel](#52-captureviewmodel)
-   3. [NotationDetailViewModel](#53-notationdetailviewmodel)
-   4. [PlayerViewModel](#54-playerviewmodel)
-   5. [InstrumentsViewModel](#55-instrumentsviewmodel)
-   6. [TagsViewModel](#56-tagsviewmodel)
-   7. [TrashViewModel](#57-trashviewmodel)
-   8. [SettingsViewModel](#58-settingsviewmodel)
-   9. [AppearanceViewModel](#59-appearanceviewmodel)
-   10. [CustomFieldsViewModel](#510-customfieldsviewmodel)
-6. [Widget Integration Pattern](#6-widget-integration-pattern)
-7. [Reactive DB Streams](#7-reactive-db-streams)
-8. [Immutability Rules](#8-immutability-rules)
-
----
-
 ## 1. Pattern Overview
 
 **MVVM + ChangeNotifier + provider.**

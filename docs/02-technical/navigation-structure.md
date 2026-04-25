@@ -8,23 +8,6 @@ date: 2026-04-23
 
 # Swaralipi — Navigation Structure
 
-## Table of Contents
-
-1. [Navigation Architecture](#1-navigation-architecture)
-2. [Route Registry](#2-route-registry)
-3. [Shell Structure](#3-shell-structure)
-4. [Route Definitions](#4-route-definitions)
-   1. [ShellRoute — Bottom Nav](#41-shellroute--bottom-nav)
-   2. [Library Branch](#42-library-branch)
-   3. [Settings Branch](#43-settings-branch)
-5. [Bottom Sheet Routes](#5-bottom-sheet-routes)
-6. [Navigation Map Diagram](#6-navigation-map-diagram)
-7. [Transition Animations](#7-transition-animations)
-8. [State Persistence Rules](#8-state-persistence-rules)
-9. [Error & Redirect Routes](#9-error--redirect-routes)
-
----
-
 ## 1. Navigation Architecture
 
 **Router:** `go_router` v14.x

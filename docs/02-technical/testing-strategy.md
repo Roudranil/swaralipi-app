@@ -2,35 +2,6 @@
 
 # Swaralipi — Testing Strategy
 
-## Table of Contents
-
-- [1. Principles](#1-principles)
-- [2. Testing Pyramid](#2-testing-pyramid)
-- [3. Tooling](#3-tooling)
-- [4. Directory Layout](#4-directory-layout)
-- [5. Unit Tests](#5-unit-tests)
-  - [5.1 Repository Layer](#51-repository-layer)
-  - [5.2 ViewModel Layer](#52-viewmodel-layer)
-  - [5.3 Service Layer](#53-service-layer)
-  - [5.4 Domain Models](#54-domain-models)
-- [6. Widget Tests](#6-widget-tests)
-  - [6.1 Scope](#61-scope)
-  - [6.2 Per-Feature Coverage](#62-per-feature-coverage)
-  - [6.3 Shared Widget Tests](#63-shared-widget-tests)
-- [7. Integration Tests](#7-integration-tests)
-  - [7.1 Critical Flows](#71-critical-flows)
-  - [7.2 Setup](#72-setup)
-- [8. Mocking Strategy](#8-mocking-strategy)
-  - [8.1 What to Mock](#81-what-to-mock)
-  - [8.2 Mockito Setup](#82-mockito-setup)
-  - [8.3 Drift In-Memory DB](#83-drift-in-memory-db)
-- [9. TDD Workflow](#9-tdd-workflow)
-- [10. Coverage Targets](#10-coverage-targets)
-- [11. Test Naming & Structure](#11-test-naming--structure)
-- [12. What Not to Test](#12-what-not-to-test)
-
----
-
 ## 1. Principles
 
 - RED → GREEN → REFACTOR. No implementation before a failing test.

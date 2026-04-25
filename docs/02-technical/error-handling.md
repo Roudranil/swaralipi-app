@@ -8,23 +8,6 @@ date: 2026-04-23
 
 # Swaralipi — Error Handling
 
-## Table of Contents
-
-1. [Principles](#1-principles)
-2. [Error Taxonomy](#2-error-taxonomy)
-3. [Layer-by-Layer Strategy](#3-layer-by-layer-strategy)
-   1. [Data Source Layer](#31-data-source-layer)
-   2. [Repository Layer](#32-repository-layer)
-   3. [ViewModel Layer](#33-viewmodel-layer)
-   4. [Presentation Layer](#34-presentation-layer)
-4. [Custom Exception Types](#4-custom-exception-types)
-5. [User-Facing Error Messages](#5-user-facing-error-messages)
-6. [Unhandled Exception Strategy](#6-unhandled-exception-strategy)
-7. [Error UI Patterns](#7-error-ui-patterns)
-8. [Do-Not-Do List](#8-do-not-do-list)
-
----
-
 ## 1. Principles
 
 - Handle errors **explicitly at every layer** — never silently swallow

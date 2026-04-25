@@ -8,19 +8,6 @@ date: 2026-04-23
 
 # Swaralipi — Logging
 
-## Table of Contents
-
-1. [Principles](#1-principles)
-2. [AppLogger API](#2-applogger-api)
-3. [Log Levels](#3-log-levels)
-4. [Tag Conventions](#4-tag-conventions)
-5. [What to Log](#5-what-to-log)
-6. [What Not to Log](#6-what-not-to-log)
-7. [Release vs Debug Behaviour](#7-release-vs-debug-behaviour)
-8. [Implementation](#8-implementation)
-
----
-
 ## 1. Principles
 
 - **Never `print()`** — `dart:developer log()` only (enforced by `avoid_print` lint)

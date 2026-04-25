@@ -8,20 +8,6 @@ date: 2026-04-23
 
 # Swaralipi — CI/CD Strategy
 
-## Table of Contents
-
-1. [Overview](#1-overview)
-2. [Pipeline Stages](#2-pipeline-stages)
-3. [GitHub Actions Workflows](#3-github-actions-workflows)
-   1. [PR Check Workflow](#31-pr-check-workflow)
-   2. [Build & Release Workflow](#32-build--release-workflow)
-4. [Code Quality Gates](#4-code-quality-gates)
-5. [Build Configuration](#5-build-configuration)
-6. [Release Strategy](#6-release-strategy)
-7. [Versioning](#7-versioning)
-8. [Secrets & Environment](#8-secrets--environment)
-
----
 
 ## 1. Overview
 

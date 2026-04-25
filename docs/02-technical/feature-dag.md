@@ -7,19 +7,6 @@ date: 2026-04-23
 
 # Feature DAG — Swaralipi
 
-## Table of Contents
-
-- [1. Overview](#1-overview)
-- [2. Graph](#2-graph)
-- [3. Nodes](#3-nodes)
-  - [3.1 Infrastructure Services](#31-infrastructure-services)
-  - [3.2 Features](#32-features)
-- [4. Dependency Table](#4-dependency-table)
-- [5. Critical Path](#5-critical-path)
-- [6. Complexity & Risk](#6-complexity--risk)
-
----
-
 ## 1. Overview
 
 Directed acyclic graph of all V1 features and infrastructure services.

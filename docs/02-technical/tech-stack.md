@@ -8,25 +8,6 @@ date: 2026-04-23
 
 # Swaralipi — Tech Stack
 
-## Table of Contents
-
-1. [Flutter & Dart SDK](#1-flutter--dart-sdk)
-2. [Core Dependencies](#2-core-dependencies)
-   1. [Database](#21-database)
-   2. [State Management & DI](#22-state-management--di)
-   3. [Navigation](#23-navigation)
-   4. [Serialization](#24-serialization)
-   5. [Storage & File System](#25-storage--file-system)
-   6. [Image Processing](#26-image-processing)
-   7. [Camera & Gallery](#27-camera--gallery)
-   8. [UI & Theming](#28-ui--theming)
-3. [Dev Dependencies](#3-dev-dependencies)
-4. [pubspec.yaml Template](#4-pubspecyaml-template)
-5. [Excluded Packages](#5-excluded-packages)
-6. [Android Configuration](#6-android-configuration)
-
----
-
 ## 1. Flutter & Dart SDK
 
 | Item | Version |

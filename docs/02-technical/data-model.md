@@ -8,31 +8,6 @@ date: 2026-04-23
 
 # Swaralipi — Data Model
 
-## Table of Contents
-
-1. [Entity-Relationship Diagram](#1-entity-relationship-diagram)
-2. [Schema Definition](#2-schema-definition)
-   1. [notations](#21-notations)
-   2. [notation_pages](#22-notation_pages)
-   3. [tags](#23-tags)
-   4. [notation_tags](#24-notation_tags)
-   5. [instrument_classes](#25-instrument_classes)
-   6. [instrument_instances](#26-instrument_instances)
-   7. [notation_instruments](#27-notation_instruments)
-   8. [custom_field_definitions](#28-custom_field_definitions)
-   9. [notation_custom_fields](#29-notation_custom_fields)
-   10. [user_preferences](#210-user_preferences)
-   11. [FTS5 Virtual Table](#211-fts5-virtual-table)
-3. [Normalization](#3-normalization)
-4. [Indexes](#4-indexes)
-5. [Constraints & Invariants](#5-constraints--invariants)
-6. [Soft-Delete Policy](#6-soft-delete-policy)
-7. [Migration Strategy](#7-migration-strategy)
-8. [Query Patterns](#8-query-patterns)
-9. [RenderParams Schema](#9-renderparams-schema)
-
----
-
 ## 1. Entity-Relationship Diagram
 
 ```

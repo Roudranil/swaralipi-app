@@ -8,22 +8,6 @@ date: 2026-04-23
 
 # Swaralipi — Storage
 
-## Table of Contents
-
-1. [Storage Layers](#1-storage-layers)
-2. [SQLite Database](#2-sqlite-database)
-3. [File Storage](#3-file-storage)
-   1. [Directory Layout](#31-directory-layout)
-   2. [File Naming Convention](#32-file-naming-convention)
-   3. [Write Protocol](#33-write-protocol)
-   4. [Delete Protocol](#34-delete-protocol)
-4. [FileStorageService Contract](#4-filestorageservice-contract)
-5. [Storage Lifecycle](#5-storage-lifecycle)
-6. [Quotas & Limits](#6-quotas--limits)
-7. [Backup & Recovery](#7-backup--recovery)
-
----
-
 ## 1. Storage Layers
 
 | Layer | Technology | Managed By | Contents |

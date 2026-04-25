@@ -1,56 +1,5 @@
 # Swaralipi — UX Flows
 
-## Table of Contents
-
-- [1. Overview](#1-overview)
-- [2. Global Shell & Navigation](#2-global-shell--navigation)
-- [3. Library — Home Screen](#3-library--home-screen)
-  - [3.1 Default State](#31-default-state)
-  - [3.2 Recently Played Carousel](#32-recently-played-carousel)
-  - [3.3 Search](#33-search)
-  - [3.4 Sort](#34-sort)
-  - [3.5 Filter](#35-filter)
-  - [3.6 Notation Row Actions](#36-notation-row-actions)
-- [4. Notation Capture](#4-notation-capture)
-  - [4.1 Entry Point](#41-entry-point)
-  - [4.2 Gallery Flow](#42-gallery-flow)
-  - [4.3 Camera Flow](#43-camera-flow)
-- [5. Page Editor](#5-page-editor)
-  - [5.1 Layout](#51-layout)
-  - [5.2 Per-Page Actions](#52-per-page-actions)
-  - [5.3 Notation-Level Actions](#53-notation-level-actions)
-  - [5.4 Save / Discard](#54-save--discard)
-- [6. Metadata Form](#6-metadata-form)
-  - [6.1 Layout](#61-layout)
-  - [6.2 Fields](#62-fields)
-  - [6.3 Save Gate](#63-save-gate)
-- [7. Notation Detail View](#7-notation-detail-view)
-  - [7.1 Layout](#71-layout)
-  - [7.2 Actions](#72-actions)
-- [8. Notation Player](#8-notation-player)
-  - [8.1 Entry & Exit](#81-entry--exit)
-  - [8.2 Controls](#82-controls)
-  - [8.3 Chrome Fade](#83-chrome-fade)
-- [9. Edit Notation](#9-edit-notation)
-- [10. Delete Notation (Soft Delete)](#10-delete-notation-soft-delete)
-- [11. Duplicate Notation](#11-duplicate-notation)
-- [12. Tags](#12-tags)
-  - [12.1 Tag List](#121-tag-list)
-  - [12.2 Create Tag](#122-create-tag)
-  - [12.3 Edit Tag](#123-edit-tag)
-  - [12.4 Delete Tag](#124-delete-tag)
-  - [12.5 Apply Tag from Library](#125-apply-tag-from-library)
-- [13. Instrument Tracker](#13-instrument-tracker)
-  - [13.1 Instrument Class](#131-instrument-class)
-  - [13.2 Instrument Instance](#132-instrument-instance)
-  - [13.3 Archive Instance](#133-archive-instance)
-- [14. Trash](#14-trash)
-- [15. Settings](#15-settings)
-- [16. Appearance & Theming](#16-appearance--theming)
-- [17. Custom Fields](#17-custom-fields)
-
----
-
 ## 1. Overview
 
 Canonical UX flow reference for Swaralipi V1. One user. Android only. No auth, no cloud.
