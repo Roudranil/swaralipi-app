@@ -9,24 +9,36 @@ date: 2026-04-25
 
 ## Table of Contents
 
-- [1. Executive Summary](#1-executive-summary)
-- [2. Dependency Graph Summary](#2-dependency-graph-summary)
-- [3. Epic Breakdown](#3-epic-breakdown)
-- [4. Feature Breakdown](#4-feature-breakdown)
-- [5. Sprint Plan](#5-sprint-plan)
-  - [Sprint 1 — Database Foundation](#sprint-1--database-foundation)
-  - [Sprint 2 — File Storage & Search](#sprint-2--file-storage--search)
-  - [Sprint 3 — Image Pipeline & Quick Wins](#sprint-3--image-pipeline--quick-wins)
-  - [Sprint 4 — Tags, Trash & Instruments](#sprint-4--tags-trash--instruments)
-  - [Sprint 5 — Metadata Form](#sprint-5--metadata-form)
-  - [Sprint 6 — Notation Capture Part 1](#sprint-6--notation-capture-part-1)
-  - [Sprint 7 — Notation Capture Part 2](#sprint-7--notation-capture-part-2)
-  - [Sprint 8 — Edit / Delete / Copy & Player Start](#sprint-8--edit--delete--copy--player-start)
-  - [Sprint 9 — Player Completion & Detail View](#sprint-9--player-completion--detail-view)
-  - [Sprint 10 — Library & Settings Shell](#sprint-10--library--settings-shell)
-  - [Backlog (unscheduled)](#backlog-unscheduled)
-- [6. Open Questions](#6-open-questions)
-- [7. Risks](#7-risks)
+- [Swaralipi — Implementation Roadmap](#swaralipi--implementation-roadmap)
+  - [Table of Contents](#table-of-contents)
+  - [1. Executive Summary](#1-executive-summary)
+  - [2. Dependency Graph Summary](#2-dependency-graph-summary)
+  - [3. Epic Breakdown](#3-epic-breakdown)
+    - [3.1. \[Epic #7\] Infrastructure Foundation](#31-epic-7-infrastructure-foundation)
+    - [3.2. \[Epic #8\] Notation Capture \& Metadata](#32-epic-8-notation-capture--metadata)
+    - [3.3. \[Epic #9\] Notation Management](#33-epic-9-notation-management)
+    - [3.4. \[Epic #10\] Notation Viewing \& Playback](#34-epic-10-notation-viewing--playback)
+    - [3.5. \[Epic #11\] Library \& Search](#35-epic-11-library--search)
+    - [3.6. \[Epic #12\] User Experience \& Settings](#36-epic-12-user-experience--settings)
+    - [3.7. \[Epic #1\] Documentation](#37-epic-1-documentation)
+  - [4. Feature Breakdown](#4-feature-breakdown)
+    - [4.1. \[Feature\] SVC1 — AppDatabase](#41-feature-svc1--appdatabase)
+    - [4.2. \[Feature\] SVC2 — FileStorageService](#42-feature-svc2--filestorageservice)
+    - [4.3. \[Feature\] SVC3 — ImageProcessingService](#43-feature-svc3--imageprocessingservice)
+    - [4.4. \[Feature\] SVC4 — SearchService](#44-feature-svc4--searchservice)
+    - [4.5. \[Feature\] F07 — Tags](#45-feature-f07--tags)
+    - [4.6. \[Feature\] F12 — Custom Fields](#46-feature-f12--custom-fields)
+    - [4.7. \[Feature\] F10 — Appearance \& Theming](#47-feature-f10--appearance--theming)
+    - [4.8. \[Feature\] F09 — Trash](#48-feature-f09--trash)
+    - [4.9. \[Feature\] F06 — Instrument Tracker](#49-feature-f06--instrument-tracker)
+    - [4.10. \[Feature\] F02 — Metadata](#410-feature-f02--metadata)
+    - [4.11. \[Feature\] F01 — Notation Capture](#411-feature-f01--notation-capture)
+    - [4.12. \[Feature\] F08 — Edit / Delete / Copy](#412-feature-f08--edit--delete--copy)
+    - [4.13. \[Feature\] F05 — Notation Player](#413-feature-f05--notation-player)
+    - [4.14. \[Feature\] F04 — Notation Detail View](#414-feature-f04--notation-detail-view)
+    - [4.15. \[Feature\] F03 — Library](#415-feature-f03--library)
+    - [4.16. \[Feature\] F11 — Settings](#416-feature-f11--settings)
+  - [7. Risks](#7-risks)
 
 ---
 
@@ -324,212 +336,199 @@ flowchart TD
 
 ## 5. Sprint Plan
 
-> Capacity: single developer, ~3–4 tasks per sprint, 2-week iterations.
-> Trunk items are sequenced serially; branch items are layered alongside trunk where capacity allows.
-
 ### Sprint 1 — Database Foundation
 
-**Goal**: Stable, tested AppDatabase with all entity schemas, migrations, and FTS5.
+**Goal**: Establish the complete Drift schema, all DAOs, migration pipeline, and domain models so every upstream feature has a stable data layer.
 
-**Start**: 2026-04-28  **End**: 2026-05-11
+**Start**: 2026-04-28 **End**: 2026-05-11
 
 | Issue | Title | Type | Size | Priority | Depends On |
-|-------|-------|------|------|----------|------------|
-| TBD | Define all Drift table classes (notations, pages, tags, instruments, custom_fields, prefs) | task | L | P0 | — |
-| TBD | Implement DAOs — NotationDao, TagDao, InstrumentDao, CustomFieldDao, UserPreferencesDao | task | L | P0 | above |
-| TBD | Set up FTS5 virtual table + migration test harness | task | M | P0 | above |
-| TBD | Unit-test all DAOs with in-memory Drift DB (≥80% coverage) | task | M | P0 | above |
+| ----- | ----- | ---- | ---- | -------- | ---------- |
+| #62 | SVC1-1-T1: Define all Drift table classes | task | S | P0 | — |
+| #63 | SVC1-1-T2: Define immutable domain models with copyWith | task | S | P0 | #62 |
+| #64 | SVC1-2-T1: Implement NotationDao and NotationPageDao | task | M | P0 | #62 |
+| #65 | SVC1-2-T2: Implement TagDao, NotationTagDao, InstrumentDao | task | S | P0 | #62 |
+| #66 | SVC1-2-T3: Implement CustomFieldDao and UserPreferencesDao | task | S | P0 | #62 |
+| #67 | SVC1-3-T1: Create FTS5 virtual table and triggers | task | M | P0 | #64 |
+| #68 | SVC1-3-T2: Implement Drift MigrationStrategy | task | M | P0 | #67 |
 
 **Definition of Done for Sprint**:
-
 - [ ] All sprint issues closed or moved to backlog with documented reason
 - [ ] CI green on main
 - [ ] Regression test suite passes
 
 ---
 
-### Sprint 2 — File Storage & Search
+### Sprint 2 — File Storage, Image Processing & Search
 
-**Goal**: FileStorageService and SearchService operational; SVC3 started in parallel.
+**Goal**: Complete the three remaining infrastructure services (SVC2, SVC3, SVC4) in parallel with Sprint 1 foundations, making the full infrastructure layer ready.
 
-**Start**: 2026-05-12  **End**: 2026-05-25
+**Start**: 2026-05-12 **End**: 2026-05-25
 
 | Issue | Title | Type | Size | Priority | Depends On |
-|-------|-------|------|------|----------|------------|
-| TBD | Implement FileStorageService — save/retrieve/delete JPEG under appDocDir | task | M | P0 | SVC1 done |
-| TBD | Implement orphan-file cleanup and path-portability guarantees | task | S | P0 | above |
-| TBD | Implement SearchService — FTS5 ranked query, tokeniser config | task | M | P0 | SVC1 done |
-| TBD | Define RenderParams model; scaffold ImageProcessingService (SVC3 start) | task | M | P0 | — |
+| ----- | ----- | ---- | ---- | -------- | ---------- |
+| #69 | SVC2-1-T1: Implement FileStorageService save/retrieve/delete | task | S | P0 | — |
+| #70 | SVC2-2-T1: Implement orphan file detection and purge | task | S | P0 | #69 |
+| #71 | SVC3-1-T1: Define RenderParams model and filter enum | task | S | P0 | — |
+| #72 | SVC3-1-T2: Implement filter rendering pipeline | task | M | P0 | #71 |
+| #73 | SVC3-2-T1: Implement crop, rotate, and composite pipeline | task | M | P0 | #72 |
+| #74 | SVC4-1-T1: Implement SearchService with FTS5 BM25 query | task | M | P0 | #67 |
 
 **Definition of Done for Sprint**:
-
 - [ ] All sprint issues closed or moved to backlog with documented reason
 - [ ] CI green on main
 - [ ] Regression test suite passes
 
 ---
 
-### Sprint 3 — Image Pipeline & Quick Wins
+### Sprint 3 — Tags, Custom Fields, Appearance & Trash (Branch Work)
 
-**Goal**: Non-destructive image pipeline complete; F12 and F10 branch features delivered.
+**Goal**: Complete all four branch features that F02/F11 depend on, in parallel with F06 start. Unblocks the metadata form.
 
-**Start**: 2026-05-26  **End**: 2026-06-08
+**Start**: 2026-05-26 **End**: 2026-06-08
 
 | Issue | Title | Type | Size | Priority | Depends On |
-|-------|-------|------|------|----------|------------|
-| TBD | Implement filter rendering (ColorFiltered widget + image package) | task | M | P0 | SVC3 scaffolded |
-| TBD | Implement crop and rotate transforms; verify originals unmodified | task | M | P0 | above |
-| TBD | Custom Field definition CRUD (F12) — ViewModel + Repository + UI | task | S | P1 | SVC1 done |
-| TBD | Appearance toggle + Catppuccin/Monet color picker; persist to UserPreferences (F10) | task | S | P1 | SVC1 done |
+| ----- | ----- | ---- | ---- | -------- | ---------- |
+| #75 | F07-1-T1: Implement TagRepository and TagDao seed data | task | S | P0 | #65 |
+| #76 | F07-1-T2: Implement TagsScreen and TagViewModel | task | S | P0 | #75 |
+| #77 | F12-1-T1: Implement CustomFieldRepository and CustomFieldsScreen | task | S | P2 | #66 |
+| #78 | F10-1-T1: Implement PreferencesRepository and AppearanceScreen | task | S | P2 | #66 |
+| #79 | F09-1-T1: Implement TrashRepository and TrashScreen | task | S | P1 | #64 #69 |
+| #80 | F06-1-T1: Implement InstrumentRepository and InstrumentClassScreen | task | S | P2 | #65 |
+| #81 | F06-2-T1: Implement InstrumentInstance screens with photo capture | task | M | P2 | #80 |
 
 **Definition of Done for Sprint**:
-
 - [ ] All sprint issues closed or moved to backlog with documented reason
 - [ ] CI green on main
 - [ ] Regression test suite passes
 
 ---
 
-### Sprint 4 — Tags, Trash & Instruments
+### Sprint 4 — Metadata Form & Repository
 
-**Goal**: F07, F09, and F06 delivered; all three are prerequisites for the Metadata form.
+**Goal**: Build the F02 metadata form and repository, which unlocks the entire capture flow (F01).
 
-**Start**: 2026-06-09  **End**: 2026-06-22
+**Start**: 2026-06-09 **End**: 2026-06-22
 
 | Issue | Title | Type | Size | Priority | Depends On |
-|-------|-------|------|------|----------|------------|
-| TBD | Tag CRUD — TagRepository + TagViewModel + Tag list UI with Catppuccin picker (F07) | task | S | P0 | SVC1 done |
-| TBD | Trash — soft-delete list, restore, purge, auto-purge job (F09) | task | S | P0 | SVC1, SVC2 done |
-| TBD | InstrumentClass CRUD — ViewModel + Repository + list UI (F06 part 1) | task | M | P1 | SVC1, SVC2 done |
-| TBD | InstrumentInstance CRUD + photo capture/import + archive (F06 part 2) | task | M | P1 | above |
+| ----- | ----- | ---- | ---- | -------- | ---------- |
+| #83 | F02-2-T1: Implement NotationRepository with full metadata persistence | task | M | P0 | #64 #65 #66 |
+| #82 | F02-1-T1: Implement MetadataFormScreen and MetadataFormViewModel | task | M | P0 | #76 #77 #80 #83 |
 
 **Definition of Done for Sprint**:
-
 - [ ] All sprint issues closed or moved to backlog with documented reason
 - [ ] CI green on main
 - [ ] Regression test suite passes
 
 ---
 
-### Sprint 5 — Metadata Form
+### Sprint 5 — Notation Capture: Camera & Gallery
 
-**Goal**: Complete 13-field metadata form with all pickers; ready to receive capture data.
+**Goal**: Implement the first two slices of F01 — camera permission/capture and gallery import. Hard-cap: no page editor in this sprint.
 
-**Start**: 2026-06-23  **End**: 2026-07-06
+**Start**: 2026-06-23 **End**: 2026-07-06
 
 | Issue | Title | Type | Size | Priority | Depends On |
-|-------|-------|------|------|----------|------------|
-| TBD | MetadataRepository — save and update notation record with all 13 fields | task | M | P0 | SVC1, F07, F06, F12 done |
-| TBD | Metadata form UI — fields, tag/instrument/custom-field pickers | task | M | P0 | above |
-| TBD | Form validation gate — required fields, error states | task | S | P0 | above |
-| TBD | MetadataViewModel + widget tests for form states | task | S | P0 | above |
+| ----- | ----- | ---- | ---- | -------- | ---------- |
+| #84 | F01-1-T1: Implement camera permission handling and CameraX capture | task | M | P0 | #69 #82 |
+| #85 | F01-2-T1: Implement gallery multi-page import flow | task | S | P0 | #84 |
 
 **Definition of Done for Sprint**:
-
 - [ ] All sprint issues closed or moved to backlog with documented reason
 - [ ] CI green on main
 - [ ] Regression test suite passes
 
 ---
 
-### Sprint 6 — Notation Capture Part 1
+### Sprint 6 — Notation Capture: Page Editor & RenderParams
 
-**Goal**: Camera and gallery ingestion working; per-page editor functional.
+**Goal**: Complete F01 — per-page editor UI, RenderParams pipeline, and end-to-end save flow.
 
-**Start**: 2026-07-07  **End**: 2026-07-20
+**Start**: 2026-07-07 **End**: 2026-07-20
 
 | Issue | Title | Type | Size | Priority | Depends On |
-|-------|-------|------|------|----------|------------|
-| TBD | Camera permission flow + CameraX integration (capture one page) | task | L | P0 | SVC1, SVC2, F02 done |
-| TBD | Gallery import — multi-page picker, page ordering UI | task | L | P0 | SVC2 done |
-| TBD | Per-page editor UI — filter/crop/rotate controls layout | task | M | P0 | SVC3 done |
+| ----- | ----- | ---- | ---- | -------- | ---------- |
+| #86 | F01-3-T1: Implement PageEditorScreen with filter, crop, and rotate | task | M | P0 | #71 #72 #73 |
+| #87 | F01-4-T1: Implement RenderParams pipeline integration per page | task | M | P0 | #86 |
+| #88 | F01-5-T1: Implement end-to-end save flow — pages to disk and metadata to DB | task | M | P0 | #87 #83 |
 
 **Definition of Done for Sprint**:
-
 - [ ] All sprint issues closed or moved to backlog with documented reason
 - [ ] CI green on main
 - [ ] Regression test suite passes
 
 ---
 
-### Sprint 7 — Notation Capture Part 2
+### Sprint 7 — Trash & Edit/Delete/Copy
 
-**Goal**: F01 complete — end-to-end save path from pages to disk and metadata to DB.
+**Goal**: Complete F09 (Trash) and all three F08 stories, enabling the full notation management cycle.
 
-**Start**: 2026-07-21  **End**: 2026-08-03
+**Start**: 2026-07-21 **End**: 2026-08-03
 
 | Issue | Title | Type | Size | Priority | Depends On |
-|-------|-------|------|------|----------|------------|
-| TBD | Wire RenderParams pipeline per page in the editor | task | M | P0 | Sprint 6 done |
-| TBD | End-to-end save flow — pages written to disk, metadata to DB, navigation back to Library | task | L | P0 | above |
-| TBD | CaptureViewModel + integration test for full capture flow | task | M | P0 | above |
-| TBD | Error handling — camera permission denied, disk full, lifecycle interruption | task | M | P0 | above |
+| ----- | ----- | ---- | ---- | -------- | ---------- |
+| #91 | F08-3-T1: Implement soft-delete — move notation to Trash | task | S | P1 | #79 #88 |
+| #89 | F08-1-T1: Implement edit notation flow | task | M | P1 | #88 |
+| #90 | F08-2-T1: Implement duplicate notation — copy image files | task | M | P1 | #88 |
 
 **Definition of Done for Sprint**:
-
 - [ ] All sprint issues closed or moved to backlog with documented reason
 - [ ] CI green on main
 - [ ] Regression test suite passes
 
 ---
 
-### Sprint 8 — Edit / Delete / Copy & Player Start
+### Sprint 8 — Notation Player (F05)
 
-**Goal**: F08 (CRUD entry points) complete; F05 Player scaffolded and core rendering working.
+**Goal**: Build the full-screen notation player with swipe, zoom, orientation lock, and auto-scroll.
 
-**Start**: 2026-08-04  **End**: 2026-08-17
+**Start**: 2026-08-04 **End**: 2026-08-17
 
 | Issue | Title | Type | Size | Priority | Depends On |
-|-------|-------|------|------|----------|------------|
-| TBD | Edit notation — re-enter metadata form + page editor from Library/Detail (F08) | task | M | P0 | F01, F09 done |
-| TBD | Duplicate notation — copy image files + new DB record (F08) | task | M | P0 | F01 done |
-| TBD | Soft-delete from Library and Detail View entry points (F08) | task | S | P0 | F09 done |
-| TBD | Full-screen player — page list load + swipe navigation + pinch-zoom (F05 start) | task | L | P1 | SVC1, SVC2, SVC3 done |
+| ----- | ----- | ---- | ---- | -------- | ---------- |
+| #92 | F05-1-T1: Implement full-screen viewer with swipe and pinch-zoom | task | L | P1 | #69 #71 #72 #73 #64 |
+| #93 | F05-2-T1: Implement orientation lock and chrome fade on inactivity | task | M | P1 | #92 |
+| #94 | F05-3-T1: Implement auto-scroll at configurable speed | task | M | P1 | #92 |
 
 **Definition of Done for Sprint**:
-
 - [ ] All sprint issues closed or moved to backlog with documented reason
 - [ ] CI green on main
 - [ ] Regression test suite passes
 
 ---
 
-### Sprint 9 — Player Completion & Detail View
+### Sprint 9 — Detail View & Library
 
-**Goal**: F05 and F04 fully shipped; all trunk prerequisites for Library now met.
+**Goal**: Build F04 (Detail View) and all three F03 stories. This is the final trunk sprint — the app is end-to-end functional at sprint end.
 
-**Start**: 2026-08-18  **End**: 2026-08-31
+**Start**: 2026-08-18 **End**: 2026-08-31
 
 | Issue | Title | Type | Size | Priority | Depends On |
-|-------|-------|------|------|----------|------------|
-| TBD | Orientation lock + chrome fade on inactivity (F05) | task | M | P1 | F05 part 1 done |
-| TBD | Auto-scroll at configurable speed; persist preference (F05) | task | M | P1 | above |
-| TBD | Notation Detail View — metadata block, page thumbnails, Play/Edit/Delete actions (F04) | task | S | P1 | F08, F05 done |
-| TBD | Settings shell — navigation to all sub-sections (F11) | task | M | P1 | F07, F06, F09, F10, F12 done |
+| ----- | ----- | ---- | ---- | -------- | ---------- |
+| #95 | F04-1-T1: Implement NotationDetailScreen | task | M | P1 | #89 #90 #91 #92 |
+| #96 | F03-1-T1: Implement recently-played carousel (last 5 opened) | task | S | P0 | #64 |
+| #97 | F03-2-T1: Implement notation list with ListView.builder and sort | task | M | P0 | #95 |
+| #98 | F03-3-T1: Implement fuzzy search bar and tag filter panel | task | M | P0 | #74 #97 |
 
 **Definition of Done for Sprint**:
-
 - [ ] All sprint issues closed or moved to backlog with documented reason
 - [ ] CI green on main
 - [ ] Regression test suite passes
 
 ---
 
-### Sprint 10 — Library & Settings Shell
+### Sprint 10 — Settings & Polish
 
-**Goal**: Library home screen shipped; app is end-to-end functional. V1 complete.
+**Goal**: Wire the Settings shell and all sub-sections; close any remaining P2 branch items.
 
-**Start**: 2026-09-01  **End**: 2026-09-14
+**Start**: 2026-09-01 **End**: 2026-09-14
 
 | Issue | Title | Type | Size | Priority | Depends On |
-|-------|-------|------|------|----------|------------|
-| TBD | Recently-played carousel (last 5 opened) (F03) | task | M | P0 | F04 done |
-| TBD | Notation list with sort (date, title, artist) and `ListView.builder` (F03) | task | M | P0 | F01 done |
-| TBD | Fuzzy search bar + tag filter panel (F03) | task | L | P0 | SVC4, F07 done |
-| TBD | F11 Settings — integrate remaining sub-sections; verify navigation and state | task | M | P1 | F11 shell done |
+| ----- | ----- | ---- | ---- | -------- | ---------- |
+| #99 | F11-1-T1: Implement Settings shell screen | task | S | P2 | #76 #80 #79 #78 #77 |
+| #100 | F11-2-T1: Integrate all Settings sub-sections and verify navigation | task | M | P2 | #99 |
 
 **Definition of Done for Sprint**:
-
 - [ ] All sprint issues closed or moved to backlog with documented reason
 - [ ] CI green on main
 - [ ] Regression test suite passes
@@ -539,24 +538,19 @@ flowchart TD
 ### Backlog (unscheduled)
 
 | Issue | Title | Type | Size | Priority | Reason Deferred |
-|-------|-------|------|------|----------|-----------------|
-| TBD | README + contributing guide (Epic #1 Documentation) | task | S | P1 | Non-blocking; can be written any time |
-| TBD | Integration test — capture flow end-to-end | task | M | P1 | After Sprint 7 |
-| TBD | Integration test — library search flow | task | M | P1 | After Sprint 10 |
-| TBD | Integration test — player launch flow | task | M | P1 | After Sprint 9 |
+| ----- | ----- | ---- | ---- | -------- | --------------- |
+| — | Documentation (Epic #1) | epic | S | P1 | No code dependencies; can start any sprint |
 
 ---
 
 ## 6. Open Questions
 
 | ID | Question | Impact | Status |
-|----|----------|--------|--------|
-| OQ-01 | F12 (Custom Fields) appears in the DAG as a dependency of F02 but is not listed in the Epic #8 body — is F12 correctly owned by Epic #12, or should it move to #8? | Epic scoping, sprint ordering | Open |
-| OQ-02 | SVC4 (SearchService) uses FTS5. Should ranking use `bm25()` or the simpler `rank` column? | Search quality, tokeniser config | Open |
-| OQ-03 | F01 camera integration targets CameraX. Confirm minimum API level and whether `camera` pub package or a native intent is preferred. | Risk on XL feature; affects Sprint 6 | Open |
-| OQ-04 | Auto-purge job for Trash (F09) — should it run via `WorkManager` (background) or only at app startup? | Reliability on Samsung One UI battery optimizer | Open |
-| OQ-05 | F05 orientation lock — does the app globally rotate or does the player lock in the last user-chosen orientation? | UX spec gap | Open |
-| OQ-06 | F03 "recently played" — updated on Detail View open or Player open? | Data model impact on `last_opened_at` field | Open |
+| --- | -------- | ------ | ------ |
+| OQ-1 | FTS5 tokeniser for Hindi/Bengali script — `unicode61` vs trigram? Validate with mixed-script data in Sprint 2 | Search quality | Open |
+| OQ-2 | `ColorFiltered` vs `image` package for filter rendering — benchmark on Galaxy S25 before committing to SVC3 implementation in Sprint 2 | Image quality / performance | Open |
+| OQ-3 | `image_picker` vs `photo_manager` for multi-image gallery import — confirm API stability and Android 13+ media permission handling | F01 implementation risk | Open |
+| OQ-4 | Auto-purge background job — `WorkManager` foreground service vs on-launch check. Samsung One UI battery optimiser may kill background jobs | F09 reliability | Open |
 
 ---
 
@@ -565,9 +559,9 @@ flowchart TD
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
 | SVC1 schema migration breaks on upgrade | High | High | Pin Drift version; write migration tests for every schema version before adding any column |
-| F01 camera integration (XL/High) overruns Sprint 6 | High | High | Hard-cap Sprint 6 to ingestion only; page editor + save in Sprint 7. Accept partial by end of Sprint 6 |
-| SVC3 filter quality unacceptable on Samsung S25 GPU | Medium | High | Prototype `ColorFiltered` vs `image` package early in Sprint 2; benchmark before committing |
-| Samsung One UI battery optimizer kills background jobs | Medium | Medium | Use `WorkManager` with foreground service for auto-purge; test on target device |
+| F01 camera integration (XL/High) overruns Sprint 6 | High | High | Hard-cap Sprint 6 to ingestion only; page editor + save in Sprint 7. Accept partial by end of Sprint 6. **Gallery import**: `photo_manager` (handles multi-image + Android 13+ permissions). |
+| SVC3 filter quality unacceptable on Samsung S25 GPU | ~~Medium~~ **Resolved** | High | ~~Prototype `ColorFiltered` vs `image` package~~ **Decision**: Use `ColorFiltered` (built-in). Add `image` package only if disk-save of processed image is needed. |
+| Samsung One UI battery optimizer kills background jobs | Medium | Medium | Deferred. Revisit when auto-purge feature is scoped. |
 | F05 pinch-zoom + orientation lock interaction bugs | Medium | Medium | Test on physical Galaxy S25 in Sprint 9; file bugs before sprint ends |
-| FTS5 tokeniser produces poor results for Hindi/Bengali script | Low | High | Validate FTS5 with mixed-script test data in Sprint 2; consider trigram tokeniser fallback |
+| FTS5 tokeniser produces poor results for Hindi/Bengali script | ~~Low~~ **Resolved** | High | ~~Validate FTS5 with mixed-script test data~~ **Decision**: `unicode61` default. All text is English script only. |
 | Single developer capacity — illness or block extends critical path | Medium | High | No mitigation beyond: keep branch work ready to pull forward; maintain clear "next task" at all times |
