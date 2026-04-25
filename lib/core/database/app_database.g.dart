@@ -3771,6 +3771,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final NotationDao notationDao = NotationDao(this as AppDatabase);
   late final NotationPageDao notationPageDao =
       NotationPageDao(this as AppDatabase);
+  late final TagDao tagDao = TagDao(this as AppDatabase);
+  late final NotationTagDao notationTagDao =
+      NotationTagDao(this as AppDatabase);
+  late final InstrumentDao instrumentDao = InstrumentDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
