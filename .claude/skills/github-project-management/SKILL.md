@@ -234,6 +234,53 @@ mcp__github__create_or_update_file
   content: <base64-encoded YML>
 ```
 
+### 5.1 References Quality Rules
+
+The `References` section of **every issue** is mandatory and must follow strict formatting
+and granularity rules. Issues with plain-text references or references that are too broad
+are **invalid** — the TPM must never create or approve such issues.
+
+#### Format (all issue types)
+
+References MUST be a **non-numbered markdown list of markdown URLs**. Plain-text paths
+are never acceptable.
+
+```markdown
+# ✅ Correct
+- [PRD §5 Notation Capture](./docs/02-technical/PRD.md#5-notation-capture)
+- [SDS Architecture Overview](./docs/02-technical/sds.md#1-architecture-overview)
+
+# ❌ Incorrect
+- PRD section 5
+- docs/02-technical/sds.md
+```
+
+#### Granularity by issue type
+
+| Issue type | Reference depth required | May reference entire docs? |
+| ---------- | ------------------------ | -------------------------- |
+| **Epic**   | Entire docs or `#first-level-heading` | ✅ Yes |
+| **Feature**| Entire docs or `#first-level-heading` | ✅ Yes |
+| **Story**  | Specific `#heading` or `#heading-subheading` | ❌ No — must be specific headings |
+| **Task**   | Most granular subheading available (down to `#h2-h3-h4`) | ❌ No — must be the deepest relevant anchor |
+| **Bug**    | Most granular subheading describing expected behavior / affected component | ❌ No — must be the deepest relevant anchor |
+
+#### Completeness rule (Tasks and Bugs)
+
+For tasks and bugs, the references list must be **comprehensive**: a developer agent
+that reads only the referenced sections (via `read-references.sh`) must have all the
+context needed to implement the task or fix the bug without reading anything else.
+If a relevant section is missing, add it.
+
+#### Anchor format
+
+GitHub-flavored markdown anchors: lowercase, spaces → `-`, punctuation dropped.
+
+```
+## 3.2.1 Repository Interface  →  #321-repository-interface
+### Error Handling (Camera)    →  #error-handling-camera
+```
+
 ---
 
 ## 6. PR Workflow
@@ -325,15 +372,16 @@ Commit convention: `type(scope): description (#issue)` — squash commit must fo
 
 All scripts are in `.claude/skills/github-project-management/scripts/`. All support `--dry-run` and output machine-parseable JSON on stdout / progress on stderr.
 
-| Script                | Purpose                                                         | Key flags                                                        |
-| --------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `bootstrap-labels.sh` | Create/verify all 14 labels; optionally delete GitHub defaults  | `--delete-defaults` `--force-update`                             |
-| `bootstrap-repo.sh`   | Push labels + issue templates + PR template to repo             | `--delete-default-labels` `--skip-labels` `--skip-templates` `--skip-pr-template` `--branch` |
-| `create-issue.sh`     | Create issue + link parent + add to project + set fields        | `--type` `--title` `--parent` `--priority` `--status` `--size` `--body` `--body-file` `--assignee` `--no-project` |
-| `link-sub-issue.sh`   | Link existing child to parent via GraphQL                       | `--parent` `--child` `--replace-parent`                          |
-| `set-project-fields.sh`| Add issue to project + set Status/Priority/Size                | `--issue` `--status` `--priority` `--size` `--item-id`           |
-| `transition-issue.sh` | Change issue state: labels + project status + close/comment     | `--issue` `--to` `--type` `--priority` `--blocked-by` `--blocked-reason` |
-| `create-branch-pr.sh` | Create branch + open draft PR with pre-filled template          | `--issue` `--type` `--slug` `--title` `--scope` `--base` `--from` `--no-draft` |
+| Script                   | Purpose                                                         | Key flags                                                        |
+| ------------------------ | --------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `bootstrap-labels.sh`    | Create/verify all 14 labels; optionally delete GitHub defaults  | `--delete-defaults` `--force-update`                             |
+| `bootstrap-repo.sh`      | Push labels + issue templates + PR template to repo             | `--delete-default-labels` `--skip-labels` `--skip-templates` `--skip-pr-template` `--branch` |
+| `create-issue.sh`        | Create issue + link parent + add to project + set fields        | `--type` `--title` `--parent` `--priority` `--status` `--size` `--body` `--body-file` `--assignee` `--no-project` |
+| `link-sub-issue.sh`      | Link existing child to parent via GraphQL                       | `--parent` `--child` `--replace-parent`                          |
+| `set-project-fields.sh`  | Add issue to project + set Status/Priority/Size                 | `--issue` `--status` `--priority` `--size` `--item-id`           |
+| `transition-issue.sh`    | Change issue state: labels + project status + close/comment     | `--issue` `--to` `--type` `--priority` `--blocked-by` `--blocked-reason` |
+| `create-branch-pr.sh`    | Create branch + open draft PR with pre-filled template          | `--issue` `--type` `--slug` `--title` `--scope` `--base` `--from` `--no-draft` |
+| `read-references.sh`     | Fetch and concatenate all doc sections listed in an issue's References field (stories, tasks, bugs only) | `--issue N` \| `--refs "..."` `--dry-run` |
 
 **Common patterns:**
 - `set -euo pipefail` + Bash 4+ check

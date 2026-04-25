@@ -296,7 +296,7 @@ log "Issue created: #$ISSUE_NUMBER"
 
 log "Fetching issue node ID..."
 
-node_id=$(dry_run_or_exec gh issue view "$ISSUE_NUMBER" --repo "$OWNER/$REPO" --json nodeId --jq '.nodeId' 2>/dev/null || die "Failed to fetch node ID")
+node_id=$(dry_run_or_exec gh issue view "$ISSUE_NUMBER" --repo "$OWNER/$REPO" --json id --jq '.id' 2>/dev/null || die "Failed to fetch node ID")
 
 [[ -n "$node_id" ]] || die "Could not extract node ID"
 
@@ -347,7 +347,7 @@ if [[ "$NO_PROJECT" != "1" ]]; then
     --url "$ISSUE_URL" \
     --format json 2>/dev/null || die "Failed to add to project")
 
-  project_item_id=$(echo "$project_output" | jq -r '.id')
+  project_item_id=$(echo "$project_output" | tr -d '\n\r' | jq -r '.id')
 
   [[ -n "$project_item_id" ]] || die "Could not extract project item ID"
 
