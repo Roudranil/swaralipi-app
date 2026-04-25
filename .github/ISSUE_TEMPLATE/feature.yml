@@ -41,7 +41,18 @@ body:
     id: references
     attributes:
       label: References
-      description: Links to relevant sections or files in /docs (one per line)
+      description: |
+        Non-numbered markdown list of markdown URLs to relevant files or sections in /docs.
+        Each item MUST be a markdown link — plain text paths are not accepted.
+        Features may reference entire documents or first-level headings (broad, overarching scope).
+
+        ✅ Correct:
+        - [SDS Data Layer](./docs/02-technical/sds.md#3-data-layer)
+        - [UX Flows](./docs/02-technical/ux-flows.md)
+
+        ❌ Incorrect:
+        - SDS Data Layer
+        - docs/02-technical/ux-flows.md
   - type: dropdown
     id: priority
     attributes:

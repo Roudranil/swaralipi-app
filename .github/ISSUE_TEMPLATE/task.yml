@@ -27,7 +27,23 @@ body:
     id: references
     attributes:
       label: References
-      description: Links to relevant sections or files in /docs (one per line)
+      description: |
+        Non-numbered markdown list of markdown URLs to relevant files or sections in /docs.
+        Each item MUST be a markdown link — plain text paths are not accepted.
+        Tasks MUST NOT reference entire documents. References must point to the most granular
+        section, subheading, or sub-subheading the implementing developer needs to read.
+        The list must be comprehensive — a developer agent reading only these references
+        must have all the context needed to implement this task without guessing.
+
+        ✅ Correct:
+        - [SDS §3.2.1 NotationRepository interface](./docs/02-technical/sds.md#321-notationrepository-interface)
+        - [Data Model — Notation.status field](./docs/02-technical/data-model.md#notation-status-field)
+        - [State Mgmt — ViewModel lifecycle](./docs/02-technical/state-management.md#viewmodel-lifecycle)
+
+        ❌ Incorrect:
+        - docs/02-technical/sds.md (entire doc)
+        - SDS section 3.2 (plain text, no link)
+        - [SDS](./docs/02-technical/sds.md) (too broad)
   - type: dropdown
     id: priority
     attributes:

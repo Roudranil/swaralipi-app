@@ -38,7 +38,20 @@ body:
     id: references
     attributes:
       label: References
-      description: Links to relevant sections or files in /docs (one per line)
+      description: |
+        Non-numbered markdown list of markdown URLs to relevant files or sections in /docs.
+        Each item MUST be a markdown link — plain text paths are not accepted.
+        Stories must reference specific headings and subheadings (not entire documents).
+        The list must be detailed enough that a developer understands the full context of the user-observable slice.
+
+        ✅ Correct:
+        - [SDS §3.2 Repository Layer](./docs/02-technical/sds.md#32-repository-layer)
+        - [UX Flows — Notation Capture Screen](./docs/02-technical/ux-flows.md#notation-capture-screen)
+        - [Data Model — Notation entity](./docs/02-technical/data-model.md#notation)
+
+        ❌ Incorrect:
+        - SDS section 3.2
+        - docs/02-technical/ux-flows.md (entire doc — too broad for a story)
   - type: dropdown
     id: priority
     attributes:

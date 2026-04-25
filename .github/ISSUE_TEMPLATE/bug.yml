@@ -50,7 +50,21 @@ body:
     id: references
     attributes:
       label: References
-      description: Links to relevant sections or files in /docs (one per line)
+      description: |
+        Non-numbered markdown list of markdown URLs to relevant files or sections in /docs.
+        Each item MUST be a markdown link — plain text paths are not accepted.
+        Bugs MUST NOT reference entire documents. References must point to the most granular
+        section or subheading describing the expected behavior or affected component.
+        The list must be comprehensive — a developer agent reading only these references
+        must understand what correct behavior looks like and where the bug likely originates.
+
+        ✅ Correct:
+        - [SDS §4.1.2 Error handling in CameraRepository](./docs/02-technical/sds.md#412-error-handling)
+        - [UX Flows — expected camera permission prompt](./docs/02-technical/ux-flows.md#camera-permission-prompt)
+
+        ❌ Incorrect:
+        - docs/02-technical/sds.md (entire doc)
+        - SDS section 4 (plain text, no link)
   - type: textarea
     id: notes
     attributes:

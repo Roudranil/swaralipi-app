@@ -30,7 +30,18 @@ body:
     id: references
     attributes:
       label: References
-      description: Links to relevant sections or files in /docs (one per line)
+      description: |
+        Non-numbered markdown list of markdown URLs to relevant files or sections in /docs.
+        Each item MUST be a markdown link — plain text paths are not accepted.
+        Epics may reference entire documents or first-level headings.
+
+        ✅ Correct:
+        - [PRD Overview](./docs/02-technical/PRD.md)
+        - [SDS Architecture](./docs/02-technical/sds.md#1-architecture-overview)
+
+        ❌ Incorrect:
+        - PRD Overview
+        - docs/02-technical/sds.md
   - type: dropdown
     id: priority
     attributes:
