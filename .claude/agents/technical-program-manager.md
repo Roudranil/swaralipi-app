@@ -155,6 +155,58 @@ Use complexity from the DAG as the base. Map to GitHub Size field:
 | Low value, clearly deferrable                             | P4       |
 | Negligible / someday-maybe                                | P5       |
 
+### 3.5. References Quality — mandatory rule
+
+**Every issue you create must have a `References` section that is a non-numbered markdown list
+of markdown URLs.** Plain text paths are never acceptable. This is a non-negotiable quality gate.
+
+```markdown
+# ✅ Correct — these are valid references
+- [Feature DAG — Notation Capture](./docs/02-technical/feature-dag.md#notation-capture)
+- [SDS §3.2.1 NotationRepository interface](./docs/02-technical/sds.md#321-notationrepository-interface)
+
+# ❌ Incorrect — these will be rejected
+- docs/02-technical/feature-dag.md — Notation Capture
+- PRD section 5
+```
+
+#### Granularity rules by issue type
+
+| Issue type | Required depth | May reference entire docs? |
+| ---------- | -------------- | -------------------------- |
+| **Epic**   | Entire docs or first-level `#headings` | ✅ Yes — broad, overarching scope |
+| **Feature**| Entire docs or first-level `#headings` | ✅ Yes — broad, overarching scope |
+| **Story**  | Specific `#heading` or `#heading-subheading` | ❌ No — must name specific sections |
+| **Task**   | Deepest relevant anchor available (down to `#h2-h3-h4`) | ❌ Never entire docs |
+| **Bug**    | Deepest relevant anchor for expected behavior / affected component | ❌ Never entire docs |
+
+#### Completeness rule (Tasks and Bugs — critical)
+
+For **tasks** and **bugs**, the references list must be **comprehensive enough that the developer
+agent does not need to read anything else**. A developer agent will call `read-references.sh`
+(passing the issue number), which reads all referenced sections and concatenates them. If any
+section that the developer needs is missing from the References list, the developer cannot do
+their job.
+
+Before finalising a task or bug issue body, ask yourself:
+- Does the developer know *which file* to modify from these references?
+- Does the developer know the *interface contract* from these references?
+- Does the developer know the *expected behaviour* from these references?
+- Does the developer know the *error handling requirements* from these references?
+
+If any answer is no, add the missing reference.
+
+#### Anchor format
+
+GitHub-flavored markdown anchors: lowercase, spaces → `-`, strip punctuation.
+
+```
+## 3.2.1 Repository Interface → #321-repository-interface
+### Error Handling (Camera)   → #error-handling-camera
+```
+
+Use `./scripts/read-md.sh toc <file>` to discover available anchors before writing references.
+
 ---
 
 ## 4. Phase 2 — Create the Roadmap Document
@@ -166,6 +218,7 @@ Before touching GitHub, write the roadmap document to the repo.
 ```
 docs/03-implementation/roadmap.md
 ```
+
 
 ### 4.2. Roadmap document structure
 
@@ -314,8 +367,8 @@ Use the templates below. Fill every field — do not leave placeholders.
 
 ## References
 
-- docs/02-technical/feature-dag.md — <relevant section>
-- docs/02-technical/sds.md — <relevant section>
+- [Feature DAG — <Epic section name>](./docs/02-technical/feature-dag.md#<anchor>)
+- [SDS — <relevant top-level section>](./docs/02-technical/sds.md#<anchor>)
 
 ## Notes
 
@@ -347,8 +400,8 @@ Use the templates below. Fill every field — do not leave placeholders.
 
 ## References
 
-- docs/02-technical/sds.md — <section>
-- docs/02-technical/ux-flows.md — <screen name>
+- [SDS — <section name>](./docs/02-technical/sds.md#<anchor>)
+- [UX Flows — <screen or flow name>](./docs/02-technical/ux-flows.md#<anchor>)
 
 ## Notes
 
@@ -386,8 +439,9 @@ As a musician, I want to <action> so that <outcome>.
 
 ## References
 
-- docs/02-technical/ux-flows.md — <screen name>
-- docs/02-technical/data-model.md — <entity name>
+- [UX Flows — <screen name>](./docs/02-technical/ux-flows.md#<screen-anchor>)
+- [Data Model — <entity name>](./docs/02-technical/data-model.md#<entity-anchor>)
+- [SDS — <relevant subheading>](./docs/02-technical/sds.md#<subheading-anchor>)
 ```
 
 #### Task body
@@ -411,8 +465,9 @@ As a musician, I want to <action> so that <outcome>.
 
 ## References
 
-- docs/02-technical/sds.md — <section>
-- docs/02-technical/data-model.md — <entity>
+- [SDS — <specific subheading>](./docs/02-technical/sds.md#<deepest-relevant-anchor>)
+- [Data Model — <entity and field>](./docs/02-technical/data-model.md#<entity-field-anchor>)
+- [State Mgmt — <relevant subsection>](./docs/02-technical/state-management.md#<anchor>)
 ```
 
 ### 6.3. Link child issues to parents

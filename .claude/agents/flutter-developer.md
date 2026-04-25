@@ -83,23 +83,37 @@ Read far enough up the hierarchy (story → feature → epic) to understand:
 
 ### 2.3. Read Referenced Documentation
 
-The issue body will list references in a "References" section. These will typically be paths
-under `docs/`. **You must read every listed reference before proceeding.**
+**You do not need to locate, parse, or read references yourself.** Instead, call the
+`read-references.sh` script, passing the issue number. The script will:
 
-Use `./scripts/read-md.sh` to read them efficiently — **never use your default file-read
-tool on markdown files**:
+1. Fetch the issue body from GitHub
+2. Parse the `References` section (validated markdown URL list)
+3. Call `read-md.sh section` on each reference
+4. Concatenate the results and print them with section headers
 
 ```bash
-# Step 1: read the table of contents
-./scripts/read-md.sh toc docs/02-technical/feature-dag.md
+./scripts/read-references.sh --issue <ISSUE_NUMBER>
+```
 
-# Step 2: read only the sections relevant to this story
-./scripts/read-md.sh section docs/02-technical/sds.md "Data Layer" --with-subsections
-./scripts/read-md.sh section docs/02-technical/data-model.md "Notation" --with-subsections
+The output format is:
+
+```
+=== reference content for <Reference Heading> ===
+
+<section text>
+
+... continued for each reference
 ```
 
 **Strict boundary**: only read files explicitly referenced in the issue or its parents.
 Do not explore other docs or source files speculatively.
+
+> **Note**: `read-references.sh` only works on stories, tasks, and bugs. 
+> You should avoid trying to read feature or epic issues directly. 
+> If you need to read context from a feature or epic, read those parent issues via `gh issue view`
+> and use `./scripts/read-md.sh section` directly on any referenced headings.
+
+
 
 ---
 
