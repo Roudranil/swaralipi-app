@@ -12,8 +12,8 @@
 // - Singleton constraint on user_preferences
 
 import 'package:drift/drift.dart' hide isNull, isNotNull;
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'package:swaralipi/core/database/app_database.dart';
 
 /// Opens a fresh in-memory [AppDatabase] for each test.
@@ -573,8 +573,8 @@ void main() {
 
     test('inserts singleton row with id = 1', () async {
       await db.into(db.userPreferencesTable).insert(
-            UserPreferencesTableCompanion(
-              userName: const Value('Roudranil'),
+            const UserPreferencesTableCompanion(
+              userName: Value('Roudranil'),
             ),
           );
 
@@ -586,9 +586,9 @@ void main() {
     test('singleton CHECK rejects id != 1', () async {
       expect(
         () => db.into(db.userPreferencesTable).insert(
-              UserPreferencesTableCompanion(
-                id: const Value(2),
-                userName: const Value('Other'),
+              const UserPreferencesTableCompanion(
+                id: Value(2),
+                userName: Value('Other'),
               ),
             ),
         throwsA(anything),
@@ -597,15 +597,15 @@ void main() {
 
     test('second insert with id = 1 is rejected (unique PK)', () async {
       await db.into(db.userPreferencesTable).insert(
-            UserPreferencesTableCompanion(
-              userName: const Value('Roudranil'),
+            const UserPreferencesTableCompanion(
+              userName: Value('Roudranil'),
             ),
           );
 
       expect(
         () => db.into(db.userPreferencesTable).insert(
-              UserPreferencesTableCompanion(
-                userName: const Value('Another'),
+              const UserPreferencesTableCompanion(
+                userName: Value('Another'),
               ),
             ),
         throwsA(anything),

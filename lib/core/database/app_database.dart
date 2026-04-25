@@ -338,12 +338,12 @@ class UserPreferencesTable extends Table {
         'CHECK (id = 1)',
         "CHECK (theme_mode IN ('light', 'dark', 'system'))",
         "CHECK (color_scheme_mode IN ('catppuccin', 'monet'))",
-        "CHECK (default_sort IN ("
+        'CHECK (default_sort IN ('
             "'created_at_desc', 'created_at_asc', "
             "'date_written_desc', 'date_written_asc', "
             "'title_asc', 'title_desc', "
             "'play_count_desc', 'last_played_at_desc'"
-            "))",
+            '))',
         "CHECK (default_view IN ('list'))",
       ];
 }
