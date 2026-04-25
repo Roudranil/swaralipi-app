@@ -127,20 +127,58 @@ Re-run this whenever you add or modify:
 
 ---
 
-### 7. Run on Device
+### 7. Connect Your Phone via USB
 
-Connect your Android device with USB debugging enabled, or start an emulator, then:
+Enable USB debugging on the device:
+
+1. **Settings → About phone → Software information**
+2. Tap **Build number** 7 times to unlock Developer options
+3. **Settings → Developer options → USB debugging** → ON
+4. Connect via USB cable and select **File transfer (MTP)** mode when prompted
+5. Accept the "Allow USB debugging?" dialog on the phone
+
+Confirm the device is visible to `adb`:
 
 ```bash
-flutter run
+adb devices
 ```
 
-To target a specific device:
+Expected output:
+
+```
+List of devices attached
+<device-id>     device
+```
+
+- Status `device` means connected and authorised.
+- Status `unauthorized` means the "Allow USB debugging?" prompt is still waiting on the phone — accept it, then re-run.
+- Status `offline` usually means a bad cable or wrong USB mode — try a different cable or switch to MTP mode.
+
+If `adb` is not on your `$PATH`, add `$ANDROID_HOME/platform-tools` to `~/.zshrc` (see step 3 above).
+
+---
+
+### 8. Install and Run on Device
 
 ```bash
-flutter devices                    # list available devices
-flutter run -d <device-id>
+flutter devices                    # confirm device is listed
+flutter run -d <device-id>         # replace with the ID from adb devices
 ```
+
+To install without launching (produces a debug APK and pushes it):
+
+```bash
+flutter install -d <device-id>
+```
+
+To install and then launch manually from the home screen:
+
+```bash
+flutter build apk --debug
+adb install build/app/outputs/flutter-apk/app-debug.apk
+```
+
+Hot reload and hot restart work over USB the same as over a network — press `r` for hot reload and `R` for hot restart in the terminal where `flutter run` is active.
 
 ---
 
