@@ -3768,6 +3768,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $NotationCustomFieldsTableTable(this);
   late final $UserPreferencesTableTable userPreferencesTable =
       $UserPreferencesTableTable(this);
+  late final NotationDao notationDao = NotationDao(this as AppDatabase);
+  late final NotationPageDao notationPageDao =
+      NotationPageDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
