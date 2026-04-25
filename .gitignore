@@ -1,0 +1,79 @@
+**/*.bak
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code related
+# .vscode/ contains launch configurations and tasks.
+# It is often useful to commit this, but un-comment if you prefer to keep it local.
+# .vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Android related
+# The android folder is essential, but we ignore build artifacts and local config.
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/**/*.cxx/
+
+# Gradle
+.gradle/
+
+# Android keys and keystores (CRITICAL SEURITY)
+key.properties
+**/*.keystore
+**/*.jks
+
+# iOS related
+# The ios folder is essential, but we ignore pods and build artifacts.
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.flx
+**/ios/Flutter/gen_snapshot_resources
+**/ios/ServiceDefinitions.json
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/*.mode1v3
+**/ios/*.mode2v3
+**/ios/*.movetrash
+**/ios/*.pbxuser
+**/ios/*.perspectivev3
+**/ios/*.xcworkspace/xcuserdata
+
+# Web related
+lib/generated_plugin_registrant.dart
+
+# Exceptions to above rules.
+
+
+# Environment Variables and Secrets
+.env
+.env.*
+!.env.example
+
+.claude/mcp.json
+.mcp.json
