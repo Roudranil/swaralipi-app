@@ -7,13 +7,6 @@ description: >
     fields, and generates sprint plans. Use when the feature DAG has been produced and
     implementation planning needs to begin. An optional scope filter must be provided as input. If omitted, process the entire feature-dag.md.
     Example: "epic: Notation Capture" or "all".
-skills:
-    - github-project-management
-    - engineering-lead
-tools:
-    - mcp: github # Read/create/update issues, labels, sub-issues, PRs
-    - cli: gh # Project field management, GraphQL sub-issue linking
-    - cli: bash # Running scripts, reading docs
 color: blue
 ---
 
@@ -41,7 +34,7 @@ The rules defined in
 - common/development-workflow
 - common/git-workflow
 
-apply to your work
+apply to your work.
 
 ---
 
@@ -162,23 +155,25 @@ of markdown URLs.** Plain text paths are never acceptable. This is a non-negotia
 
 ```markdown
 # ✅ Correct — these are valid references
+
 - [Feature DAG — Notation Capture](./docs/02-technical/feature-dag.md#notation-capture)
 - [SDS §3.2.1 NotationRepository interface](./docs/02-technical/sds.md#321-notationrepository-interface)
 
 # ❌ Incorrect — these will be rejected
+
 - docs/02-technical/feature-dag.md — Notation Capture
 - PRD section 5
 ```
 
 #### Granularity rules by issue type
 
-| Issue type | Required depth | May reference entire docs? |
-| ---------- | -------------- | -------------------------- |
-| **Epic**   | Entire docs or first-level `#headings` | ✅ Yes — broad, overarching scope |
-| **Feature**| Entire docs or first-level `#headings` | ✅ Yes — broad, overarching scope |
-| **Story**  | Specific `#heading` or `#heading-subheading` | ❌ No — must name specific sections |
-| **Task**   | Deepest relevant anchor available (down to `#h2-h3-h4`) | ❌ Never entire docs |
-| **Bug**    | Deepest relevant anchor for expected behavior / affected component | ❌ Never entire docs |
+| Issue type  | Required depth                                                     | May reference entire docs?          |
+| ----------- | ------------------------------------------------------------------ | ----------------------------------- |
+| **Epic**    | Entire docs or first-level `#headings`                             | ✅ Yes — broad, overarching scope   |
+| **Feature** | Entire docs or first-level `#headings`                             | ✅ Yes — broad, overarching scope   |
+| **Story**   | Specific `#heading` or `#heading-subheading`                       | ❌ No — must name specific sections |
+| **Task**    | Deepest relevant anchor available (down to `#h2-h3-h4`)            | ❌ Never entire docs                |
+| **Bug**     | Deepest relevant anchor for expected behavior / affected component | ❌ Never entire docs                |
 
 #### Completeness rule (Tasks and Bugs — critical)
 
@@ -189,10 +184,11 @@ section that the developer needs is missing from the References list, the develo
 their job.
 
 Before finalising a task or bug issue body, ask yourself:
-- Does the developer know *which file* to modify from these references?
-- Does the developer know the *interface contract* from these references?
-- Does the developer know the *expected behaviour* from these references?
-- Does the developer know the *error handling requirements* from these references?
+
+- Does the developer know _which file_ to modify from these references?
+- Does the developer know the _interface contract_ from these references?
+- Does the developer know the _expected behaviour_ from these references?
+- Does the developer know the _error handling requirements_ from these references?
 
 If any answer is no, add the missing reference.
 
@@ -218,7 +214,6 @@ Before touching GitHub, write the roadmap document to the repo.
 ```
 docs/03-implementation/roadmap.md
 ```
-
 
 ### 4.2. Roadmap document structure
 
@@ -303,6 +298,8 @@ git push
 ---
 
 ## 5. Phase 3 — Bootstrap GitHub Labels
+
+**NOTE:** At this point, you are required to read the github-project-management skill using the Skill tool. It is required for all future tasks.
 
 Verify that all required labels exist before creating issues.
 
@@ -532,6 +529,8 @@ Each sprint entry:
 - [ ] CI green on main
 - [ ] Regression test suite passes
 ```
+
+Order the issues in each sprint such that the developers will need to close the issue in a line before moving to the next one.
 
 ### 7.3. Backlog section
 
