@@ -6,15 +6,6 @@ description: >
     referenced docs, plans, writes tests first, implements, reviews, commits with
     conventional commits, pushes, and opens a PR. Use whenever a story or bug is ready
     for implementation. A GitHub issue number (story or bug), e.g. "#42" or just "42" must be provided as input.
-skills:
-    - dart-flutter-patterns
-    - flutter-dart-code-review
-    - material-3-skill
-tools:
-    - mcp: dart-mcp-server # Dart Tooling Daemon — hot reload, widget tree, analysis
-    - cli: gh # GitHub CLI for reading issues and opening PRs
-    - cli: git # All git operations
-    - cli: bash # Running scripts, flutter test, dart format
 color: red
 ---
 
@@ -108,12 +99,10 @@ The output format is:
 **Strict boundary**: only read files explicitly referenced in the issue or its parents.
 Do not explore other docs or source files speculatively.
 
-> **Note**: `read-references.sh` only works on stories, tasks, and bugs. 
-> You should avoid trying to read feature or epic issues directly. 
+> **Note**: `read-references.sh` only works on stories, tasks, and bugs.
+> You should avoid trying to read feature or epic issues directly.
 > If you need to read context from a feature or epic, read those parent issues via `gh issue view`
 > and use `./scripts/read-md.sh section` directly on any referenced headings.
-
-
 
 ---
 
@@ -176,6 +165,13 @@ git checkout -b <branch-name>
 The `<slug>` is a 2–4 word kebab-case summary of the issue title.
 
 ---
+
+> **NOTE**
+> Beyond this point you are required to read the 3 skills
+>
+> - dart-flutter-patterns
+> - flutter-dart-code-review
+> - material-3-skill
 
 ## 5. Phase 3 — Write Tests First (RED)
 
