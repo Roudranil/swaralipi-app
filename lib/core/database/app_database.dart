@@ -28,7 +28,28 @@ part 'app_database.g.dart';
 
 /// Stores notation metadata. Soft-deleted rows set [deletedAt]; all
 /// repository queries default-filter `WHERE deleted_at IS NULL`.
+///
+/// Three partial indexes optimise the hot read paths described in
+/// data-model.md §4:
+/// - [idx_notations_active_updated]: library list sorted by update time
+/// - [idx_notations_last_played]: recently-played carousel
+/// - [idx_notations_deleted]: trash screen sorted by deletion date
 @DataClassName('NotationRow')
+@TableIndex.sql(
+  'CREATE INDEX idx_notations_active_updated ON notations_table'
+  ' (deleted_at, updated_at DESC)'
+  ' WHERE deleted_at IS NULL',
+)
+@TableIndex.sql(
+  'CREATE INDEX idx_notations_last_played ON notations_table'
+  ' (deleted_at, last_played_at DESC)'
+  ' WHERE deleted_at IS NULL AND last_played_at IS NOT NULL',
+)
+@TableIndex.sql(
+  'CREATE INDEX idx_notations_deleted ON notations_table'
+  ' (deleted_at DESC)'
+  ' WHERE deleted_at IS NOT NULL',
+)
 class NotationsTable extends Table {
   /// UUIDv4 generated at the app layer.
   TextColumn get id => text()();
@@ -77,7 +98,14 @@ class NotationsTable extends Table {
 ///
 /// Each page is ordered within its notation via [pageOrder] (0-indexed).
 /// Pages cascade-delete when their parent notation is hard-deleted.
+///
+/// [idx_pages_notation_order] optimises joins that fetch all pages for a
+/// given notation in display order (data-model.md §4).
 @DataClassName('NotationPageRow')
+@TableIndex.sql(
+  'CREATE INDEX idx_pages_notation_order ON notation_pages_table'
+  ' (notation_id, page_order ASC)',
+)
 class NotationPagesTable extends Table {
   /// UUIDv4 generated at the app layer.
   TextColumn get id => text()();
@@ -135,7 +163,14 @@ class TagsTable extends Table {
 ///
 /// Both sides cascade-delete: removing a notation or a tag silently removes
 /// the corresponding join rows.
+///
+/// [idx_notation_tags_notation] optimises queries that look up all tags for
+/// a given notation (data-model.md §4).
 @DataClassName('NotationTagRow')
+@TableIndex.sql(
+  'CREATE INDEX idx_notation_tags_notation ON notation_tags_table'
+  ' (notation_id)',
+)
 class NotationTagsTable extends Table {
   /// Foreign key to [NotationsTable].
   TextColumn get notationId =>
@@ -176,7 +211,14 @@ class InstrumentClassesTable extends Table {
 /// Soft-deleted (archived) instances retain their rows so existing notation
 /// associations remain visible. Deletion of the parent class is blocked
 /// (RESTRICT) while instances exist.
+///
+/// [idx_instances_class] optimises queries that list instances by class
+/// (e.g. the instrument picker filtered by type) (data-model.md §4).
 @DataClassName('InstrumentInstanceRow')
+@TableIndex.sql(
+  'CREATE INDEX idx_instances_class ON instrument_instances_table'
+  ' (class_id, deleted_at)',
+)
 class InstrumentInstancesTable extends Table {
   /// UUIDv4 generated at the app layer.
   TextColumn get id => text()();
@@ -223,7 +265,14 @@ class InstrumentInstancesTable extends Table {
 ///
 /// Notation side cascades on hard-delete; instrument side restricts (archived
 /// instances are never hard-deleted, so RESTRICT is rarely triggered).
+///
+/// [idx_notation_instruments_notation] optimises joins fetching all
+/// instrument associations for a notation (data-model.md §4).
 @DataClassName('NotationInstrumentRow')
+@TableIndex.sql(
+  'CREATE INDEX idx_notation_instruments_notation'
+  ' ON notation_instruments_table (notation_id)',
+)
 class NotationInstrumentsTable extends Table {
   /// Foreign key to [NotationsTable]. Cascade on notation delete.
   TextColumn get notationId =>
@@ -276,7 +325,14 @@ class CustomFieldDefinitionsTable extends Table {
 /// Sparse column design: only the column matching [fieldType] in the linked
 /// [CustomFieldDefinitionsTable] row is populated; all others are NULL.
 /// Both foreign keys cascade on delete.
+///
+/// [idx_custom_fields_notation] optimises queries that fetch all custom
+/// field values for a given notation (data-model.md §4).
 @DataClassName('NotationCustomFieldRow')
+@TableIndex.sql(
+  'CREATE INDEX idx_custom_fields_notation ON notation_custom_fields_table'
+  ' (notation_id)',
+)
 class NotationCustomFieldsTable extends Table {
   /// Foreign key to [NotationsTable]. Cascade on notation delete.
   TextColumn get notationId =>
@@ -363,10 +419,25 @@ class UserPreferencesTable extends Table {
 
 /// Drift database singleton for Swaralipi.
 ///
-/// Holds all table definitions and exposes a [forTesting] named constructor
-/// for in-memory test instances. Seed data (default tags and user prefs row)
-/// is inserted during [onCreate] in production; tests start with an empty
-/// schema and insert only what each test case requires.
+/// Holds all 10 table definitions, 8 index declarations, and the FTS5 virtual
+/// table + 3 sync triggers created by [createFtsSchema].
+///
+/// ## Schema versioning policy
+///
+/// Every schema change MUST:
+/// 1. Increment [schemaVersion] by 1.
+/// 2. Add a migration function in the [MigrationStrategy.onUpgrade] switch
+///    block that transforms the database from `from` to `to`.
+/// 3. Have a corresponding migration test in
+///    `test/unit/core/database/migration_test.dart` that calls
+///    [validateDatabaseSchema] after running the migration.
+///
+/// No destructive migrations (`DROP TABLE`, `DROP COLUMN`) without a
+/// data-safe alternative. See data-model.md §7 for the full policy.
+///
+/// | schemaVersion | Change |
+/// |---|---|
+/// | 1 | Initial schema: all tables, FTS5, triggers, indexes, seed data |
 @DriftDatabase(
   tables: [
     NotationsTable,
@@ -417,12 +488,31 @@ class AppDatabase extends _$AppDatabase {
           ),
         );
 
+  /// Creates an [AppDatabase] backed by an in-memory SQLite instance with
+  /// seed data inserted on [onCreate].
+  ///
+  /// Used exclusively in migration tests that need to verify the seed data
+  /// produced by [MigrationStrategy.onCreate]. Regular DAO unit tests should
+  /// use [AppDatabase.forTesting] instead, which starts with an empty schema.
+  ///
+  /// After constructing, callers that require FTS5 search must call
+  /// [createFtsSchema] once after the first query.
+  AppDatabase.forTestingWithSeed()
+      : _seedOnCreate = true,
+        super(
+          NativeDatabase.memory(
+            setup: (db) => db.execute('PRAGMA foreign_keys = ON;'),
+          ),
+        );
+
   @override
   int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
+          // Creates all tables and indexes declared in the @DriftDatabase
+          // annotation.  For schema v1 this is the only migration path.
           await m.createAll();
           if (_seedOnCreate) {
             await _seedInitialData();

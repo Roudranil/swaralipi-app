@@ -3768,6 +3768,24 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $NotationCustomFieldsTableTable(this);
   late final $UserPreferencesTableTable userPreferencesTable =
       $UserPreferencesTableTable(this);
+  late final Index idxNotationsActiveUpdated = Index(
+      'idx_notations_active_updated',
+      'CREATE INDEX idx_notations_active_updated ON notations_table (deleted_at, updated_at DESC) WHERE deleted_at IS NULL');
+  late final Index idxNotationsLastPlayed = Index('idx_notations_last_played',
+      'CREATE INDEX idx_notations_last_played ON notations_table (deleted_at, last_played_at DESC) WHERE deleted_at IS NULL AND last_played_at IS NOT NULL');
+  late final Index idxNotationsDeleted = Index('idx_notations_deleted',
+      'CREATE INDEX idx_notations_deleted ON notations_table (deleted_at DESC) WHERE deleted_at IS NOT NULL');
+  late final Index idxPagesNotationOrder = Index('idx_pages_notation_order',
+      'CREATE INDEX idx_pages_notation_order ON notation_pages_table (notation_id, page_order ASC)');
+  late final Index idxNotationTagsNotation = Index('idx_notation_tags_notation',
+      'CREATE INDEX idx_notation_tags_notation ON notation_tags_table (notation_id)');
+  late final Index idxInstancesClass = Index('idx_instances_class',
+      'CREATE INDEX idx_instances_class ON instrument_instances_table (class_id, deleted_at)');
+  late final Index idxNotationInstrumentsNotation = Index(
+      'idx_notation_instruments_notation',
+      'CREATE INDEX idx_notation_instruments_notation ON notation_instruments_table (notation_id)');
+  late final Index idxCustomFieldsNotation = Index('idx_custom_fields_notation',
+      'CREATE INDEX idx_custom_fields_notation ON notation_custom_fields_table (notation_id)');
   late final NotationDao notationDao = NotationDao(this as AppDatabase);
   late final NotationPageDao notationPageDao =
       NotationPageDao(this as AppDatabase);
@@ -3794,7 +3812,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         notationInstrumentsTable,
         customFieldDefinitionsTable,
         notationCustomFieldsTable,
-        userPreferencesTable
+        userPreferencesTable,
+        idxNotationsActiveUpdated,
+        idxNotationsLastPlayed,
+        idxNotationsDeleted,
+        idxPagesNotationOrder,
+        idxNotationTagsNotation,
+        idxInstancesClass,
+        idxNotationInstrumentsNotation,
+        idxCustomFieldsNotation
       ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
