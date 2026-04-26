@@ -94,6 +94,21 @@ class NotationPageDao extends DatabaseAccessor<AppDatabase>
   // Read operations
   // -------------------------------------------------------------------------
 
+  /// Returns all `image_path` values from every row in [NotationPagesTable].
+  ///
+  /// Used by the startup orphan-cleanup routine to determine which relative
+  /// paths are still referenced by the database. The returned list may contain
+  /// duplicates if the schema ever allows shared image paths (currently it does
+  /// not), but callers should treat each value as a known-good path.
+  ///
+  /// Returns an empty list when the table contains no rows.
+  Future<List<String>> getAllImagePaths() {
+    return (select(notationPagesTable)
+          ..orderBy([(t) => OrderingTerm.asc(t.pageOrder)]))
+        .map((row) => row.imagePath)
+        .get();
+  }
+
   /// Returns all pages for [notationId] ordered by [NotationPagesTable.pageOrder]
   /// ascending (page 0 first).
   ///
