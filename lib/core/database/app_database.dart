@@ -12,6 +12,7 @@ import 'package:drift/native.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 import 'package:swaralipi/core/database/daos/custom_field_dao.dart';
+import 'package:swaralipi/core/database/daos/fts_dao.dart';
 import 'package:swaralipi/core/database/daos/instrument_dao.dart';
 import 'package:swaralipi/core/database/daos/notation_dao.dart';
 import 'package:swaralipi/core/database/daos/notation_page_dao.dart';
@@ -387,6 +388,7 @@ class UserPreferencesTable extends Table {
     InstrumentDao,
     CustomFieldDao,
     UserPreferencesDao,
+    FtsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -403,6 +405,10 @@ class AppDatabase extends _$AppDatabase {
   /// Used exclusively in unit tests. Foreign keys are enabled via the
   /// [DatabaseSetup] callback. Seed data is skipped so each test starts with
   /// an empty, predictable schema.
+  ///
+  /// After constructing a test database, callers that require FTS5 search
+  /// must call [createFtsSchema] once after the first query to set up the
+  /// virtual table and triggers on the fully-open connection.
   AppDatabase.forTesting()
       : _seedOnCreate = false,
         super(
@@ -422,7 +428,84 @@ class AppDatabase extends _$AppDatabase {
             await _seedInitialData();
           }
         },
+        beforeOpen: (details) async {
+          // FTS schema is created here for the production (file-based) database.
+          // Test databases created with [AppDatabase.forTesting] must call
+          // [createFtsSchema] explicitly from test setUp after opening, because
+          // Drift's BeforeOpenRunner zone prevents DDL for virtual tables from
+          // executing on NativeDatabase.memory connections.
+          if (details.wasCreated && _seedOnCreate) {
+            await createFtsSchema();
+          }
+        },
       );
+
+  /// Creates the FTS5 virtual table and sync triggers on the open connection.
+  ///
+  /// Called automatically from [MigrationStrategy.onCreate] in production.
+  /// Tests that use [AppDatabase.forTesting] and require FTS search must call
+  /// this method once after opening the database (after the first query that
+  /// triggers schema creation), because Drift's [BeforeOpenRunner] zone
+  /// prevents DDL statements for virtual tables from running inside
+  /// [MigrationStrategy.onCreate] on in-memory [NativeDatabase.memory]
+  /// connections.
+  ///
+  /// The method is idempotent — it uses `IF NOT EXISTS` guards on all
+  /// statements and is safe to call multiple times.
+  Future<void> createFtsSchema() async {
+    // Drift generates the SQLite table name as 'notations_table' (not
+    // 'notations') for the NotationsTable class. All FTS5 DDL uses this name.
+    await customStatement(
+      'CREATE VIRTUAL TABLE IF NOT EXISTS notations_fts'
+      ' USING fts5('
+      'title, artists, notes,'
+      " content='notations_table',"
+      " content_rowid='rowid',"
+      " tokenize='unicode61'"
+      ')',
+    );
+    await customStatement(
+      'CREATE TRIGGER IF NOT EXISTS notations_ai'
+      ' AFTER INSERT ON notations_table BEGIN'
+      ' INSERT INTO notations_fts(rowid, title, artists, notes)'
+      ' VALUES (new.rowid, new.title, new.artists, new.notes);'
+      ' END',
+    );
+    await customStatement(
+      'CREATE TRIGGER IF NOT EXISTS notations_ad'
+      ' AFTER DELETE ON notations_table BEGIN'
+      ' INSERT INTO notations_fts(notations_fts, rowid, title, artists,'
+      ' notes)'
+      " VALUES ('delete', old.rowid, old.title, old.artists, old.notes);"
+      ' END',
+    );
+    await customStatement(
+      'CREATE TRIGGER IF NOT EXISTS notations_au'
+      ' AFTER UPDATE ON notations_table BEGIN'
+      ' INSERT INTO notations_fts(notations_fts, rowid, title, artists,'
+      ' notes)'
+      " VALUES ('delete', old.rowid, old.title, old.artists, old.notes);"
+      ' INSERT INTO notations_fts(rowid, title, artists, notes)'
+      ' VALUES (new.rowid, new.title, new.artists, new.notes);'
+      ' END',
+    );
+  }
+
+  /// Creates the FTS5 virtual table and the three sync triggers.
+  ///
+  /// The virtual table `notations_fts` indexes the [NotationsTable] columns
+  /// `title`, `artists`, and `notes` using the `unicode61` tokenizer, which
+  /// handles Hindi and Bengali text correctly (data-model.md §2.11).
+  ///
+  /// Three triggers keep the FTS index in sync with the `notations` table:
+  /// - `notations_ai` — AFTER INSERT: adds the new row to FTS.
+  /// - `notations_ad` — AFTER DELETE: removes the deleted row from FTS.
+  /// - `notations_au` — AFTER UPDATE: removes the old row and adds the new
+  ///   one, effectively replacing the FTS entry.
+  ///
+  /// Soft-deleted rows are NOT filtered out here; they remain in the FTS
+  /// index. The `FtsDao.search` query applies `WHERE deleted_at IS NULL`
+  /// via a JOIN to exclude them at query time (data-model.md §2.11).
 
   /// Seeds required initial data after the schema is created for the first
   /// time.
