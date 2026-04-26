@@ -3779,6 +3779,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       CustomFieldDao(this as AppDatabase);
   late final UserPreferencesDao userPreferencesDao =
       UserPreferencesDao(this as AppDatabase);
+  late final FtsDao ftsDao = FtsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
