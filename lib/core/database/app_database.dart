@@ -11,11 +11,13 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import 'package:swaralipi/core/database/daos/custom_field_dao.dart';
 import 'package:swaralipi/core/database/daos/instrument_dao.dart';
 import 'package:swaralipi/core/database/daos/notation_dao.dart';
 import 'package:swaralipi/core/database/daos/notation_page_dao.dart';
 import 'package:swaralipi/core/database/daos/notation_tag_dao.dart';
 import 'package:swaralipi/core/database/daos/tag_dao.dart';
+import 'package:swaralipi/core/database/daos/user_preferences_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -383,6 +385,8 @@ class UserPreferencesTable extends Table {
     TagDao,
     NotationTagDao,
     InstrumentDao,
+    CustomFieldDao,
+    UserPreferencesDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
