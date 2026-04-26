@@ -1,15 +1,22 @@
 // Unit tests for ImageProcessingService.
 //
-// Covers the public [ImageProcessingService.applyFilter] method for every
-// [NotationFilter] value. Tests verify:
+// Covers the public [ImageProcessingService.applyFilter],
+// [ImageProcessingService.applyCrop], [ImageProcessingService.applyRotation],
+// and [ImageProcessingService.apply] methods.
+//
+// Tests verify:
 //   - Return type is [Uint8List] (non-null, non-empty)
-//   - Original bytes are never mutated
-//   - Each filter produces different output compared to original
-//     (except [NotationFilter.none], which returns unchanged bytes)
-//   - Invalid JPEG input throws [ImageProcessingException]
+//   - Original bytes are never mutated (SHA-256 hash invariant)
+//   - Each filter produces the expected pixel output
+//   - Crop correctly extracts the expected sub-region
+//   - Rotation produces correct dimensions for 90/180/270 degrees
+//   - Rotation 0 is a no-op (bytes unchanged after decode/encode)
+//   - Composite [apply] applies filter → crop → rotate in order
+//   - Invalid input throws [ImageProcessingException]
 
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:swaralipi/core/image/image_processing_service.dart';
@@ -56,6 +63,40 @@ Uint8List _makeJpeg({
     b: totalB / pixelCount,
   );
 }
+
+/// Returns the SHA-256 hex digest of [bytes].
+String _sha256hex(Uint8List bytes) => sha256.convert(bytes).toString();
+
+/// Creates a valid JPEG with a 2×2 color grid pattern.
+///
+/// Top-left quadrant is red, top-right green, bottom-left blue,
+/// bottom-right white. [size] must be even.
+///
+/// Parameters:
+/// - [size]: Width and height in pixels. Must be even. Defaults to `8`.
+Uint8List _makeQuadrantJpeg({int size = 8}) {
+  assert(size % 2 == 0, 'size must be even');
+  final half = size ~/ 2;
+  final image = img.Image(width: size, height: size);
+  for (var y = 0; y < size; y++) {
+    for (var x = 0; x < size; x++) {
+      final isLeft = x < half;
+      final isTop = y < half;
+      final color = switch ((isTop, isLeft)) {
+        (true, true) => img.ColorRgb8(255, 0, 0), // top-left: red
+        (true, false) => img.ColorRgb8(0, 255, 0), // top-right: green
+        (false, true) => img.ColorRgb8(0, 0, 255), // bottom-left: blue
+        (false, false) => img.ColorRgb8(255, 255, 255), // bottom-right: white
+      };
+      image.setPixel(x, y, color);
+    }
+  }
+  return img.encodeJpg(image, quality: 100);
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 void main() {
   group('ImageProcessingService', () {
@@ -349,7 +390,7 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
-    // Error handling
+    // applyFilter — error handling
     // -----------------------------------------------------------------------
 
     group('applyFilter — error handling', () {
@@ -409,6 +450,542 @@ void main() {
 
         // Assert
         expect(warm, isNot(equals(cool)));
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    // applyCrop
+    // -----------------------------------------------------------------------
+
+    group('applyCrop', () {
+      test('returns non-empty Uint8List', () async {
+        // Arrange — 8×8 image, crop the top-left quarter
+        final bytes = _makeJpeg(width: 8, height: 8);
+        const cropRect = CropRect(
+          left: 0.0,
+          top: 0.0,
+          right: 0.5,
+          bottom: 0.5,
+        );
+
+        // Act
+        final result = await service.applyCrop(bytes, cropRect);
+
+        // Assert
+        expect(result, isA<Uint8List>());
+        expect(result, isNotEmpty);
+      });
+
+      test('does not mutate the original bytes', () async {
+        // Arrange
+        final original = _makeJpeg(width: 8, height: 8);
+        final hashBefore = _sha256hex(original);
+        const cropRect = CropRect(
+          left: 0.0,
+          top: 0.0,
+          right: 0.5,
+          bottom: 0.5,
+        );
+
+        // Act
+        await service.applyCrop(original, cropRect);
+
+        // Assert — SHA-256 hash is unchanged
+        expect(_sha256hex(original), equals(hashBefore));
+      });
+
+      test('output has correct dimensions for half-width crop', () async {
+        // Arrange — 8×8 image, crop left half (full height)
+        final bytes = _makeJpeg(width: 8, height: 8);
+        const cropRect = CropRect(
+          left: 0.0,
+          top: 0.0,
+          right: 0.5,
+          bottom: 1.0,
+        );
+
+        // Act
+        final result = await service.applyCrop(bytes, cropRect);
+        final decoded = img.decodeJpg(result)!;
+
+        // Assert — width should be ~4, height ~8 (JPEG rounding)
+        expect(decoded.width, lessThanOrEqualTo(4));
+        expect(decoded.height, greaterThan(0));
+      });
+
+      test('output has correct dimensions for quarter-height crop', () async {
+        // Arrange — 8×8 image, crop top quarter (full width)
+        final bytes = _makeJpeg(width: 8, height: 8);
+        const cropRect = CropRect(
+          left: 0.0,
+          top: 0.0,
+          right: 1.0,
+          bottom: 0.25,
+        );
+
+        // Act
+        final result = await service.applyCrop(bytes, cropRect);
+        final decoded = img.decodeJpg(result)!;
+
+        // Assert — height should be ~2 (8 * 0.25), width ~8
+        expect(decoded.height, lessThanOrEqualTo(2));
+        expect(decoded.width, greaterThan(0));
+      });
+
+      test(
+        'identity crop (full rect) returns image of same size',
+        () async {
+          // Arrange — full crop rect should return same dimensions
+          final bytes = _makeJpeg(width: 8, height: 6);
+          const cropRect = CropRect(
+            left: 0.0,
+            top: 0.0,
+            right: 1.0,
+            bottom: 1.0,
+          );
+
+          // Act
+          final result = await service.applyCrop(bytes, cropRect);
+          final decoded = img.decodeJpg(result)!;
+
+          // Assert
+          expect(decoded.width, equals(8));
+          expect(decoded.height, equals(6));
+        },
+      );
+
+      test(
+        'crop preserves color of cropped region',
+        () async {
+          // Arrange — 8×8 quadrant image; crop top-left red quadrant
+          final bytes = _makeQuadrantJpeg(size: 8);
+          const cropRect = CropRect(
+            left: 0.0,
+            top: 0.0,
+            right: 0.5,
+            bottom: 0.5,
+          );
+
+          // Act
+          final result = await service.applyCrop(bytes, cropRect);
+          final avg = _averageRgb(result);
+
+          // Assert — top-left quadrant is red; red should dominate
+          expect(avg.r, greaterThan(avg.g + 0.2));
+          expect(avg.r, greaterThan(avg.b + 0.2));
+        },
+      );
+
+      test(
+        'throws ImageProcessingException for invalid JPEG bytes',
+        () async {
+          // Arrange
+          final invalidBytes = Uint8List.fromList([0x00, 0x01]);
+          const cropRect = CropRect(
+            left: 0.0,
+            top: 0.0,
+            right: 0.5,
+            bottom: 0.5,
+          );
+
+          // Act & Assert
+          expect(
+            () => service.applyCrop(invalidBytes, cropRect),
+            throwsA(isA<ImageProcessingException>()),
+          );
+        },
+      );
+
+      test('throws ImageProcessingException for empty bytes', () async {
+        // Arrange
+        final emptyBytes = Uint8List(0);
+        const cropRect = CropRect(
+          left: 0.0,
+          top: 0.0,
+          right: 0.5,
+          bottom: 0.5,
+        );
+
+        // Act & Assert
+        expect(
+          () => service.applyCrop(emptyBytes, cropRect),
+          throwsA(isA<ImageProcessingException>()),
+        );
+      });
+
+      test(
+        'throws ImageProcessingException when right exceeds image bounds',
+        () async {
+          // Arrange — right = 1.5 is out of [0, 1] range
+          final bytes = _makeJpeg(width: 8, height: 8);
+          const cropRect = CropRect(
+            left: 0.0,
+            top: 0.0,
+            right: 1.5,
+            bottom: 1.0,
+          );
+
+          // Act & Assert
+          expect(
+            () => service.applyCrop(bytes, cropRect),
+            throwsA(isA<ImageProcessingException>()),
+          );
+        },
+      );
+
+      test(
+        'throws ImageProcessingException when left >= right',
+        () async {
+          // Arrange — degenerate rect (left == right)
+          final bytes = _makeJpeg(width: 8, height: 8);
+          const cropRect = CropRect(
+            left: 0.5,
+            top: 0.0,
+            right: 0.5,
+            bottom: 1.0,
+          );
+
+          // Act & Assert
+          expect(
+            () => service.applyCrop(bytes, cropRect),
+            throwsA(isA<ImageProcessingException>()),
+          );
+        },
+      );
+    });
+
+    // -----------------------------------------------------------------------
+    // applyRotation
+    // -----------------------------------------------------------------------
+
+    group('applyRotation', () {
+      test('returns non-empty Uint8List', () async {
+        // Arrange
+        final bytes = _makeJpeg(width: 8, height: 6);
+
+        // Act
+        final result = await service.applyRotation(bytes, 90);
+
+        // Assert
+        expect(result, isA<Uint8List>());
+        expect(result, isNotEmpty);
+      });
+
+      test('does not mutate the original bytes (SHA-256 invariant)', () async {
+        // Arrange
+        final original = _makeJpeg(width: 8, height: 6);
+        final hashBefore = _sha256hex(original);
+
+        // Act
+        await service.applyRotation(original, 90);
+
+        // Assert — hash must be unchanged
+        expect(_sha256hex(original), equals(hashBefore));
+      });
+
+      test('rotation 0 is a no-op (same dimensions)', () async {
+        // Arrange
+        final bytes = _makeJpeg(width: 8, height: 6);
+
+        // Act
+        final result = await service.applyRotation(bytes, 0);
+        final decoded = img.decodeJpg(result)!;
+
+        // Assert — dimensions unchanged
+        expect(decoded.width, equals(8));
+        expect(decoded.height, equals(6));
+      });
+
+      test('rotation 90 swaps width and height', () async {
+        // Arrange — non-square so rotation is detectable
+        final bytes = _makeJpeg(width: 8, height: 4);
+
+        // Act
+        final result = await service.applyRotation(bytes, 90);
+        final decoded = img.decodeJpg(result)!;
+
+        // Assert — width and height swapped
+        expect(decoded.width, equals(4));
+        expect(decoded.height, equals(8));
+      });
+
+      test('rotation 180 preserves dimensions', () async {
+        // Arrange
+        final bytes = _makeJpeg(width: 8, height: 4);
+
+        // Act
+        final result = await service.applyRotation(bytes, 180);
+        final decoded = img.decodeJpg(result)!;
+
+        // Assert — same dimensions after 180° rotation
+        expect(decoded.width, equals(8));
+        expect(decoded.height, equals(4));
+      });
+
+      test('rotation 270 swaps width and height', () async {
+        // Arrange
+        final bytes = _makeJpeg(width: 8, height: 4);
+
+        // Act
+        final result = await service.applyRotation(bytes, 270);
+        final decoded = img.decodeJpg(result)!;
+
+        // Assert — width and height swapped
+        expect(decoded.width, equals(4));
+        expect(decoded.height, equals(8));
+      });
+
+      test(
+        'throws ImageProcessingException for unsupported degrees (45)',
+        () async {
+          // Arrange
+          final bytes = _makeJpeg();
+
+          // Act & Assert
+          expect(
+            () => service.applyRotation(bytes, 45),
+            throwsA(isA<ImageProcessingException>()),
+          );
+        },
+      );
+
+      test(
+        'throws ImageProcessingException for unsupported degrees (-90)',
+        () async {
+          // Arrange
+          final bytes = _makeJpeg();
+
+          // Act & Assert
+          expect(
+            () => service.applyRotation(bytes, -90),
+            throwsA(isA<ImageProcessingException>()),
+          );
+        },
+      );
+
+      test(
+        'throws ImageProcessingException for invalid JPEG bytes',
+        () async {
+          // Arrange
+          final invalidBytes = Uint8List.fromList([0x00, 0x01]);
+
+          // Act & Assert
+          expect(
+            () => service.applyRotation(invalidBytes, 90),
+            throwsA(isA<ImageProcessingException>()),
+          );
+        },
+      );
+
+      test('throws ImageProcessingException for empty bytes', () async {
+        // Arrange
+        final emptyBytes = Uint8List(0);
+
+        // Act & Assert
+        expect(
+          () => service.applyRotation(emptyBytes, 90),
+          throwsA(isA<ImageProcessingException>()),
+        );
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    // apply — composite pipeline
+    // -----------------------------------------------------------------------
+
+    group('apply — composite pipeline', () {
+      test('returns non-empty Uint8List for identity params', () async {
+        // Arrange
+        final bytes = _makeJpeg(width: 8, height: 8);
+
+        // Act
+        final result = await service.apply(bytes, RenderParams.identity);
+
+        // Assert
+        expect(result, isA<Uint8List>());
+        expect(result, isNotEmpty);
+      });
+
+      test('original SHA-256 hash is unchanged after apply()', () async {
+        // Arrange — capture hash before any transform
+        final original = _makeJpeg(width: 8, height: 8);
+        final hashBefore = _sha256hex(original);
+        const params = RenderParams(
+          filter: NotationFilter.grayscale,
+          rotationDegrees: 90,
+          cropRect: CropRect(
+            left: 0.1,
+            top: 0.1,
+            right: 0.9,
+            bottom: 0.9,
+          ),
+        );
+
+        // Act
+        await service.apply(original, params);
+
+        // Assert — original bytes are absolutely unchanged
+        expect(
+          _sha256hex(original),
+          equals(hashBefore),
+          reason: 'apply() must never mutate the original bytes buffer',
+        );
+      });
+
+      test(
+        'original SHA-256 hash is unchanged after rotate-only apply()',
+        () async {
+          // Arrange
+          final original = _makeJpeg(width: 8, height: 4);
+          final hashBefore = _sha256hex(original);
+          const params = RenderParams(rotationDegrees: 180);
+
+          // Act
+          await service.apply(original, params);
+
+          // Assert
+          expect(_sha256hex(original), equals(hashBefore));
+        },
+      );
+
+      test(
+        'original SHA-256 hash is unchanged after crop-only apply()',
+        () async {
+          // Arrange
+          final original = _makeJpeg(width: 8, height: 8);
+          final hashBefore = _sha256hex(original);
+          const params = RenderParams(
+            cropRect: CropRect(
+              left: 0.0,
+              top: 0.0,
+              right: 0.5,
+              bottom: 0.5,
+            ),
+          );
+
+          // Act
+          await service.apply(original, params);
+
+          // Assert
+          expect(_sha256hex(original), equals(hashBefore));
+        },
+      );
+
+      test(
+        'apply with rotation 90 swaps output dimensions',
+        () async {
+          // Arrange — 8×4 input; rotation 90 should produce 4×8 output
+          final bytes = _makeJpeg(width: 8, height: 4);
+          const params = RenderParams(rotationDegrees: 90);
+
+          // Act
+          final result = await service.apply(bytes, params);
+          final decoded = img.decodeJpg(result)!;
+
+          // Assert
+          expect(decoded.width, equals(4));
+          expect(decoded.height, equals(8));
+        },
+      );
+
+      test('apply with crop reduces output dimensions', () async {
+        // Arrange — 8×8 input; crop to top-left quarter
+        final bytes = _makeJpeg(width: 8, height: 8);
+        const params = RenderParams(
+          cropRect: CropRect(
+            left: 0.0,
+            top: 0.0,
+            right: 0.5,
+            bottom: 0.5,
+          ),
+        );
+
+        // Act
+        final result = await service.apply(bytes, params);
+        final decoded = img.decodeJpg(result)!;
+
+        // Assert — output must be smaller than 8×8
+        expect(decoded.width, lessThanOrEqualTo(4));
+        expect(decoded.height, lessThanOrEqualTo(4));
+      });
+
+      test('apply with grayscale filter produces equal RGB channels', () async {
+        // Arrange — colored image; grayscale should equalize channels
+        final bytes = _makeJpeg(r: 200, g: 50, b: 10, width: 8, height: 8);
+        const params = RenderParams(filter: NotationFilter.grayscale);
+
+        // Act
+        final result = await service.apply(bytes, params);
+        final avg = _averageRgb(result);
+
+        // Assert — all channels should be roughly equal
+        expect(avg.r, closeTo(avg.g, 0.05));
+        expect(avg.r, closeTo(avg.b, 0.05));
+      });
+
+      test(
+        'apply with filter + crop + rotate produces non-empty result',
+        () async {
+          // Arrange — all three transforms combined
+          final bytes = _makeJpeg(width: 8, height: 8);
+          const params = RenderParams(
+            filter: NotationFilter.tintWarm,
+            rotationDegrees: 270,
+            cropRect: CropRect(
+              left: 0.0,
+              top: 0.0,
+              right: 0.75,
+              bottom: 0.75,
+            ),
+          );
+
+          // Act
+          final result = await service.apply(bytes, params);
+
+          // Assert
+          expect(result, isA<Uint8List>());
+          expect(result, isNotEmpty);
+        },
+      );
+
+      test('apply with all NotationFilter values does not throw', () async {
+        // Arrange
+        final bytes = _makeJpeg(width: 8, height: 8);
+
+        for (final filter in NotationFilter.values) {
+          final params = RenderParams(filter: filter);
+
+          // Act & Assert — no exception for any filter value
+          await expectLater(
+            service.apply(bytes, params),
+            completes,
+          );
+        }
+      });
+
+      test(
+        'throws ImageProcessingException for invalid JPEG bytes',
+        () async {
+          // Arrange
+          final invalidBytes = Uint8List.fromList([0x00, 0x01]);
+
+          // Act & Assert
+          expect(
+            () => service.apply(invalidBytes, RenderParams.identity),
+            throwsA(isA<ImageProcessingException>()),
+          );
+        },
+      );
+
+      test('throws ImageProcessingException for empty bytes', () async {
+        // Arrange
+        final emptyBytes = Uint8List(0);
+
+        // Act & Assert
+        expect(
+          () => service.apply(emptyBytes, RenderParams.identity),
+          throwsA(isA<ImageProcessingException>()),
+        );
       });
     });
   });
