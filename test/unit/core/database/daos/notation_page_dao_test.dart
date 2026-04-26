@@ -161,9 +161,9 @@ void main() {
     tearDown(() => db.close());
 
     test('updates imagePath of an existing page', () async {
-      final companion = NotationPagesTableCompanion(
-        id: const Value('p1'),
-        imagePath: const Value('notations/n1/page_p1_edited.jpg'),
+      const companion = NotationPagesTableCompanion(
+        id: Value('p1'),
+        imagePath: Value('notations/n1/page_p1_edited.jpg'),
       );
 
       await dao.updatePage(companion);
@@ -175,9 +175,9 @@ void main() {
     });
 
     test('returns false for a non-existent id', () async {
-      final companion = NotationPagesTableCompanion(
-        id: const Value('ghost'),
-        imagePath: const Value('any/path'),
+      const companion = NotationPagesTableCompanion(
+        id: Value('ghost'),
+        imagePath: Value('any/path'),
       );
 
       final updated = await dao.updatePage(companion);
