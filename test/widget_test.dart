@@ -1,30 +1,19 @@
-// This is a basic Flutter widget test.
+// Smoke test for the SwaralipiApp root widget.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Verifies that the app renders without throwing and that the placeholder
+// home screen is visible. This test will be replaced once the real
+// navigation shell is implemented.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:swaralipi/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('SwaralipiApp renders placeholder home', (tester) async {
+    await tester.pumpWidget(const SwaralipiApp());
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Swaralipi'), findsOneWidget);
+    expect(find.text('App under construction'), findsOneWidget);
   });
 }

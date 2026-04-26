@@ -127,6 +127,80 @@ class FileStorageService {
     );
   }
 
+  /// Returns the relative paths of all JPEG files under
+  /// `appDocDir/notations/` that are not present in [knownRelativePaths].
+  ///
+  /// The scan walks the entire `notations/` subtree and collects every file
+  /// whose name ends with `.jpg`. A file is considered an orphan when its
+  /// relative path (relative to `appDocDir`) is not contained in
+  /// [knownRelativePaths].
+  ///
+  /// Returns an empty list when the `notations/` directory does not exist, or
+  /// when all discovered JPEG files are known.
+  ///
+  /// Parameters:
+  /// - [knownRelativePaths]: The complete set of relative paths currently
+  ///   referenced by the database (e.g. from [NotationPageDao.getAllImagePaths]).
+  Future<List<String>> scanOrphans(
+    List<String> knownRelativePaths,
+  ) async {
+    final appDocDir = await _dirProvider();
+    final notationsDir = Directory(
+      p.join(appDocDir.path, _kNotationsDir),
+    );
+
+    if (!notationsDir.existsSync()) {
+      log(
+        'FileStorageService.scanOrphans: notations directory not found, '
+        'no orphans to report',
+        name: 'FileStorageService',
+      );
+      return [];
+    }
+
+    final knownSet = Set<String>.unmodifiable(knownRelativePaths);
+    final orphans = <String>[];
+
+    await for (final entity in notationsDir.list(recursive: true)) {
+      if (entity is! File) continue;
+      if (!entity.path.toLowerCase().endsWith('.jpg')) continue;
+
+      final relativePath = p.relative(entity.path, from: appDocDir.path);
+      if (!knownSet.contains(relativePath)) {
+        orphans.add(relativePath);
+      }
+    }
+
+    log(
+      'FileStorageService.scanOrphans: found ${orphans.length} orphan(s)',
+      name: 'FileStorageService',
+    );
+    return List.unmodifiable(orphans);
+  }
+
+  /// Deletes every file listed in [orphanPaths].
+  ///
+  /// Each path is resolved to an absolute path via [getAbsolutePath] and then
+  /// deleted. If a file is already absent the call is silently skipped
+  /// (idempotent). Unexpected [FileSystemException] types are re-thrown so
+  /// callers can handle them.
+  ///
+  /// Parameters:
+  /// - [orphanPaths]: Relative paths returned by [scanOrphans].
+  Future<void> purgeOrphans(List<String> orphanPaths) async {
+    if (orphanPaths.isEmpty) return;
+
+    for (final relativePath in orphanPaths) {
+      await deletePageFile(relativePath);
+    }
+
+    log(
+      'FileStorageService.purgeOrphans: purged ${orphanPaths.length} '
+      'orphan file(s)',
+      name: 'FileStorageService',
+    );
+  }
+
   /// Deletes the entire `notations/<notationId>/` directory and all its
   /// contents.
   ///
