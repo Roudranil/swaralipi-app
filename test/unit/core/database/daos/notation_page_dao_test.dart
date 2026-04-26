@@ -253,6 +253,75 @@ void main() {
     });
   });
 
+  group('NotationPageDao.getAllImagePaths', () {
+    late AppDatabase db;
+    late NotationPageDao dao;
+
+    setUp(() async {
+      db = AppDatabase.forTesting();
+      dao = NotationPageDao(db);
+    });
+    tearDown(() => db.close());
+
+    test('returns empty list when notation_pages table is empty', () async {
+      final paths = await dao.getAllImagePaths();
+      expect(paths, isEmpty);
+    });
+
+    test('returns all image_path values across multiple notations', () async {
+      await _insertParentNotation(db, 'n1');
+      await _insertParentNotation(db, 'n2');
+      await _insertPage(
+        db,
+        id: 'p1',
+        notationId: 'n1',
+        pageOrder: 0,
+        imagePath: 'notations/n1/page_0_original.jpg',
+      );
+      await _insertPage(
+        db,
+        id: 'p2',
+        notationId: 'n1',
+        pageOrder: 1,
+        imagePath: 'notations/n1/page_1_original.jpg',
+      );
+      await _insertPage(
+        db,
+        id: 'p3',
+        notationId: 'n2',
+        pageOrder: 0,
+        imagePath: 'notations/n2/page_0_original.jpg',
+      );
+
+      final paths = await dao.getAllImagePaths();
+
+      expect(paths, hasLength(3));
+      expect(
+        paths,
+        containsAll([
+          'notations/n1/page_0_original.jpg',
+          'notations/n1/page_1_original.jpg',
+          'notations/n2/page_0_original.jpg',
+        ]),
+      );
+    });
+
+    test('returns exactly one entry per page row', () async {
+      await _insertParentNotation(db, 'n1');
+      await _insertPage(
+        db,
+        id: 'p1',
+        notationId: 'n1',
+        pageOrder: 0,
+        imagePath: 'notations/n1/page_0_original.jpg',
+      );
+
+      final paths = await dao.getAllImagePaths();
+      expect(paths, hasLength(1));
+      expect(paths.first, 'notations/n1/page_0_original.jpg');
+    });
+  });
+
   group('NotationPageDao.deleteAllPagesForNotation', () {
     late AppDatabase db;
     late NotationPageDao dao;

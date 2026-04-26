@@ -168,6 +168,134 @@ void main() {
     });
   });
 
+  group('FileStorageService.scanOrphans', () {
+    late Directory tempDir;
+    late FileStorageService service;
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('fss_test_scan_');
+      service = _makeService(tempDir);
+    });
+
+    tearDown(() async {
+      if (tempDir.existsSync()) await tempDir.delete(recursive: true);
+    });
+
+    test('returns empty list when notations directory does not exist',
+        () async {
+      final orphans = await service.scanOrphans([]);
+      expect(orphans, isEmpty);
+    });
+
+    test('returns empty list when no files exist on disk', () async {
+      // Create the notations dir but leave it empty.
+      await Directory(
+        p.join(tempDir.path, 'notations'),
+      ).create(recursive: true);
+
+      final orphans = await service.scanOrphans([]);
+      expect(orphans, isEmpty);
+    });
+
+    test('returns empty list when all disk files are known', () async {
+      final path0 = await service.saveImage(_minimalJpeg, 'n1', 0);
+      final path1 = await service.saveImage(_minimalJpeg, 'n1', 1);
+
+      final orphans = await service.scanOrphans([path0, path1]);
+      expect(orphans, isEmpty);
+    });
+
+    test('returns paths of files not in knownRelativePaths', () async {
+      final path0 = await service.saveImage(_minimalJpeg, 'n1', 0);
+      final path1 = await service.saveImage(_minimalJpeg, 'n1', 1);
+
+      // Only path0 is known; path1 is orphaned.
+      final orphans = await service.scanOrphans([path0]);
+      expect(orphans, hasLength(1));
+      expect(orphans, contains(path1));
+    });
+
+    test('returns all disk paths when knownRelativePaths is empty', () async {
+      final path0 = await service.saveImage(_minimalJpeg, 'n1', 0);
+      final path1 = await service.saveImage(_minimalJpeg, 'n2', 0);
+
+      final orphans = await service.scanOrphans([]);
+      expect(orphans, hasLength(2));
+      expect(orphans, containsAll([path0, path1]));
+    });
+
+    test('only returns .jpg files, ignoring non-jpeg files', () async {
+      final path0 = await service.saveImage(_minimalJpeg, 'n1', 0);
+
+      // Write a non-jpeg file directly into the notations directory.
+      final nonJpegPath = p.join(tempDir.path, 'notations', 'n1', 'meta.txt');
+      await File(nonJpegPath).writeAsString('metadata');
+
+      final orphans = await service.scanOrphans([]);
+      expect(orphans, hasLength(1));
+      expect(orphans, contains(path0));
+    });
+
+    test(
+        'returns relative paths with forward-slash separators matching '
+        'saveImage output', () async {
+      final savedPath = await service.saveImage(_minimalJpeg, 'n1', 0);
+
+      final orphans = await service.scanOrphans([]);
+      expect(orphans, hasLength(1));
+      // The returned path must match the format returned by saveImage.
+      expect(orphans.first, equals(savedPath));
+    });
+  });
+
+  group('FileStorageService.purgeOrphans', () {
+    late Directory tempDir;
+    late FileStorageService service;
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('fss_test_purge_');
+      service = _makeService(tempDir);
+    });
+
+    tearDown(() async {
+      if (tempDir.existsSync()) await tempDir.delete(recursive: true);
+    });
+
+    test('is a no-op when orphanPaths is empty', () async {
+      // Must not throw.
+      await service.purgeOrphans([]);
+    });
+
+    test('deletes each file in orphanPaths', () async {
+      final path0 = await service.saveImage(_minimalJpeg, 'n1', 0);
+      final path1 = await service.saveImage(_minimalJpeg, 'n1', 1);
+
+      await service.purgeOrphans([path0, path1]);
+
+      final abs0 = await service.getAbsolutePath(path0);
+      final abs1 = await service.getAbsolutePath(path1);
+      expect(File(abs0).existsSync(), isFalse);
+      expect(File(abs1).existsSync(), isFalse);
+    });
+
+    test('does not delete files that are not in orphanPaths', () async {
+      final orphan = await service.saveImage(_minimalJpeg, 'n1', 0);
+      final keeper = await service.saveImage(_minimalJpeg, 'n1', 1);
+
+      await service.purgeOrphans([orphan]);
+
+      final absKeeper = await service.getAbsolutePath(keeper);
+      expect(File(absKeeper).existsSync(), isTrue);
+    });
+
+    test('is idempotent — does not throw when file is already deleted',
+        () async {
+      const ghost = 'notations/n1/page_0_original.jpg';
+      // Must not throw even though the file doesn't exist.
+      await service.purgeOrphans([ghost]);
+    });
+  });
+
   group('FileStorageService.deleteNotationDirectory', () {
     late Directory tempDir;
     late FileStorageService service;
