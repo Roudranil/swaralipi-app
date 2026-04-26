@@ -1,11 +1,14 @@
-// ImageProcessingService — non-destructive filter rendering pipeline.
+// ImageProcessingService — non-destructive filter, crop, and rotate pipeline.
 //
-// Applies colour filters to notation page images at render time without
-// mutating the original image bytes. All pixel-level work runs on an isolate
-// via [compute()] so the UI thread is never blocked.
+// Applies colour filters, crop, and rotation transforms to notation page
+// images at render time without mutating the original image bytes. All
+// pixel-level work runs on an isolate via [compute()] so the UI thread is
+// never blocked.
 //
 // Supported filters: none, grayscale, black-and-white (threshold), warm tint
 // (colour matrix), cool tint (colour matrix).
+//
+// Composite pipeline order: filter → crop → rotate.
 //
 // For Page Editor preview, callers should prefer the [ColorFiltered] widget
 // for simple filter-only previews (zero decode cost). Call [applyFilter] only
@@ -64,20 +67,23 @@ const double _kCoolBlueScale = 1.15;
 /// notation page images.
 const int _kJpegQuality = 92;
 
+/// The set of rotation values accepted by [ImageProcessingService.applyRotation].
+const List<int> _kValidRotationDegrees = <int>[0, 90, 180, 270];
+
 // ---------------------------------------------------------------------------
 // Exception
 // ---------------------------------------------------------------------------
 
-/// Thrown by [ImageProcessingService.applyFilter] when the input bytes cannot
-/// be decoded as a valid JPEG image.
+/// Thrown by [ImageProcessingService] methods when input is invalid or a
+/// transform cannot be applied.
 class ImageProcessingException implements Exception {
   /// Creates an [ImageProcessingException] with the given [message].
   ///
   /// Parameters:
-  /// - [message]: A human-readable description of the decoding failure.
+  /// - [message]: A human-readable description of the failure.
   const ImageProcessingException(this.message);
 
-  /// A human-readable description of the decoding failure.
+  /// A human-readable description of the failure.
   final String message;
 
   @override
@@ -107,8 +113,66 @@ class _FilterPayload {
   final NotationFilter filter;
 }
 
+/// Payload sent to the isolate function [_applyCropIsolate].
+///
+/// Groups together all data needed to decode, crop, and re-encode the image
+/// in a single isolate invocation.
+class _CropPayload {
+  /// Creates a [_CropPayload].
+  ///
+  /// Parameters:
+  /// - [bytes]: Raw JPEG image bytes to crop.
+  /// - [cropRect]: Normalized crop region expressed as fractions of the
+  ///   original image dimensions.
+  const _CropPayload({required this.bytes, required this.cropRect});
+
+  /// Raw JPEG bytes of the source image.
+  final Uint8List bytes;
+
+  /// Normalized crop region.
+  final CropRect cropRect;
+}
+
+/// Payload sent to the isolate function [_applyRotationIsolate].
+///
+/// Groups together all data needed to decode, rotate, and re-encode the image
+/// in a single isolate invocation.
+class _RotationPayload {
+  /// Creates a [_RotationPayload].
+  ///
+  /// Parameters:
+  /// - [bytes]: Raw JPEG image bytes to rotate.
+  /// - [degrees]: Clockwise rotation in degrees. Must be 0, 90, 180, or 270.
+  const _RotationPayload({required this.bytes, required this.degrees});
+
+  /// Raw JPEG bytes of the source image.
+  final Uint8List bytes;
+
+  /// Clockwise rotation in degrees.
+  final int degrees;
+}
+
+/// Payload sent to the isolate function [_applyCompositeIsolate].
+///
+/// Groups together all data needed to run the full filter → crop → rotate
+/// pipeline in a single isolate invocation.
+class _CompositePayload {
+  /// Creates a [_CompositePayload].
+  ///
+  /// Parameters:
+  /// - [bytes]: Raw JPEG image bytes to transform.
+  /// - [params]: The [RenderParams] describing filter, crop, and rotation.
+  const _CompositePayload({required this.bytes, required this.params});
+
+  /// Raw JPEG bytes of the source image.
+  final Uint8List bytes;
+
+  /// The rendering parameters to apply.
+  final RenderParams params;
+}
+
 // ---------------------------------------------------------------------------
-// Top-level isolate function (must be top-level for compute())
+// Top-level isolate functions (must be top-level for compute())
 // ---------------------------------------------------------------------------
 
 /// Decode–filter–encode pipeline executed on an isolate.
@@ -119,7 +183,6 @@ class _FilterPayload {
 /// Parameters:
 /// - [payload]: The [_FilterPayload] containing the bytes and filter enum.
 Uint8List _applyFilterIsolate(_FilterPayload payload) {
-  // Decode
   final decoded = img.decodeJpg(payload.bytes);
   if (decoded == null) {
     throw ImageProcessingException(
@@ -127,8 +190,6 @@ Uint8List _applyFilterIsolate(_FilterPayload payload) {
     );
   }
 
-  // Apply filter — each helper operates on the decoded image; original bytes
-  // are already safely separated at this point (isolate memory boundary).
   final filtered = switch (payload.filter) {
     NotationFilter.none => decoded,
     NotationFilter.grayscale => _applyGrayscale(decoded),
@@ -147,9 +208,192 @@ Uint8List _applyFilterIsolate(_FilterPayload payload) {
       ),
   };
 
-  // Re-encode and return
   return img.encodeJpg(filtered, quality: _kJpegQuality);
 }
+
+/// Decode–crop–encode pipeline executed on an isolate.
+///
+/// Validates that [payload.cropRect] is within bounds (all fractions in
+/// [0.0, 1.0] and left < right, top < bottom). Throws
+/// [ImageProcessingException] on decoding failure or invalid rect.
+///
+/// Parameters:
+/// - [payload]: The [_CropPayload] containing bytes and the normalized rect.
+Uint8List _applyCropIsolate(_CropPayload payload) {
+  final rect = payload.cropRect;
+
+  // Validate bounds before decoding to fail fast.
+  if (rect.left < 0.0 ||
+      rect.top < 0.0 ||
+      rect.right > 1.0 ||
+      rect.bottom > 1.0) {
+    throw ImageProcessingException(
+      'cropRect values must be in [0.0, 1.0]; '
+      'got left=${rect.left}, top=${rect.top}, '
+      'right=${rect.right}, bottom=${rect.bottom}.',
+    );
+  }
+  if (rect.left >= rect.right) {
+    throw ImageProcessingException(
+      'cropRect.left (${rect.left}) must be less than '
+      'cropRect.right (${rect.right}).',
+    );
+  }
+  if (rect.top >= rect.bottom) {
+    throw ImageProcessingException(
+      'cropRect.top (${rect.top}) must be less than '
+      'cropRect.bottom (${rect.bottom}).',
+    );
+  }
+
+  final decoded = img.decodeJpg(payload.bytes);
+  if (decoded == null) {
+    throw ImageProcessingException(
+      'Failed to decode image: not a valid JPEG or unsupported format.',
+    );
+  }
+
+  final w = decoded.width;
+  final h = decoded.height;
+
+  final x = (rect.left * w).round();
+  final y = (rect.top * h).round();
+  final cropW = ((rect.right - rect.left) * w).round().clamp(1, w - x);
+  final cropH = ((rect.bottom - rect.top) * h).round().clamp(1, h - y);
+
+  final cropped =
+      img.copyCrop(decoded, x: x, y: y, width: cropW, height: cropH);
+  return img.encodeJpg(cropped, quality: _kJpegQuality);
+}
+
+/// Decode–rotate–encode pipeline executed on an isolate.
+///
+/// [payload.degrees] must be 0, 90, 180, or 270. Throws
+/// [ImageProcessingException] on decoding failure or invalid degrees.
+///
+/// Parameters:
+/// - [payload]: The [_RotationPayload] containing bytes and degrees.
+Uint8List _applyRotationIsolate(_RotationPayload payload) {
+  if (!_kValidRotationDegrees.contains(payload.degrees)) {
+    throw ImageProcessingException(
+      'Unsupported rotation degrees: ${payload.degrees}. '
+      'Valid values: ${_kValidRotationDegrees.join(', ')}.',
+    );
+  }
+
+  final decoded = img.decodeJpg(payload.bytes);
+  if (decoded == null) {
+    throw ImageProcessingException(
+      'Failed to decode image: not a valid JPEG or unsupported format.',
+    );
+  }
+
+  if (payload.degrees == 0) {
+    return img.encodeJpg(decoded, quality: _kJpegQuality);
+  }
+
+  final rotated = img.copyRotate(decoded, angle: payload.degrees.toDouble());
+  return img.encodeJpg(rotated, quality: _kJpegQuality);
+}
+
+/// Full composite pipeline (filter → crop → rotate) executed on an isolate.
+///
+/// Runs all three transforms sequentially in a single isolate invocation to
+/// avoid multiple decode/encode round-trips. Throws [ImageProcessingException]
+/// on decoding failure, invalid crop rect, or unsupported rotation degrees.
+///
+/// Parameters:
+/// - [payload]: The [_CompositePayload] containing bytes and [RenderParams].
+Uint8List _applyCompositeIsolate(_CompositePayload payload) {
+  final params = payload.params;
+
+  final decoded = img.decodeJpg(payload.bytes);
+  if (decoded == null) {
+    throw ImageProcessingException(
+      'Failed to decode image: not a valid JPEG or unsupported format.',
+    );
+  }
+
+  // Step 1: Filter
+  img.Image current = switch (params.filter) {
+    NotationFilter.none => decoded,
+    NotationFilter.grayscale => _applyGrayscale(decoded),
+    NotationFilter.blackAndWhite => _applyBlackAndWhite(decoded),
+    NotationFilter.tintWarm => _applyTint(
+        decoded,
+        redScale: _kWarmRedScale,
+        greenScale: _kWarmGreenScale,
+        blueScale: _kWarmBlueScale,
+      ),
+    NotationFilter.tintCool => _applyTint(
+        decoded,
+        redScale: _kCoolRedScale,
+        greenScale: _kCoolGreenScale,
+        blueScale: _kCoolBlueScale,
+      ),
+  };
+
+  // Step 2: Crop (if cropRect is set)
+  if (params.cropRect case final rect?) {
+    if (rect.left < 0.0 ||
+        rect.top < 0.0 ||
+        rect.right > 1.0 ||
+        rect.bottom > 1.0) {
+      throw ImageProcessingException(
+        'cropRect values must be in [0.0, 1.0]; '
+        'got left=${rect.left}, top=${rect.top}, '
+        'right=${rect.right}, bottom=${rect.bottom}.',
+      );
+    }
+    if (rect.left >= rect.right) {
+      throw ImageProcessingException(
+        'cropRect.left (${rect.left}) must be less than '
+        'cropRect.right (${rect.right}).',
+      );
+    }
+    if (rect.top >= rect.bottom) {
+      throw ImageProcessingException(
+        'cropRect.top (${rect.top}) must be less than '
+        'cropRect.bottom (${rect.bottom}).',
+      );
+    }
+
+    final w = current.width;
+    final h = current.height;
+    final x = (rect.left * w).round();
+    final y = (rect.top * h).round();
+    final cropW = ((rect.right - rect.left) * w).round().clamp(1, w - x);
+    final cropH = ((rect.bottom - rect.top) * h).round().clamp(1, h - y);
+
+    current = img.copyCrop(
+      current,
+      x: x,
+      y: y,
+      width: cropW,
+      height: cropH,
+    );
+  }
+
+  // Step 3: Rotate
+  if (!_kValidRotationDegrees.contains(params.rotationDegrees)) {
+    throw ImageProcessingException(
+      'Unsupported rotation degrees: ${params.rotationDegrees}. '
+      'Valid values: ${_kValidRotationDegrees.join(', ')}.',
+    );
+  }
+  if (params.rotationDegrees != 0) {
+    current = img.copyRotate(
+      current,
+      angle: params.rotationDegrees.toDouble(),
+    );
+  }
+
+  return img.encodeJpg(current, quality: _kJpegQuality);
+}
+
+// ---------------------------------------------------------------------------
+// Pixel-level transform helpers
+// ---------------------------------------------------------------------------
 
 /// Converts [src] to grayscale using the `image` package's [img.grayscale].
 ///
@@ -195,11 +439,12 @@ img.Image _applyTint(
 // Service
 // ---------------------------------------------------------------------------
 
-/// Applies non-destructive colour filters to notation page images.
+/// Applies non-destructive colour filters, crop, and rotation transforms to
+/// notation page images.
 ///
 /// All transforms run on a background isolate via [compute()] so the UI
-/// thread is never blocked. The original [Uint8List] is never written to;
-/// a new [Uint8List] is always returned.
+/// thread is never blocked. The original [Uint8List] passed to any method is
+/// never mutated; a new [Uint8List] is always returned.
 ///
 /// Usage in Page Editor preview:
 /// Prefer the [ColorFiltered] widget for simple filter-only previews (no
@@ -207,8 +452,8 @@ img.Image _applyTint(
 /// compositing with crop/rotation transforms.
 ///
 /// Usage in Notation Player:
-/// Always call [applyFilter] to obtain the final pixel-accurate output with
-/// all [RenderParams] applied.
+/// Always call [apply] to obtain the final pixel-accurate output with
+/// all [RenderParams] applied in a single isolate invocation.
 class ImageProcessingService {
   /// Creates an [ImageProcessingService].
   const ImageProcessingService();
@@ -219,13 +464,12 @@ class ImageProcessingService {
   /// re-encodes as JPEG at [_kJpegQuality]. The entire pipeline runs on a
   /// background isolate via [compute()] to avoid UI jank.
   ///
-  /// The [originalBytes] buffer is never mutated. All operations work on a
-  /// decoded copy inside the isolate.
+  /// The [originalBytes] buffer is never mutated.
   ///
   /// Returns a new [Uint8List] containing the JPEG-encoded filtered image.
   ///
-  /// Throws [ImageProcessingException] if [originalBytes] is not a valid
-  /// JPEG.
+  /// Throws [ImageProcessingException] if [originalBytes] is not a valid JPEG
+  /// or is empty.
   ///
   /// Parameters:
   /// - [originalBytes]: The raw JPEG bytes of the original page image.
@@ -252,7 +496,8 @@ class ImageProcessingService {
       final result = await compute(_applyFilterIsolate, payload);
 
       log(
-        'ImageProcessingService.applyFilter: done, outputSize=${result.length}',
+        'ImageProcessingService.applyFilter: done, '
+        'outputSize=${result.length}',
         name: 'ImageProcessingService',
       );
 
@@ -262,6 +507,177 @@ class ImageProcessingService {
     } on Exception catch (e) {
       throw ImageProcessingException(
         'Unexpected error while applying filter $filter: $e',
+      );
+    }
+  }
+
+  /// Crops [originalBytes] to the normalized region specified by [cropRect].
+  ///
+  /// [cropRect] values are fractions of the image dimensions in [0.0, 1.0].
+  /// The constraint [left < right] and [top < bottom] must hold.
+  ///
+  /// Runs on a background isolate via [compute()] to avoid UI jank.
+  ///
+  /// The [originalBytes] buffer is never mutated.
+  ///
+  /// Returns a new [Uint8List] containing the JPEG-encoded cropped image.
+  ///
+  /// Throws [ImageProcessingException] if [originalBytes] is not a valid JPEG,
+  /// is empty, or if [cropRect] contains out-of-range or degenerate values.
+  ///
+  /// Parameters:
+  /// - [originalBytes]: The raw JPEG bytes of the original page image.
+  /// - [cropRect]: Normalized crop region with fractions in [0.0, 1.0].
+  Future<Uint8List> applyCrop(
+    Uint8List originalBytes,
+    CropRect cropRect,
+  ) async {
+    if (originalBytes.isEmpty) {
+      throw const ImageProcessingException(
+        'originalBytes must not be empty.',
+      );
+    }
+
+    log(
+      'ImageProcessingService.applyCrop: '
+      'cropRect=$cropRect, inputSize=${originalBytes.length}',
+      name: 'ImageProcessingService',
+    );
+
+    final payload = _CropPayload(bytes: originalBytes, cropRect: cropRect);
+
+    try {
+      final result = await compute(_applyCropIsolate, payload);
+
+      log(
+        'ImageProcessingService.applyCrop: done, '
+        'outputSize=${result.length}',
+        name: 'ImageProcessingService',
+      );
+
+      return result;
+    } on ImageProcessingException {
+      rethrow;
+    } on Exception catch (e) {
+      throw ImageProcessingException(
+        'Unexpected error while applying crop $cropRect: $e',
+      );
+    }
+  }
+
+  /// Rotates [originalBytes] clockwise by [degrees].
+  ///
+  /// [degrees] must be one of 0, 90, 180, or 270. A value of 0 is a no-op
+  /// that still re-encodes the image at [_kJpegQuality].
+  ///
+  /// Runs on a background isolate via [compute()] to avoid UI jank.
+  ///
+  /// The [originalBytes] buffer is never mutated.
+  ///
+  /// Returns a new [Uint8List] containing the JPEG-encoded rotated image.
+  ///
+  /// Throws [ImageProcessingException] if [originalBytes] is not a valid JPEG,
+  /// is empty, or if [degrees] is not 0, 90, 180, or 270.
+  ///
+  /// Parameters:
+  /// - [originalBytes]: The raw JPEG bytes of the original page image.
+  /// - [degrees]: Clockwise rotation in degrees. Valid values: 0, 90, 180, 270.
+  Future<Uint8List> applyRotation(
+    Uint8List originalBytes,
+    int degrees,
+  ) async {
+    if (originalBytes.isEmpty) {
+      throw const ImageProcessingException(
+        'originalBytes must not be empty.',
+      );
+    }
+
+    log(
+      'ImageProcessingService.applyRotation: '
+      'degrees=$degrees, inputSize=${originalBytes.length}',
+      name: 'ImageProcessingService',
+    );
+
+    final payload = _RotationPayload(bytes: originalBytes, degrees: degrees);
+
+    try {
+      final result = await compute(_applyRotationIsolate, payload);
+
+      log(
+        'ImageProcessingService.applyRotation: done, '
+        'outputSize=${result.length}',
+        name: 'ImageProcessingService',
+      );
+
+      return result;
+    } on ImageProcessingException {
+      rethrow;
+    } on Exception catch (e) {
+      throw ImageProcessingException(
+        'Unexpected error while applying rotation $degrees°: $e',
+      );
+    }
+  }
+
+  /// Applies the full composite pipeline (filter → crop → rotate) described
+  /// by [params] to [originalBytes], in a single [compute()] call.
+  ///
+  /// Pipeline order:
+  /// 1. Apply [RenderParams.filter] (colour transform)
+  /// 2. Apply [RenderParams.cropRect] if non-null (spatial crop)
+  /// 3. Apply [RenderParams.rotationDegrees] if non-zero (clockwise rotation)
+  ///
+  /// This is the method to use in the Notation Player, where the final
+  /// pixel-accurate composite output is required before display.
+  ///
+  /// Runs entirely on a background isolate via [compute()] — the image is
+  /// decoded and re-encoded exactly once regardless of how many transforms
+  /// are applied.
+  ///
+  /// The [originalBytes] buffer is never mutated.
+  ///
+  /// Returns a new [Uint8List] containing the JPEG-encoded composite image.
+  ///
+  /// Throws [ImageProcessingException] if [originalBytes] is not a valid JPEG,
+  /// is empty, if [params.cropRect] is invalid, or if
+  /// [params.rotationDegrees] is not 0, 90, 180, or 270.
+  ///
+  /// Parameters:
+  /// - [originalBytes]: The raw JPEG bytes of the original page image.
+  /// - [params]: The [RenderParams] describing all transforms to apply.
+  Future<Uint8List> apply(
+    Uint8List originalBytes,
+    RenderParams params,
+  ) async {
+    if (originalBytes.isEmpty) {
+      throw const ImageProcessingException(
+        'originalBytes must not be empty.',
+      );
+    }
+
+    log(
+      'ImageProcessingService.apply: params=$params, '
+      'inputSize=${originalBytes.length}',
+      name: 'ImageProcessingService',
+    );
+
+    final payload = _CompositePayload(bytes: originalBytes, params: params);
+
+    try {
+      final result = await compute(_applyCompositeIsolate, payload);
+
+      log(
+        'ImageProcessingService.apply: done, outputSize=${result.length}',
+        name: 'ImageProcessingService',
+      );
+
+      return result;
+    } on ImageProcessingException {
+      rethrow;
+    } on Exception catch (e) {
+      throw ImageProcessingException(
+        'Unexpected error while applying composite pipeline '
+        '(params=$params): $e',
       );
     }
   }
