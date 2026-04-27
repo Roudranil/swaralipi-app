@@ -3402,6 +3402,14 @@ class $UserPreferencesTableTable extends UserPreferencesTable
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('list'));
+  static const VerificationMeta _tagsSeededMeta =
+      const VerificationMeta('tagsSeeded');
+  @override
+  late final GeneratedColumn<int> tagsSeeded = GeneratedColumn<int>(
+      'tags_seeded', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -3410,7 +3418,8 @@ class $UserPreferencesTableTable extends UserPreferencesTable
         colorSchemeMode,
         seedColor,
         defaultSort,
-        defaultView
+        defaultView,
+        tagsSeeded
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3455,6 +3464,12 @@ class $UserPreferencesTableTable extends UserPreferencesTable
           defaultView.isAcceptableOrUnknown(
               data['default_view']!, _defaultViewMeta));
     }
+    if (data.containsKey('tags_seeded')) {
+      context.handle(
+          _tagsSeededMeta,
+          tagsSeeded.isAcceptableOrUnknown(
+              data['tags_seeded']!, _tagsSeededMeta));
+    }
     return context;
   }
 
@@ -3478,6 +3493,8 @@ class $UserPreferencesTableTable extends UserPreferencesTable
           .read(DriftSqlType.string, data['${effectivePrefix}default_sort'])!,
       defaultView: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}default_view'])!,
+      tagsSeeded: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}tags_seeded'])!,
     );
   }
 
@@ -3512,6 +3529,12 @@ class UserPreferencesRow extends DataClass
 
   /// Default library view: `'list'` (grid deferred to v2).
   final String defaultView;
+
+  /// Whether the 5 default tags have been seeded on this install.
+  ///
+  /// `0` = not seeded, `1` = seeded. Stored as INTEGER for SQLite
+  /// compatibility; treated as [bool] at the app layer.
+  final int tagsSeeded;
   const UserPreferencesRow(
       {required this.id,
       required this.userName,
@@ -3519,7 +3542,8 @@ class UserPreferencesRow extends DataClass
       required this.colorSchemeMode,
       this.seedColor,
       required this.defaultSort,
-      required this.defaultView});
+      required this.defaultView,
+      required this.tagsSeeded});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -3532,6 +3556,7 @@ class UserPreferencesRow extends DataClass
     }
     map['default_sort'] = Variable<String>(defaultSort);
     map['default_view'] = Variable<String>(defaultView);
+    map['tags_seeded'] = Variable<int>(tagsSeeded);
     return map;
   }
 
@@ -3546,6 +3571,7 @@ class UserPreferencesRow extends DataClass
           : Value(seedColor),
       defaultSort: Value(defaultSort),
       defaultView: Value(defaultView),
+      tagsSeeded: Value(tagsSeeded),
     );
   }
 
@@ -3560,6 +3586,7 @@ class UserPreferencesRow extends DataClass
       seedColor: serializer.fromJson<String?>(json['seedColor']),
       defaultSort: serializer.fromJson<String>(json['defaultSort']),
       defaultView: serializer.fromJson<String>(json['defaultView']),
+      tagsSeeded: serializer.fromJson<int>(json['tagsSeeded']),
     );
   }
   @override
@@ -3573,6 +3600,7 @@ class UserPreferencesRow extends DataClass
       'seedColor': serializer.toJson<String?>(seedColor),
       'defaultSort': serializer.toJson<String>(defaultSort),
       'defaultView': serializer.toJson<String>(defaultView),
+      'tagsSeeded': serializer.toJson<int>(tagsSeeded),
     };
   }
 
@@ -3583,7 +3611,8 @@ class UserPreferencesRow extends DataClass
           String? colorSchemeMode,
           Value<String?> seedColor = const Value.absent(),
           String? defaultSort,
-          String? defaultView}) =>
+          String? defaultView,
+          int? tagsSeeded}) =>
       UserPreferencesRow(
         id: id ?? this.id,
         userName: userName ?? this.userName,
@@ -3592,6 +3621,7 @@ class UserPreferencesRow extends DataClass
         seedColor: seedColor.present ? seedColor.value : this.seedColor,
         defaultSort: defaultSort ?? this.defaultSort,
         defaultView: defaultView ?? this.defaultView,
+        tagsSeeded: tagsSeeded ?? this.tagsSeeded,
       );
   UserPreferencesRow copyWithCompanion(UserPreferencesTableCompanion data) {
     return UserPreferencesRow(
@@ -3606,6 +3636,8 @@ class UserPreferencesRow extends DataClass
           data.defaultSort.present ? data.defaultSort.value : this.defaultSort,
       defaultView:
           data.defaultView.present ? data.defaultView.value : this.defaultView,
+      tagsSeeded:
+          data.tagsSeeded.present ? data.tagsSeeded.value : this.tagsSeeded,
     );
   }
 
@@ -3618,14 +3650,15 @@ class UserPreferencesRow extends DataClass
           ..write('colorSchemeMode: $colorSchemeMode, ')
           ..write('seedColor: $seedColor, ')
           ..write('defaultSort: $defaultSort, ')
-          ..write('defaultView: $defaultView')
+          ..write('defaultView: $defaultView, ')
+          ..write('tagsSeeded: $tagsSeeded')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(id, userName, themeMode, colorSchemeMode,
-      seedColor, defaultSort, defaultView);
+      seedColor, defaultSort, defaultView, tagsSeeded);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3636,7 +3669,8 @@ class UserPreferencesRow extends DataClass
           other.colorSchemeMode == this.colorSchemeMode &&
           other.seedColor == this.seedColor &&
           other.defaultSort == this.defaultSort &&
-          other.defaultView == this.defaultView);
+          other.defaultView == this.defaultView &&
+          other.tagsSeeded == this.tagsSeeded);
 }
 
 class UserPreferencesTableCompanion
@@ -3648,6 +3682,7 @@ class UserPreferencesTableCompanion
   final Value<String?> seedColor;
   final Value<String> defaultSort;
   final Value<String> defaultView;
+  final Value<int> tagsSeeded;
   const UserPreferencesTableCompanion({
     this.id = const Value.absent(),
     this.userName = const Value.absent(),
@@ -3656,6 +3691,7 @@ class UserPreferencesTableCompanion
     this.seedColor = const Value.absent(),
     this.defaultSort = const Value.absent(),
     this.defaultView = const Value.absent(),
+    this.tagsSeeded = const Value.absent(),
   });
   UserPreferencesTableCompanion.insert({
     this.id = const Value.absent(),
@@ -3665,6 +3701,7 @@ class UserPreferencesTableCompanion
     this.seedColor = const Value.absent(),
     this.defaultSort = const Value.absent(),
     this.defaultView = const Value.absent(),
+    this.tagsSeeded = const Value.absent(),
   });
   static Insertable<UserPreferencesRow> custom({
     Expression<int>? id,
@@ -3674,6 +3711,7 @@ class UserPreferencesTableCompanion
     Expression<String>? seedColor,
     Expression<String>? defaultSort,
     Expression<String>? defaultView,
+    Expression<int>? tagsSeeded,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -3683,6 +3721,7 @@ class UserPreferencesTableCompanion
       if (seedColor != null) 'seed_color': seedColor,
       if (defaultSort != null) 'default_sort': defaultSort,
       if (defaultView != null) 'default_view': defaultView,
+      if (tagsSeeded != null) 'tags_seeded': tagsSeeded,
     });
   }
 
@@ -3693,7 +3732,8 @@ class UserPreferencesTableCompanion
       Value<String>? colorSchemeMode,
       Value<String?>? seedColor,
       Value<String>? defaultSort,
-      Value<String>? defaultView}) {
+      Value<String>? defaultView,
+      Value<int>? tagsSeeded}) {
     return UserPreferencesTableCompanion(
       id: id ?? this.id,
       userName: userName ?? this.userName,
@@ -3702,6 +3742,7 @@ class UserPreferencesTableCompanion
       seedColor: seedColor ?? this.seedColor,
       defaultSort: defaultSort ?? this.defaultSort,
       defaultView: defaultView ?? this.defaultView,
+      tagsSeeded: tagsSeeded ?? this.tagsSeeded,
     );
   }
 
@@ -3729,6 +3770,9 @@ class UserPreferencesTableCompanion
     if (defaultView.present) {
       map['default_view'] = Variable<String>(defaultView.value);
     }
+    if (tagsSeeded.present) {
+      map['tags_seeded'] = Variable<int>(tagsSeeded.value);
+    }
     return map;
   }
 
@@ -3741,7 +3785,8 @@ class UserPreferencesTableCompanion
           ..write('colorSchemeMode: $colorSchemeMode, ')
           ..write('seedColor: $seedColor, ')
           ..write('defaultSort: $defaultSort, ')
-          ..write('defaultView: $defaultView')
+          ..write('defaultView: $defaultView, ')
+          ..write('tagsSeeded: $tagsSeeded')
           ..write(')'))
         .toString();
   }
@@ -7082,6 +7127,7 @@ typedef $$UserPreferencesTableTableCreateCompanionBuilder
   Value<String?> seedColor,
   Value<String> defaultSort,
   Value<String> defaultView,
+  Value<int> tagsSeeded,
 });
 typedef $$UserPreferencesTableTableUpdateCompanionBuilder
     = UserPreferencesTableCompanion Function({
@@ -7092,6 +7138,7 @@ typedef $$UserPreferencesTableTableUpdateCompanionBuilder
   Value<String?> seedColor,
   Value<String> defaultSort,
   Value<String> defaultView,
+  Value<int> tagsSeeded,
 });
 
 class $$UserPreferencesTableTableFilterComposer
@@ -7124,6 +7171,9 @@ class $$UserPreferencesTableTableFilterComposer
 
   ColumnFilters<String> get defaultView => $composableBuilder(
       column: $table.defaultView, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get tagsSeeded => $composableBuilder(
+      column: $table.tagsSeeded, builder: (column) => ColumnFilters(column));
 }
 
 class $$UserPreferencesTableTableOrderingComposer
@@ -7156,6 +7206,9 @@ class $$UserPreferencesTableTableOrderingComposer
 
   ColumnOrderings<String> get defaultView => $composableBuilder(
       column: $table.defaultView, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get tagsSeeded => $composableBuilder(
+      column: $table.tagsSeeded, builder: (column) => ColumnOrderings(column));
 }
 
 class $$UserPreferencesTableTableAnnotationComposer
@@ -7187,6 +7240,9 @@ class $$UserPreferencesTableTableAnnotationComposer
 
   GeneratedColumn<String> get defaultView => $composableBuilder(
       column: $table.defaultView, builder: (column) => column);
+
+  GeneratedColumn<int> get tagsSeeded => $composableBuilder(
+      column: $table.tagsSeeded, builder: (column) => column);
 }
 
 class $$UserPreferencesTableTableTableManager extends RootTableManager<
@@ -7226,6 +7282,7 @@ class $$UserPreferencesTableTableTableManager extends RootTableManager<
             Value<String?> seedColor = const Value.absent(),
             Value<String> defaultSort = const Value.absent(),
             Value<String> defaultView = const Value.absent(),
+            Value<int> tagsSeeded = const Value.absent(),
           }) =>
               UserPreferencesTableCompanion(
             id: id,
@@ -7235,6 +7292,7 @@ class $$UserPreferencesTableTableTableManager extends RootTableManager<
             seedColor: seedColor,
             defaultSort: defaultSort,
             defaultView: defaultView,
+            tagsSeeded: tagsSeeded,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -7244,6 +7302,7 @@ class $$UserPreferencesTableTableTableManager extends RootTableManager<
             Value<String?> seedColor = const Value.absent(),
             Value<String> defaultSort = const Value.absent(),
             Value<String> defaultView = const Value.absent(),
+            Value<int> tagsSeeded = const Value.absent(),
           }) =>
               UserPreferencesTableCompanion.insert(
             id: id,
@@ -7253,6 +7312,7 @@ class $$UserPreferencesTableTableTableManager extends RootTableManager<
             seedColor: seedColor,
             defaultSort: defaultSort,
             defaultView: defaultView,
+            tagsSeeded: tagsSeeded,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
