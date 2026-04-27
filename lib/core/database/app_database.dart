@@ -395,6 +395,12 @@ class UserPreferencesTable extends Table {
   /// Default library view: `'list'` (grid deferred to v2).
   TextColumn get defaultView => text().withDefault(const Constant('list'))();
 
+  /// Whether the 5 default tags have been seeded on this install.
+  ///
+  /// `0` = not seeded, `1` = seeded. Stored as INTEGER for SQLite
+  /// compatibility; treated as [bool] at the app layer.
+  IntColumn get tagsSeeded => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 
@@ -410,6 +416,7 @@ class UserPreferencesTable extends Table {
             "'play_count_desc', 'last_played_at_desc'"
             '))',
         "CHECK (default_view IN ('list'))",
+        'CHECK (tags_seeded IN (0, 1))',
       ];
 }
 
@@ -438,6 +445,7 @@ class UserPreferencesTable extends Table {
 /// | schemaVersion | Change |
 /// |---|---|
 /// | 1 | Initial schema: all tables, FTS5, triggers, indexes, seed data |
+/// | 2 | Add `tags_seeded` column to `user_preferences_table` |
 @DriftDatabase(
   tables: [
     NotationsTable,
@@ -506,16 +514,26 @@ class AppDatabase extends _$AppDatabase {
         );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           // Creates all tables and indexes declared in the @DriftDatabase
-          // annotation.  For schema v1 this is the only migration path.
+          // annotation. For schema v2 this is the only migration path for new
+          // installs.
           await m.createAll();
           if (_seedOnCreate) {
             await _seedInitialData();
+          }
+        },
+        onUpgrade: (m, from, to) async {
+          // v1 → v2: add tags_seeded column to user_preferences_table.
+          if (from < 2) {
+            await m.addColumn(
+              userPreferencesTable,
+              userPreferencesTable.tagsSeeded,
+            );
           }
         },
         beforeOpen: (details) async {
@@ -608,13 +626,13 @@ class AppDatabase extends _$AppDatabase {
       const UserPreferencesTableCompanion(),
     );
 
-    // 5 default tags (Catppuccin Mocha palette)
+    // 5 default tags (Catppuccin Mocha palette) — names from issue #75.
     const defaultTags = [
-      ('tag-default-1', 'Raag', '#f38ba8'),
-      ('tag-default-2', 'Bhajan', '#a6e3a1'),
-      ('tag-default-3', 'Classical', '#89b4fa'),
-      ('tag-default-4', 'Folk', '#fab387'),
-      ('tag-default-5', 'Devotional', '#cba6f7'),
+      ('tag-default-1', 'Ragas', '#f38ba8'),
+      ('tag-default-2', 'Bhajans', '#a6e3a1'),
+      ('tag-default-3', 'Bandishes', '#89b4fa'),
+      ('tag-default-4', 'Thumri', '#fab387'),
+      ('tag-default-5', 'Exercises', '#cba6f7'),
     ];
 
     for (final (id, name, color) in defaultTags) {

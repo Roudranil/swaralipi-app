@@ -15,6 +15,7 @@ UserPreferences _$UserPreferencesFromJson(Map<String, dynamic> json) =>
       seedColor: json['seed_color'] as String?,
       defaultSort: $enumDecode(_$SortOrderEnumMap, json['default_sort']),
       defaultView: $enumDecode(_$ViewModeEnumMap, json['default_view']),
+      tagsSeeded: json['tags_seeded'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$UserPreferencesToJson(UserPreferences instance) =>
@@ -25,6 +26,7 @@ Map<String, dynamic> _$UserPreferencesToJson(UserPreferences instance) =>
       'seed_color': instance.seedColor,
       'default_sort': _$SortOrderEnumMap[instance.defaultSort]!,
       'default_view': _$ViewModeEnumMap[instance.defaultView]!,
+      'tags_seeded': instance.tagsSeeded,
     };
 
 const _$AppThemeModeEnumMap = {

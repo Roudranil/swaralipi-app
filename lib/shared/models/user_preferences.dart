@@ -121,6 +121,8 @@ class UserPreferences {
   ///   nullable.
   /// - [defaultSort]: Default sort order for the notation library.
   /// - [defaultView]: Default view layout for the notation library.
+  /// - [tagsSeeded]: Whether the 5 default tags have been seeded. Defaults to
+  ///   `false`.
   const UserPreferences({
     required this.userName,
     required this.themeMode,
@@ -128,6 +130,7 @@ class UserPreferences {
     this.seedColor,
     required this.defaultSort,
     required this.defaultView,
+    this.tagsSeeded = false,
   });
 
   /// Display name shown in the application UI.
@@ -148,6 +151,12 @@ class UserPreferences {
   /// Default view layout for the notation library.
   final ViewMode defaultView;
 
+  /// Whether the 5 default tags have been seeded on this install.
+  ///
+  /// Set to `true` by [TagRepository.seedDefaultTagsIfNeeded] after the
+  /// first successful seed. Subsequent launches skip the seed.
+  final bool tagsSeeded;
+
   /// Returns a copy of this [UserPreferences] with the specified fields
   /// replaced.
   ///
@@ -159,6 +168,7 @@ class UserPreferences {
     String? seedColor,
     SortOrder? defaultSort,
     ViewMode? defaultView,
+    bool? tagsSeeded,
   }) =>
       UserPreferences(
         userName: userName ?? this.userName,
@@ -167,6 +177,7 @@ class UserPreferences {
         seedColor: seedColor ?? this.seedColor,
         defaultSort: defaultSort ?? this.defaultSort,
         defaultView: defaultView ?? this.defaultView,
+        tagsSeeded: tagsSeeded ?? this.tagsSeeded,
       );
 
   /// Deserializes [UserPreferences] from a JSON map.
@@ -186,7 +197,8 @@ class UserPreferences {
           colorSchemeMode == other.colorSchemeMode &&
           seedColor == other.seedColor &&
           defaultSort == other.defaultSort &&
-          defaultView == other.defaultView;
+          defaultView == other.defaultView &&
+          tagsSeeded == other.tagsSeeded;
 
   @override
   int get hashCode => Object.hash(
@@ -196,10 +208,11 @@ class UserPreferences {
         seedColor,
         defaultSort,
         defaultView,
+        tagsSeeded,
       );
 
   @override
   String toString() =>
       'UserPreferences(userName: $userName, themeMode: $themeMode, '
-      'colorSchemeMode: $colorSchemeMode)';
+      'colorSchemeMode: $colorSchemeMode, tagsSeeded: $tagsSeeded)';
 }
