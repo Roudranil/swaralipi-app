@@ -157,6 +157,8 @@ class _ColorSwatch extends StatelessWidget {
           ? Icon(
               Icons.check,
               size: 20,
+              // Deliberate: icon is overlaid on the swatch color itself, not
+              // the theme surface, so absolute black/white are correct here.
               color:
                   ThemeData.estimateBrightnessForColor(color) == Brightness.dark
                       ? Colors.white
