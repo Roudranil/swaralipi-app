@@ -1,8 +1,11 @@
 // UserPreferencesRepositoryImpl — concrete implementation of
-// UserPreferencesRepository.
+// PreferencesRepository.
 //
 // Translates between [UserPreferencesRow] (Drift) and [UserPreferences]
 // (domain model). Depends on [UserPreferencesDao] for all DB access.
+//
+// Implements both [PreferencesRepository] (full contract) and therefore also
+// satisfies the narrow [UserPreferencesRepository] used by TagRepositoryImpl.
 //
 // Construct by injecting a [UserPreferencesDao]:
 //   UserPreferencesRepositoryImpl(db.userPreferencesDao)
@@ -14,7 +17,7 @@ import 'package:drift/drift.dart';
 import 'package:swaralipi/core/database/app_database.dart';
 import 'package:swaralipi/core/database/daos/user_preferences_dao.dart';
 import 'package:swaralipi/shared/models/user_preferences.dart';
-import 'package:swaralipi/shared/repositories/tag_repository.dart';
+import 'package:swaralipi/shared/repositories/preferences_repository.dart';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -27,12 +30,16 @@ const int _kSingletonId = 1;
 // Implementation
 // ---------------------------------------------------------------------------
 
-/// Concrete implementation of [UserPreferencesRepository].
+/// Concrete implementation of [PreferencesRepository].
 ///
 /// Reads and writes the singleton [UserPreferences] row via
 /// [UserPreferencesDao]. All domain-model ↔ DB-row translation is performed
 /// here; [UserPreferencesDao] deals only with raw Drift companions and rows.
-final class UserPreferencesRepositoryImpl implements UserPreferencesRepository {
+///
+/// Targeted write methods ([updateThemeMode], [updateColorSchemeMode],
+/// [updateSeedColor]) perform a read-modify-write cycle so that only the
+/// relevant field changes and all other columns retain their current values.
+final class UserPreferencesRepositoryImpl implements PreferencesRepository {
   /// Creates a [UserPreferencesRepositoryImpl] backed by [_dao].
   ///
   /// Parameters:
@@ -42,7 +49,7 @@ final class UserPreferencesRepositoryImpl implements UserPreferencesRepository {
   final UserPreferencesDao _dao;
 
   // -------------------------------------------------------------------------
-  // UserPreferencesRepository interface
+  // PreferencesRepository interface
   // -------------------------------------------------------------------------
 
   @override
@@ -67,6 +74,69 @@ final class UserPreferencesRepositoryImpl implements UserPreferencesRepository {
     );
     log(
       'UserPreferencesRepositoryImpl: updated preferences',
+      name: 'UserPreferencesRepository',
+    );
+  }
+
+  @override
+  Future<void> updateThemeMode(AppThemeMode mode) async {
+    final existing = await _dao.getPreferences();
+    await _dao.upsertPreferences(
+      UserPreferencesTableCompanion(
+        id: const Value(_kSingletonId),
+        userName: Value(existing.userName),
+        themeMode: Value(mode.dbValue),
+        colorSchemeMode: Value(existing.colorSchemeMode),
+        seedColor: Value(existing.seedColor),
+        defaultSort: Value(existing.defaultSort),
+        defaultView: Value(existing.defaultView),
+        tagsSeeded: Value(existing.tagsSeeded),
+      ),
+    );
+    log(
+      'UserPreferencesRepositoryImpl: themeMode set to ${mode.dbValue}',
+      name: 'UserPreferencesRepository',
+    );
+  }
+
+  @override
+  Future<void> updateColorSchemeMode(ColorSchemeMode mode) async {
+    final existing = await _dao.getPreferences();
+    await _dao.upsertPreferences(
+      UserPreferencesTableCompanion(
+        id: const Value(_kSingletonId),
+        userName: Value(existing.userName),
+        themeMode: Value(existing.themeMode),
+        colorSchemeMode: Value(mode.dbValue),
+        seedColor: Value(existing.seedColor),
+        defaultSort: Value(existing.defaultSort),
+        defaultView: Value(existing.defaultView),
+        tagsSeeded: Value(existing.tagsSeeded),
+      ),
+    );
+    log(
+      'UserPreferencesRepositoryImpl: colorSchemeMode set to ${mode.dbValue}',
+      name: 'UserPreferencesRepository',
+    );
+  }
+
+  @override
+  Future<void> updateSeedColor(String? colorHex) async {
+    final existing = await _dao.getPreferences();
+    await _dao.upsertPreferences(
+      UserPreferencesTableCompanion(
+        id: const Value(_kSingletonId),
+        userName: Value(existing.userName),
+        themeMode: Value(existing.themeMode),
+        colorSchemeMode: Value(existing.colorSchemeMode),
+        seedColor: Value(colorHex),
+        defaultSort: Value(existing.defaultSort),
+        defaultView: Value(existing.defaultView),
+        tagsSeeded: Value(existing.tagsSeeded),
+      ),
+    );
+    log(
+      'UserPreferencesRepositoryImpl: seedColor set to $colorHex',
       name: 'UserPreferencesRepository',
     );
   }
