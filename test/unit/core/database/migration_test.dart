@@ -60,7 +60,15 @@ const _ftsTableName = 'notations_fts';
 const _expectedTriggers = {'notations_ai', 'notations_ad', 'notations_au'};
 
 /// Default tag names seeded during onCreate.
-const _expectedTagNames = {'Raag', 'Bhajan', 'Classical', 'Folk', 'Devotional'};
+///
+/// Updated in schema v2 to match the spec in issue #75.
+const _expectedTagNames = {
+  'Ragas',
+  'Bhajans',
+  'Bandishes',
+  'Thumri',
+  'Exercises',
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -102,18 +110,18 @@ void main() {
   setUpAll(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = true);
 
   // -------------------------------------------------------------------------
-  group('Migration v1 — schema version', () {
+  group('Migration v2 — schema version', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
 
-    test('schemaVersion is 1', () {
-      expect(db.schemaVersion, 1);
+    test('schemaVersion is 2', () {
+      expect(db.schemaVersion, 2);
     });
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v1 — Drift schema validation', () {
+  group('Migration v2 — Drift schema validation', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -138,7 +146,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v1 — table presence', () {
+  group('Migration v2 — table presence', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -152,7 +160,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v1 — index presence', () {
+  group('Migration v2 — index presence', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -166,7 +174,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v1 — FTS5 virtual table and triggers', () {
+  group('Migration v2 — FTS5 virtual table and triggers', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -211,7 +219,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v1 — seed data', () {
+  group('Migration v2 — seed data', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -251,11 +259,12 @@ void main() {
       expect(prefs.defaultSort, 'created_at_desc');
       expect(prefs.defaultView, 'list');
       expect(prefs.userName, 'Musician');
+      expect(prefs.tagsSeeded, 0);
     });
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v1 — forTesting mode has no seed data', () {
+  group('Migration v2 — forTesting mode has no seed data', () {
     late AppDatabase db;
     setUp(() {
       db = AppDatabase.forTesting();
@@ -272,6 +281,43 @@ void main() {
       await db.select(db.notationsTable).get();
       final prefs = await db.select(db.userPreferencesTable).get();
       expect(prefs, isEmpty);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  group('Migration v1 → v2 upgrade', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      // Open a v2 in-memory database and trigger schema creation.
+      db = AppDatabase.forTesting();
+      await db.select(db.notationsTable).get();
+    });
+    tearDown(() => db.close());
+
+    test('user_preferences_table has tags_seeded column after upgrade',
+        () async {
+      // Verify the column exists by querying sqlite_master for the column info.
+      final columns = await db
+          .customSelect(
+            "PRAGMA table_info('user_preferences_table')",
+          )
+          .get();
+      final columnNames = columns.map((r) => r.read<String>('name')).toList();
+      expect(
+        columnNames,
+        contains('tags_seeded'),
+        reason: 'tags_seeded column missing from user_preferences_table',
+      );
+    });
+
+    test('tags_seeded column has default value 0', () async {
+      // Insert a row and verify the default.
+      await db.into(db.userPreferencesTable).insert(
+            const UserPreferencesTableCompanion(),
+          );
+      final prefs = await db.select(db.userPreferencesTable).getSingle();
+      expect(prefs.tagsSeeded, 0);
     });
   });
 }
