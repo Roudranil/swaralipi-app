@@ -1,4 +1,4 @@
-// Migration tests for AppDatabase — schema v1.
+// Migration tests for AppDatabase — schema v3.
 //
 // Verifies that [MigrationStrategy.onCreate] produces the exact schema
 // described in docs/02-technical/data-model.md, including:
@@ -6,7 +6,7 @@
 //   - All 9 indexes (partial and non-partial)
 //   - The FTS5 virtual table (notations_fts) and its 3 sync triggers
 //   - Seed data: 5 default tags and the singleton user_preferences row
-//   - schemaVersion == 1
+//   - schemaVersion == 3
 //
 // [validateDatabaseSchema] (from drift_dev/api/migrations_native.dart) is
 // used to compare the live schema against Drift's reference schema, giving
@@ -110,18 +110,18 @@ void main() {
   setUpAll(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = true);
 
   // -------------------------------------------------------------------------
-  group('Migration v2 — schema version', () {
+  group('Migration v3 — schema version', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
 
-    test('schemaVersion is 2', () {
-      expect(db.schemaVersion, 2);
+    test('schemaVersion is 3', () {
+      expect(db.schemaVersion, 3);
     });
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v2 — Drift schema validation', () {
+  group('Migration v3 — Drift schema validation', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -146,7 +146,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v2 — table presence', () {
+  group('Migration v3 — table presence', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -160,7 +160,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v2 — index presence', () {
+  group('Migration v3 — index presence', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -174,7 +174,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v2 — FTS5 virtual table and triggers', () {
+  group('Migration v3 — FTS5 virtual table and triggers', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -219,7 +219,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v2 — seed data', () {
+  group('Migration v3 — seed data', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -264,7 +264,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v2 — forTesting mode has no seed data', () {
+  group('Migration v3 — forTesting mode has no seed data', () {
     late AppDatabase db;
     setUp(() {
       db = AppDatabase.forTesting();
@@ -318,6 +318,53 @@ void main() {
           );
       final prefs = await db.select(db.userPreferencesTable).getSingle();
       expect(prefs.tagsSeeded, 0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  group('Migration v2 → v3 upgrade', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      // Open a v3 in-memory database and trigger schema creation.
+      db = AppDatabase.forTesting();
+      await db.select(db.notationsTable).get();
+    });
+    tearDown(() => db.close());
+
+    test(
+        'instrument_classes_table has deleted_at column after upgrade',
+        () async {
+      final columns = await db
+          .customSelect(
+            "PRAGMA table_info('instrument_classes_table')",
+          )
+          .get();
+      final columnNames = columns.map((r) => r.read<String>('name')).toList();
+      expect(
+        columnNames,
+        contains('deleted_at'),
+        reason: 'deleted_at column missing from instrument_classes_table',
+      );
+    });
+
+    test('deleted_at column defaults to NULL', () async {
+      await db.into(db.instrumentClassesTable).insert(
+            InstrumentClassesTableCompanion.insert(
+              id: 'ic-v3-test',
+              name: 'TestClass',
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            ),
+          );
+      final row = await (db.select(db.instrumentClassesTable)
+            ..where((t) => t.id.equals('ic-v3-test')))
+          .getSingle();
+      expect(
+        row.deletedAt,
+        isNull,
+        reason: 'deleted_at should default to NULL',
+      );
     });
   });
 }
