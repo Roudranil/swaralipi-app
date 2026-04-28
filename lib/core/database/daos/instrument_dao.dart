@@ -195,6 +195,26 @@ class InstrumentDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
+  /// Returns a live stream of all active (non-archived) instance rows for
+  /// the class identified by [classId], ordered by creation time.
+  ///
+  /// Active means [InstrumentInstancesTable.deletedAt] IS NULL. The stream
+  /// re-emits whenever the underlying table changes. Returns an empty list
+  /// when the class has no active instances or the class does not exist.
+  ///
+  /// Parameters:
+  /// - [classId]: The UUIDv4 primary key of the instrument class.
+  Stream<List<InstrumentInstanceRow>> watchActiveInstancesForClass(
+    String classId,
+  ) {
+    return (select(instrumentInstancesTable)
+          ..where(
+            (t) => t.classId.equals(classId) & t.deletedAt.isNull(),
+          )
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+        .watch();
+  }
+
   /// Returns the instance row for [id], or `null` if it does not exist.
   ///
   /// This query does not filter by [InstrumentInstancesTable.deletedAt] —
