@@ -18,9 +18,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'package:image_picker/image_picker.dart';
 
-import 'package:swaralipi/features/instruments/viewmodels/instrument_instances_view_model.dart';
 import 'package:swaralipi/features/tags/widgets/catppuccin_color_picker.dart';
 import 'package:swaralipi/shared/models/instrument_instance.dart';
 
@@ -73,11 +73,6 @@ class InstrumentInstanceFormData {
 
 /// Default Catppuccin hex color used when no color is pre-selected.
 const String _kDefaultColorHex = '#cba6f7';
-
-/// Shape applied to the bottom sheet modal.
-const RoundedRectangleBorder _kSheetShape = RoundedRectangleBorder(
-  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-);
 
 /// Minimum height of the sheet to show most fields without scrolling.
 const double _kMinSheetHeight = 0.85;
