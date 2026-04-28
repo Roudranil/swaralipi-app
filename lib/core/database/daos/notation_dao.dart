@@ -157,4 +157,33 @@ class NotationDao extends DatabaseAccessor<AppDatabase>
           ..orderBy([(t) => OrderingTerm.desc(t.deletedAt)]))
         .watch();
   }
+
+  /// Returns all soft-deleted notation rows as a one-shot list.
+  ///
+  /// Used by [TrashRepository.purgeAll] to obtain the ids of all trashed
+  /// notations before performing hard deletes and file-system cleanup.
+  Future<List<NotationRow>> getAllTrashed() {
+    return (select(notationsTable)
+          ..where((t) => t.deletedAt.isNotNull()))
+        .get();
+  }
+
+  /// Returns soft-deleted notation rows whose [deletedAt] timestamp is before
+  /// [cutoffIso].
+  ///
+  /// Used by [TrashRepository.autoPurgeExpired] to identify notations that
+  /// have been in the trash for more than 30 days.
+  ///
+  /// Parameters:
+  /// - [cutoffIso]: ISO 8601 datetime string; rows with [deletedAt] strictly
+  ///   less than this value are returned.
+  Future<List<NotationRow>> getExpiredTrashed(String cutoffIso) {
+    return (select(notationsTable)
+          ..where(
+            (t) =>
+                t.deletedAt.isNotNull() &
+                t.deletedAt.isSmallerThanValue(cutoffIso),
+          ))
+        .get();
+  }
 }
