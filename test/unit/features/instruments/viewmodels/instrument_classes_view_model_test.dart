@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:swaralipi/features/instruments/viewmodels/instrument_classes_view_model.dart';
 import 'package:swaralipi/shared/models/instrument_class.dart';
+import 'package:swaralipi/shared/models/instrument_instance.dart';
 import 'package:swaralipi/shared/repositories/instrument_repository.dart';
 
 // ---------------------------------------------------------------------------
@@ -73,6 +74,40 @@ class _FakeInstrumentRepository implements InstrumentRepository {
     _classes = _classes.where((c) => c.id != id).toList();
     _controller.add(_classes);
   }
+
+  // Instance methods — not exercised in these tests.
+  @override
+  Stream<List<InstrumentInstance>> watchActiveInstancesForClass(
+    String classId,
+  ) =>
+      const Stream.empty();
+
+  @override
+  Future<InstrumentInstance> createInstance(
+    String classId, {
+    required String colorHex,
+    String? brand,
+    String? model,
+    int? priceInr,
+    String? photoPath,
+    String notes = '',
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<InstrumentInstance> updateInstance(
+    String id, {
+    String? brand,
+    String? model,
+    String? colorHex,
+    int? priceInr,
+    String? photoPath,
+    String? notes,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> archiveInstance(String id) async => throw UnimplementedError();
 
   void dispose() => _controller.close();
 }

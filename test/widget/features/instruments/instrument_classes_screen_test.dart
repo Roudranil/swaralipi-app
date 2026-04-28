@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:swaralipi/features/instruments/screens/instrument_classes_screen.dart';
 import 'package:swaralipi/features/instruments/viewmodels/instrument_classes_view_model.dart';
 import 'package:swaralipi/shared/models/instrument_class.dart';
+import 'package:swaralipi/shared/models/instrument_instance.dart';
 import 'package:swaralipi/shared/repositories/instrument_repository.dart';
 
 // ---------------------------------------------------------------------------
@@ -42,6 +43,39 @@ class _FakeInstrumentRepository implements InstrumentRepository {
 
   @override
   Future<void> archiveClass(String id) async {}
+
+  @override
+  Stream<List<InstrumentInstance>> watchActiveInstancesForClass(
+    String classId,
+  ) =>
+      const Stream.empty();
+
+  @override
+  Future<InstrumentInstance> createInstance(
+    String classId, {
+    required String colorHex,
+    String? brand,
+    String? model,
+    int? priceInr,
+    String? photoPath,
+    String notes = '',
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<InstrumentInstance> updateInstance(
+    String id, {
+    String? brand,
+    String? model,
+    String? colorHex,
+    int? priceInr,
+    String? photoPath,
+    String? notes,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> archiveInstance(String id) async => throw UnimplementedError();
 }
 
 InstrumentClass _cls(String id, String name) => InstrumentClass(
