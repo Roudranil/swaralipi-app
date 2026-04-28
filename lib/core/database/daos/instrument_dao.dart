@@ -70,12 +70,46 @@ class InstrumentDao extends DatabaseAccessor<AppDatabase>
   // Instrument class read operations
   // -------------------------------------------------------------------------
 
-  /// Returns all instrument class rows, ordered alphabetically by
-  /// [InstrumentClassesTable.name].
+  /// Returns all active (non-archived) instrument class rows, ordered
+  /// alphabetically by [InstrumentClassesTable.name].
+  ///
+  /// Active means [InstrumentClassesTable.deletedAt] IS NULL.
   Future<List<InstrumentClassRow>> getActiveClasses() {
     return (select(instrumentClassesTable)
+          ..where((t) => t.deletedAt.isNull())
           ..orderBy([(t) => OrderingTerm.asc(t.name)]))
         .get();
+  }
+
+  /// Returns a live stream of all active instrument class rows, ordered
+  /// alphabetically by [InstrumentClassesTable.name].
+  ///
+  /// Active means [InstrumentClassesTable.deletedAt] IS NULL. The stream
+  /// re-emits whenever the underlying table changes.
+  Stream<List<InstrumentClassRow>> watchActiveClasses() {
+    return (select(instrumentClassesTable)
+          ..where((t) => t.deletedAt.isNull())
+          ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+        .watch();
+  }
+
+  /// Sets [InstrumentClassesTable.deletedAt] to the current UTC timestamp,
+  /// effectively archiving the class.
+  ///
+  /// Archived classes are hidden from the active instrument class list but
+  /// remain in the database. The [InstrumentInstancesTable] rows that
+  /// reference this class are NOT touched — ON DELETE RESTRICT prevents
+  /// hard deletion while instances exist. If no row matches [id], the call
+  /// is silently ignored.
+  ///
+  /// Parameters:
+  /// - [id]: The UUIDv4 primary key of the class to archive.
+  Future<void> archiveClass(String id) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    await (update(instrumentClassesTable)..where((t) => t.id.equals(id))).write(
+      InstrumentClassesTableCompanion(deletedAt: Value(now)),
+    );
+    log('InstrumentDao: archived class $id', name: 'InstrumentDao');
   }
 
   // -------------------------------------------------------------------------

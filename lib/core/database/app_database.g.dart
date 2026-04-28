@@ -1588,8 +1588,15 @@ class $InstrumentClassesTableTable extends InstrumentClassesTable
   late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
       'updated_at', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
   @override
-  List<GeneratedColumn> get $columns => [id, name, createdAt, updatedAt];
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, name, createdAt, updatedAt, deletedAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1623,6 +1630,10 @@ class $InstrumentClassesTableTable extends InstrumentClassesTable
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
     return context;
   }
 
@@ -1640,6 +1651,8 @@ class $InstrumentClassesTableTable extends InstrumentClassesTable
           .read(DriftSqlType.string, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}deleted_at']),
     );
   }
 
@@ -1662,11 +1675,15 @@ class InstrumentClassRow extends DataClass
 
   /// ISO 8601 datetime of last update.
   final String updatedAt;
+
+  /// Archive (soft-delete) timestamp. NULL means active.
+  final String? deletedAt;
   const InstrumentClassRow(
       {required this.id,
       required this.name,
       required this.createdAt,
-      required this.updatedAt});
+      required this.updatedAt,
+      this.deletedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1674,6 +1691,9 @@ class InstrumentClassRow extends DataClass
     map['name'] = Variable<String>(name);
     map['created_at'] = Variable<String>(createdAt);
     map['updated_at'] = Variable<String>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<String>(deletedAt);
+    }
     return map;
   }
 
@@ -1683,6 +1703,9 @@ class InstrumentClassRow extends DataClass
       name: Value(name),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -1694,6 +1717,7 @@ class InstrumentClassRow extends DataClass
       name: serializer.fromJson<String>(json['name']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      deletedAt: serializer.fromJson<String?>(json['deletedAt']),
     );
   }
   @override
@@ -1704,16 +1728,22 @@ class InstrumentClassRow extends DataClass
       'name': serializer.toJson<String>(name),
       'createdAt': serializer.toJson<String>(createdAt),
       'updatedAt': serializer.toJson<String>(updatedAt),
+      'deletedAt': serializer.toJson<String?>(deletedAt),
     };
   }
 
   InstrumentClassRow copyWith(
-          {String? id, String? name, String? createdAt, String? updatedAt}) =>
+          {String? id,
+          String? name,
+          String? createdAt,
+          String? updatedAt,
+          Value<String?> deletedAt = const Value.absent()}) =>
       InstrumentClassRow(
         id: id ?? this.id,
         name: name ?? this.name,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
       );
   InstrumentClassRow copyWithCompanion(InstrumentClassesTableCompanion data) {
     return InstrumentClassRow(
@@ -1721,6 +1751,7 @@ class InstrumentClassRow extends DataClass
       name: data.name.present ? data.name.value : this.name,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -1730,13 +1761,14 @@ class InstrumentClassRow extends DataClass
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, createdAt, updatedAt);
+  int get hashCode => Object.hash(id, name, createdAt, updatedAt, deletedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1744,7 +1776,8 @@ class InstrumentClassRow extends DataClass
           other.id == this.id &&
           other.name == this.name &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
 }
 
 class InstrumentClassesTableCompanion
@@ -1753,12 +1786,14 @@ class InstrumentClassesTableCompanion
   final Value<String> name;
   final Value<String> createdAt;
   final Value<String> updatedAt;
+  final Value<String?> deletedAt;
   final Value<int> rowid;
   const InstrumentClassesTableCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   InstrumentClassesTableCompanion.insert({
@@ -1766,6 +1801,7 @@ class InstrumentClassesTableCompanion
     required String name,
     required String createdAt,
     required String updatedAt,
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         name = Value(name),
@@ -1776,6 +1812,7 @@ class InstrumentClassesTableCompanion
     Expression<String>? name,
     Expression<String>? createdAt,
     Expression<String>? updatedAt,
+    Expression<String>? deletedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1783,6 +1820,7 @@ class InstrumentClassesTableCompanion
       if (name != null) 'name': name,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1792,12 +1830,14 @@ class InstrumentClassesTableCompanion
       Value<String>? name,
       Value<String>? createdAt,
       Value<String>? updatedAt,
+      Value<String?>? deletedAt,
       Value<int>? rowid}) {
     return InstrumentClassesTableCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1817,6 +1857,9 @@ class InstrumentClassesTableCompanion
     if (updatedAt.present) {
       map['updated_at'] = Variable<String>(updatedAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<String>(deletedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1830,6 +1873,7 @@ class InstrumentClassesTableCompanion
           ..write('name: $name, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5417,6 +5461,7 @@ typedef $$InstrumentClassesTableTableCreateCompanionBuilder
   required String name,
   required String createdAt,
   required String updatedAt,
+  Value<String?> deletedAt,
   Value<int> rowid,
 });
 typedef $$InstrumentClassesTableTableUpdateCompanionBuilder
@@ -5425,6 +5470,7 @@ typedef $$InstrumentClassesTableTableUpdateCompanionBuilder
   Value<String> name,
   Value<String> createdAt,
   Value<String> updatedAt,
+  Value<String?> deletedAt,
   Value<int> rowid,
 });
 
@@ -5474,6 +5520,9 @@ class $$InstrumentClassesTableTableFilterComposer
   ColumnFilters<String> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
   Expression<bool> instrumentInstancesTableRefs(
       Expression<bool> Function($$InstrumentInstancesTableTableFilterComposer f)
           f) {
@@ -5518,6 +5567,9 @@ class $$InstrumentClassesTableTableOrderingComposer
 
   ColumnOrderings<String> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
 }
 
 class $$InstrumentClassesTableTableAnnotationComposer
@@ -5540,6 +5592,9 @@ class $$InstrumentClassesTableTableAnnotationComposer
 
   GeneratedColumn<String> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   Expression<T> instrumentInstancesTableRefs<T extends Object>(
       Expression<T> Function(
@@ -5597,6 +5652,7 @@ class $$InstrumentClassesTableTableTableManager extends RootTableManager<
             Value<String> name = const Value.absent(),
             Value<String> createdAt = const Value.absent(),
             Value<String> updatedAt = const Value.absent(),
+            Value<String?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               InstrumentClassesTableCompanion(
@@ -5604,6 +5660,7 @@ class $$InstrumentClassesTableTableTableManager extends RootTableManager<
             name: name,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            deletedAt: deletedAt,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -5611,6 +5668,7 @@ class $$InstrumentClassesTableTableTableManager extends RootTableManager<
             required String name,
             required String createdAt,
             required String updatedAt,
+            Value<String?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               InstrumentClassesTableCompanion.insert(
@@ -5618,6 +5676,7 @@ class $$InstrumentClassesTableTableTableManager extends RootTableManager<
             name: name,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            deletedAt: deletedAt,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
