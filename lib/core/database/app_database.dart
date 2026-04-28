@@ -187,7 +187,9 @@ class NotationTagsTable extends Table {
 /// Stores instrument class definitions (e.g. String, Wind, Percussion).
 ///
 /// Deleting a class is blocked while any [InstrumentInstancesTable] rows
-/// reference it (ON DELETE RESTRICT).
+/// reference it (ON DELETE RESTRICT). Classes may be soft-archived by setting
+/// [deletedAt]; archived classes are hidden from active pickers but retained
+/// in the database for referential integrity.
 @DataClassName('InstrumentClassRow')
 class InstrumentClassesTable extends Table {
   /// UUIDv4 generated at the app layer.
@@ -201,6 +203,9 @@ class InstrumentClassesTable extends Table {
 
   /// ISO 8601 datetime of last update.
   TextColumn get updatedAt => text()();
+
+  /// Archive (soft-delete) timestamp. NULL means active.
+  TextColumn get deletedAt => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -446,6 +451,7 @@ class UserPreferencesTable extends Table {
 /// |---|---|
 /// | 1 | Initial schema: all tables, FTS5, triggers, indexes, seed data |
 /// | 2 | Add `tags_seeded` column to `user_preferences_table` |
+/// | 3 | Add `deleted_at` column to `instrument_classes_table` |
 @DriftDatabase(
   tables: [
     NotationsTable,
@@ -514,7 +520,7 @@ class AppDatabase extends _$AppDatabase {
         );
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -533,6 +539,13 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(
               userPreferencesTable,
               userPreferencesTable.tagsSeeded,
+            );
+          }
+          // v2 → v3: add deleted_at column to instrument_classes_table.
+          if (from < 3) {
+            await m.addColumn(
+              instrumentClassesTable,
+              instrumentClassesTable.deletedAt,
             );
           }
         },
