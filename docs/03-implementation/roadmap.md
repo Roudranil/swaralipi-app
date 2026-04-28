@@ -38,6 +38,19 @@ date: 2026-04-25
     - [4.14. \[Feature\] F04 — Notation Detail View](#414-feature-f04--notation-detail-view)
     - [4.15. \[Feature\] F03 — Library](#415-feature-f03--library)
     - [4.16. \[Feature\] F11 — Settings](#416-feature-f11--settings)
+  - [5. Sprint Plan](#5-sprint-plan)
+    - [Sprint 1 — Database Foundation](#sprint-1--database-foundation)
+    - [Sprint 2 — File Storage, Image Processing \& Search](#sprint-2--file-storage-image-processing--search)
+    - [Sprint 3 — Tags, Custom Fields, Appearance \& Trash (Branch Work)](#sprint-3--tags-custom-fields-appearance--trash-branch-work)
+    - [Sprint 4 — Metadata Form \& Repository](#sprint-4--metadata-form--repository)
+    - [Sprint 5 — Notation Capture: Camera \& Gallery](#sprint-5--notation-capture-camera--gallery)
+    - [Sprint 6 — Notation Capture: Page Editor \& RenderParams](#sprint-6--notation-capture-page-editor--renderparams)
+    - [Sprint 7 — Trash \& Edit/Delete/Copy](#sprint-7--trash--editdeletecopy)
+    - [Sprint 8 — Notation Player (F05)](#sprint-8--notation-player-f05)
+    - [Sprint 9 — Detail View \& Library](#sprint-9--detail-view--library)
+    - [Sprint 10 — Settings \& Polish](#sprint-10--settings--polish)
+    - [Backlog (unscheduled)](#backlog-unscheduled)
+  - [6. Open Questions](#6-open-questions)
   - [7. Risks](#7-risks)
 
 ---
@@ -344,18 +357,18 @@ flowchart TD
 
 | Issue | Title | Type | Size | Priority | Depends On |
 | ----- | ----- | ---- | ---- | -------- | ---------- |
-| #62 | SVC1-1-T1: Define all Drift table classes | task | S | P0 | — |
-| #63 | SVC1-1-T2: Define immutable domain models with copyWith | task | S | P0 | #62 |
-| #64 | SVC1-2-T1: Implement NotationDao and NotationPageDao | task | M | P0 | #62 |
-| #65 | SVC1-2-T2: Implement TagDao, NotationTagDao, InstrumentDao | task | S | P0 | #62 |
-| #66 | SVC1-2-T3: Implement CustomFieldDao and UserPreferencesDao | task | S | P0 | #62 |
-| #67 | SVC1-3-T1: Create FTS5 virtual table and triggers | task | M | P0 | #64 |
-| #68 | SVC1-3-T2: Implement Drift MigrationStrategy | task | M | P0 | #67 |
+| #62 | SVC1-1-T1: Define all Drift table classes | task | S | P0 | — | done
+| #63 | SVC1-1-T2: Define immutable domain models with copyWith | task | S | P0 | #62 | done
+| #64 | SVC1-2-T1: Implement NotationDao and NotationPageDao | task | M | P0 | #62 | done
+| #65 | SVC1-2-T2: Implement TagDao, NotationTagDao, InstrumentDao | task | S | P0 | #62 | done
+| #66 | SVC1-2-T3: Implement CustomFieldDao and UserPreferencesDao | task | S | P0 | #62 | done
+| #67 | SVC1-3-T1: Create FTS5 virtual table and triggers | task | M | P0 | #64 | done
+| #68 | SVC1-3-T2: Implement Drift MigrationStrategy | task | M | P0 | #67 | done
 
 **Definition of Done for Sprint**:
-- [ ] All sprint issues closed or moved to backlog with documented reason
-- [ ] CI green on main
-- [ ] Regression test suite passes
+- [x] All sprint issues closed or moved to backlog with documented reason
+- [x] CI green on main
+- [x] Regression test suite passes
 
 ---
 
@@ -367,17 +380,17 @@ flowchart TD
 
 | Issue | Title | Type | Size | Priority | Depends On |
 | ----- | ----- | ---- | ---- | -------- | ---------- |
-| #69 | SVC2-1-T1: Implement FileStorageService save/retrieve/delete | task | S | P0 | — |
-| #70 | SVC2-2-T1: Implement orphan file detection and purge | task | S | P0 | #69 |
-| #71 | SVC3-1-T1: Define RenderParams model and filter enum | task | S | P0 | — |
-| #72 | SVC3-1-T2: Implement filter rendering pipeline | task | M | P0 | #71 |
-| #73 | SVC3-2-T1: Implement crop, rotate, and composite pipeline | task | M | P0 | #72 |
-| #74 | SVC4-1-T1: Implement SearchService with FTS5 BM25 query | task | M | P0 | #67 |
+| #69 | SVC2-1-T1: Implement FileStorageService save/retrieve/delete | task | S | P0 | — | done
+| #70 | SVC2-2-T1: Implement orphan file detection and purge | task | S | P0 | #69 | done
+| #71 | SVC3-1-T1: Define RenderParams model and filter enum | task | S | P0 | — | done
+| #72 | SVC3-1-T2: Implement filter rendering pipeline | task | M | P0 | #71 | done
+| #73 | SVC3-2-T1: Implement crop, rotate, and composite pipeline | task | M | P0 | #72 | done
+| #74 | SVC4-1-T1: Implement SearchService with FTS5 BM25 query | task | M | P0 | #67 | done
 
 **Definition of Done for Sprint**:
-- [ ] All sprint issues closed or moved to backlog with documented reason
-- [ ] CI green on main
-- [ ] Regression test suite passes
+- [x] All sprint issues closed or moved to backlog with documented reason
+- [x] CI green on main
+- [x] Regression test suite passes
 
 ---
 
@@ -398,9 +411,9 @@ flowchart TD
 | #81 | F06-2-T1: Implement InstrumentInstance screens with photo capture | task | M | P2 | #80 |
 
 **Definition of Done for Sprint**:
-- [ ] All sprint issues closed or moved to backlog with documented reason
-- [ ] CI green on main
-- [ ] Regression test suite passes
+- [x] All sprint issues closed or moved to backlog with documented reason
+- [x] CI green on main
+- [x] Regression test suite passes
 
 ---
 

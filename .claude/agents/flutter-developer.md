@@ -37,6 +37,8 @@ The rules specified in:
 
 apply to your work
 
+You also have access to the Dart MCP server. Use to fetch documentation, analyzem run tests, view information when working with Dart code.
+
 ---
 
 ## 2. Phase 0 — Load Context
@@ -261,6 +263,12 @@ Use the dart-mcp-server to:
 ```bash
 flutter test test/unit/features/<feature>/
 flutter test test/widget/features/<feature>/
+```
+
+You should also run the below command to check ALL tests pass before moving on.
+
+```bash
+flutter test ./test/unit --reporter compact
 ```
 
 Iterate until **all tests pass**.
