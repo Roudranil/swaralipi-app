@@ -154,6 +154,19 @@ class CaptureSessionViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Replaces the entire page list with [drafts].
+  ///
+  /// Used by [PageEditorViewModel] when reordering pages. Callers are
+  /// responsible for ensuring the list is a valid permutation of the current
+  /// session pages.
+  ///
+  /// Parameters:
+  /// - [drafts]: The replacement ordered list of [CapturePageDraft] objects.
+  void replacePages(List<CapturePageDraft> drafts) {
+    _pages = List<CapturePageDraft>.unmodifiable(drafts);
+    notifyListeners();
+  }
+
   /// Clears all drafts from the session.
   void clear() {
     _pages = [];
