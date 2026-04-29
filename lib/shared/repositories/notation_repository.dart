@@ -30,8 +30,13 @@ abstract interface class NotationRepository {
   /// Persists a new notation with its pages, tags, and custom field values in
   /// a single transaction and returns the newly created [Notation].
   ///
-  /// The repository generates the notation UUID and all timestamps. The
-  /// [pages] list is written as [NotationPagesTable] rows in the same
+  /// When [notationId] is provided the repository uses it as the primary key;
+  /// otherwise a new UUIDv4 is generated internally. Callers that write page
+  /// files to disk before calling this method must supply the same UUID that
+  /// was used to construct the file paths so that stored paths remain
+  /// consistent.
+  ///
+  /// The [pages] list is written as `notation_pages` rows in the same
   /// transaction. Tag and custom field associations are also created
   /// atomically.
   ///
@@ -39,7 +44,13 @@ abstract interface class NotationRepository {
   /// - [draft]: All user-supplied metadata, tag ids, and custom field values.
   /// - [pages]: Ordered list of page DTOs with caller-generated UUIDs and
   ///   resolved image paths.
-  Future<Notation> saveNotation(NotationDraft draft, List<SavedPage> pages);
+  /// - [notationId]: Optional UUIDv4 to use as the notation primary key.
+  ///   Defaults to a freshly generated UUID when omitted.
+  Future<Notation> saveNotation(
+    NotationDraft draft,
+    List<SavedPage> pages, {
+    String? notationId,
+  });
 
   /// Updates an existing notation's metadata, tags, and custom field values
   /// atomically and returns the updated [Notation].
