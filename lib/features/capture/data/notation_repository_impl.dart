@@ -77,9 +77,10 @@ final class NotationRepositoryImpl implements NotationRepository {
   @override
   Future<Notation> saveNotation(
     NotationDraft draft,
-    List<SavedPage> pages,
-  ) async {
-    final id = _kUuid.v4();
+    List<SavedPage> pages, {
+    String? notationId,
+  }) async {
+    final id = notationId ?? _kUuid.v4();
     final now = DateTime.now().toUtc().toIso8601String();
 
     final notationCompanion = NotationsTableCompanion.insert(

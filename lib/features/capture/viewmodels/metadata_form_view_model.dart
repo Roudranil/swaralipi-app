@@ -11,23 +11,39 @@
 //   didChangeDependencies. Dispose is handled by ChangeNotifier.
 //
 // Save flow:
-//   Build a [NotationDraft] from [formState], then call
-//   [NotationRepository.saveNotation]. The [saveState] tracks progress.
+//   1. Generate a notation UUID.
+//   2. Iterate [_drafts]: call [FileStorageService.saveImage] for each page's
+//      bytes, building a list of [SavedPage] DTOs with resolved relative paths.
+//   3. If any file write fails, delete all files written so far (rollback),
+//      then emit [MetadataFormSaveError].
+//   4. On success: call [NotationRepository.saveNotation] in a single Drift
+//      transaction. Emit [MetadataFormSaveDone].
+//
+// The ViewModel receives [List<CapturePageDraft>] (in-memory bytes) from the
+// caller; [FileStorageService] is injected for disk I/O so both are testable.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
+import 'package:swaralipi/core/storage/file_storage_service.dart';
+import 'package:swaralipi/features/capture/models/capture_page_draft.dart';
 import 'package:swaralipi/shared/models/custom_field_definition.dart';
 import 'package:swaralipi/shared/models/instrument_instance.dart';
 import 'package:swaralipi/shared/models/notation_draft.dart';
+import 'package:swaralipi/shared/models/render_params.dart';
 import 'package:swaralipi/shared/models/saved_page.dart';
 import 'package:swaralipi/shared/models/tag.dart';
 import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
 import 'package:swaralipi/shared/repositories/instrument_repository.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
 import 'package:swaralipi/shared/repositories/tag_repository.dart';
+
+/// Shared [Uuid] instance used to generate notation and page UUIDs.
+const _kUuid = Uuid();
 
 // ---------------------------------------------------------------------------
 // Custom field value input (local DTO for in-form state)
@@ -294,6 +310,11 @@ const List<String> kMetadataFormLanguages = [
 /// Manages form state, picker dependencies, and the save operation.
 /// Extends [ChangeNotifier] for compatibility with the [provider] package.
 ///
+/// On [save], iterates [drafts] to write each page's bytes to disk via
+/// [FileStorageService], then persists the notation record in a single Drift
+/// transaction via [NotationRepository]. If any file write fails, all
+/// previously written files are deleted before propagating the error.
+///
 /// Dependencies are injected via constructor; no [BuildContext] references.
 class MetadataFormViewModel extends ChangeNotifier {
   /// Creates a [MetadataFormViewModel].
@@ -302,8 +323,11 @@ class MetadataFormViewModel extends ChangeNotifier {
   /// - [tagRepository]: Source of truth for tags.
   /// - [instrumentRepository]: Source of truth for instruments.
   /// - [customFieldRepository]: Source of truth for custom field definitions.
-  /// - [notationRepository]: Persists the final notation.
-  /// - [pages]: Ordered list of pages already captured by the page editor.
+  /// - [notationRepository]: Persists the final notation record.
+  /// - [fileStorageService]: Writes page images to disk before the DB save.
+  /// - [drafts]: Ordered list of in-memory [CapturePageDraft] objects from
+  ///   the capture session. The ViewModel writes their bytes to disk during
+  ///   [save].
   /// - [allInstancesStream]: Optional override stream of all active instrument
   ///   instances. If provided, the ViewModel subscribes to this stream instead
   ///   of deriving one from [InstrumentRepository.watchActiveClasses]. Used in
@@ -313,20 +337,23 @@ class MetadataFormViewModel extends ChangeNotifier {
     required InstrumentRepository instrumentRepository,
     required CustomFieldRepository customFieldRepository,
     required NotationRepository notationRepository,
-    required List<SavedPage> pages,
+    required FileStorageService fileStorageService,
+    required List<CapturePageDraft> drafts,
     Stream<List<InstrumentInstance>>? allInstancesStream,
   })  : _tagRepository = tagRepository,
         _instrumentRepository = instrumentRepository,
         _customFieldRepository = customFieldRepository,
         _notationRepository = notationRepository,
-        _pages = pages,
+        _fileStorageService = fileStorageService,
+        _drafts = List.unmodifiable(drafts),
         _allInstancesStreamOverride = allInstancesStream;
 
   final TagRepository _tagRepository;
   final InstrumentRepository _instrumentRepository;
   final CustomFieldRepository _customFieldRepository;
   final NotationRepository _notationRepository;
-  final List<SavedPage> _pages;
+  final FileStorageService _fileStorageService;
+  final List<CapturePageDraft> _drafts;
   final Stream<List<InstrumentInstance>>? _allInstancesStreamOverride;
 
   // Stream subscriptions
@@ -730,11 +757,19 @@ class MetadataFormViewModel extends ChangeNotifier {
   // Save
   // -------------------------------------------------------------------------
 
-  /// Saves the notation to the repository.
+  /// Saves the notation to disk and to the database.
   ///
   /// No-op if [isTitleValid] is false or a save is already in progress.
-  /// Transitions [saveState] to [MetadataFormSaving], then to
-  /// [MetadataFormSaveDone] on success or [MetadataFormSaveError] on failure.
+  ///
+  /// The save pipeline:
+  /// 1. Generates a UUIDv4 for the notation.
+  /// 2. Iterates [_drafts]: calls [FileStorageService.saveImage] for each
+  ///    page's bytes to write JPEG files under
+  ///    `appDocDir/notations/<notationId>/page_<n>_original.jpg`.
+  /// 3. If any write fails, all previously written files are deleted
+  ///    (rollback) and [saveState] transitions to [MetadataFormSaveError].
+  /// 4. On success: calls [NotationRepository.saveNotation] in a single
+  ///    Drift transaction, then transitions to [MetadataFormSaveDone].
   Future<void> save() async {
     if (!isTitleValid) return;
     if (_saveState is MetadataFormSaving) return;
@@ -742,12 +777,20 @@ class MetadataFormViewModel extends ChangeNotifier {
     _saveState = const MetadataFormSaving();
     notifyListeners();
 
+    final notationId = _kUuid.v4();
+
     try {
+      final savedPages = await _writePagesToStorage(notationId);
       final draft = _buildDraft();
-      final notation = await _notationRepository.saveNotation(draft, _pages);
+      final notation = await _notationRepository.saveNotation(
+        draft,
+        savedPages,
+        notationId: notationId,
+      );
 
       log(
-        'MetadataFormViewModel: saved notation "${notation.id}"',
+        'MetadataFormViewModel: saved notation "${notation.id}" '
+        'with ${savedPages.length} page(s)',
         name: 'MetadataFormViewModel',
       );
 
@@ -762,6 +805,85 @@ class MetadataFormViewModel extends ChangeNotifier {
       _saveState = MetadataFormSaveError(message: e.toString());
     }
     notifyListeners();
+  }
+
+  /// Writes each draft's bytes to the file system and returns the
+  /// resulting [SavedPage] list.
+  ///
+  /// Iterates [_drafts] in order. Each page is saved to
+  /// `notations/<notationId>/page_<index>_original.jpg` via
+  /// [FileStorageService.saveImage]. If any write throws, every file written
+  /// so far is deleted and the exception is re-thrown so [save] can emit an
+  /// error state.
+  ///
+  /// Parameters:
+  /// - [notationId]: The UUIDv4 used as the notation directory name.
+  Future<List<SavedPage>> _writePagesToStorage(String notationId) async {
+    final writtenPaths = <String>[];
+    final savedPages = <SavedPage>[];
+
+    try {
+      for (var i = 0; i < _drafts.length; i++) {
+        final draft = _drafts[i];
+        final relativePath = await _fileStorageService.saveImage(
+          draft.originalBytes,
+          notationId,
+          i,
+        );
+        writtenPaths.add(relativePath);
+        savedPages.add(
+          SavedPage(
+            id: _kUuid.v4(),
+            pageOrder: i,
+            imagePath: relativePath,
+            renderParams: _encodeRenderParams(draft.renderParams),
+          ),
+        );
+      }
+    } on Exception catch (e, st) {
+      log(
+        'MetadataFormViewModel: file write failed, rolling back '
+        '${writtenPaths.length} file(s) — $e',
+        name: 'MetadataFormViewModel',
+        error: e,
+        stackTrace: st,
+      );
+      await _rollbackFiles(writtenPaths);
+      rethrow;
+    }
+
+    return savedPages;
+  }
+
+  /// Deletes all files in [relativePaths] to clean up a failed save.
+  ///
+  /// Errors during deletion are logged but not re-thrown so the original
+  /// save error is not masked.
+  ///
+  /// Parameters:
+  /// - [relativePaths]: Relative paths returned by [FileStorageService.saveImage].
+  Future<void> _rollbackFiles(List<String> relativePaths) async {
+    for (final path in relativePaths) {
+      try {
+        await _fileStorageService.deletePageFile(path);
+      } on Exception catch (e, st) {
+        log(
+          'MetadataFormViewModel: rollback delete failed for "$path": $e',
+          name: 'MetadataFormViewModel',
+          error: e,
+          stackTrace: st,
+        );
+      }
+    }
+  }
+
+  /// Serialises [params] to a JSON string for storage in
+  /// [NotationPagesTable.renderParams].
+  ///
+  /// Parameters:
+  /// - [params]: The [RenderParams] to encode.
+  String _encodeRenderParams(RenderParams params) {
+    return jsonEncode(params.toJson());
   }
 
   /// Resets [saveState] to [MetadataFormSaveIdle] after an error has been
