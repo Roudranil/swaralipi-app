@@ -1,0 +1,113 @@
+// Abstract NotationRepository interface.
+//
+// Defines the contract for all notation CRUD, soft-delete, play-count, and
+// reactive-list operations. The concrete implementation lives in
+// lib/features/capture/data/notation_repository_impl.dart.
+//
+// All write operations run inside a Drift transaction to ensure atomicity.
+// All list reads return Stream<List<T>> so the UI layer can react to changes
+// without polling.
+
+import 'package:swaralipi/shared/models/notation.dart';
+import 'package:swaralipi/shared/models/notation_detail.dart';
+import 'package:swaralipi/shared/models/notation_draft.dart';
+import 'package:swaralipi/shared/models/saved_page.dart';
+
+// ---------------------------------------------------------------------------
+// Repository interface
+// ---------------------------------------------------------------------------
+
+/// Contract for all notation data operations.
+///
+/// Implementations translate between Drift row types and domain models at the
+/// repository boundary. All write methods that create or modify a notation
+/// return the persisted [Notation] so callers never need a follow-up read.
+///
+/// Every multi-table write ([saveNotation], [updateNotation]) runs inside a
+/// single Drift transaction, guaranteeing atomicity across the notations,
+/// notation_pages, notation_tags, and notation_custom_fields tables.
+abstract interface class NotationRepository {
+  /// Persists a new notation with its pages, tags, and custom field values in
+  /// a single transaction and returns the newly created [Notation].
+  ///
+  /// The repository generates the notation UUID and all timestamps. The
+  /// [pages] list is written as [NotationPagesTable] rows in the same
+  /// transaction. Tag and custom field associations are also created
+  /// atomically.
+  ///
+  /// Parameters:
+  /// - [draft]: All user-supplied metadata, tag ids, and custom field values.
+  /// - [pages]: Ordered list of page DTOs with caller-generated UUIDs and
+  ///   resolved image paths.
+  Future<Notation> saveNotation(NotationDraft draft, List<SavedPage> pages);
+
+  /// Updates an existing notation's metadata, tags, and custom field values
+  /// atomically and returns the updated [Notation].
+  ///
+  /// All existing tag associations for the notation are removed and replaced
+  /// by the ids in [draft.tagIds]. All existing custom field values are
+  /// upserted (insert-or-replace) from [draft.customFields].
+  ///
+  /// Throws [NotationNotFoundException] if no notation with [id] exists.
+  ///
+  /// Parameters:
+  /// - [id]: The UUIDv4 primary key of the notation to update.
+  /// - [draft]: Updated metadata, tag ids, and custom field values.
+  Future<Notation> updateNotation(String id, NotationDraft draft);
+
+  /// Loads a fully-hydrated [NotationDetail] for the notation with [id].
+  ///
+  /// Hydrates all relations: pages (ordered by page_order), tags (ordered by
+  /// name), and custom field values. Returns `null` when no notation with [id]
+  /// exists (or the notation is soft-deleted).
+  ///
+  /// Parameters:
+  /// - [id]: The UUIDv4 primary key of the notation to load.
+  Future<NotationDetail?> loadNotation(String id);
+
+  /// Returns a live stream of all active (non-deleted) notations ordered by
+  /// [Notation.updatedAt] descending.
+  ///
+  /// The stream re-emits whenever any notation row changes.
+  Stream<List<Notation>> watchAllActive();
+
+  /// Soft-deletes the notation with [id] by setting `deleted_at` to the
+  /// current UTC timestamp.
+  ///
+  /// Soft-deleted notations are excluded from [watchAllActive] but remain in
+  /// the database so the Trash screen can list and restore them. If no
+  /// notation with [id] exists the call is silently ignored.
+  ///
+  /// Parameters:
+  /// - [id]: The UUIDv4 primary key of the notation to soft-delete.
+  Future<void> softDelete(String id);
+
+  /// Increments [Notation.playCount] by one and sets
+  /// [Notation.lastPlayedAt] to the current UTC timestamp.
+  ///
+  /// If no notation with [id] exists the call is silently ignored.
+  ///
+  /// Parameters:
+  /// - [id]: The UUIDv4 primary key of the notation that was played.
+  Future<void> updatePlayCount(String id);
+}
+
+// ---------------------------------------------------------------------------
+// Domain exceptions
+// ---------------------------------------------------------------------------
+
+/// Thrown by [NotationRepository.updateNotation] when no notation with the
+/// given id exists.
+final class NotationNotFoundException implements Exception {
+  /// Creates a [NotationNotFoundException] for [id].
+  ///
+  /// Parameters:
+  /// - [id]: The notation id that was not found.
+  const NotationNotFoundException(this.id);
+
+  /// The notation id that was not found.
+  final String id;
+
+  @override
+  String toString() => 'NotationNotFoundException: no notation with id "$id"';
+}
