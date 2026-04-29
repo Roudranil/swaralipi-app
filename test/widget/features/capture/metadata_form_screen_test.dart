@@ -27,6 +27,7 @@ import 'package:swaralipi/shared/models/notation_detail.dart';
 import 'package:swaralipi/shared/models/notation_draft.dart';
 import 'package:swaralipi/shared/models/saved_page.dart';
 import 'package:swaralipi/shared/models/tag.dart';
+import 'package:swaralipi/core/storage/file_storage_service.dart';
 import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
 import 'package:swaralipi/shared/repositories/instrument_repository.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
@@ -111,10 +112,13 @@ class _FakeCustomFieldRepository implements CustomFieldRepository {
 class _FakeNotationRepository implements NotationRepository {
   @override
   Future<Notation> saveNotation(
-      NotationDraft draft, List<SavedPage> pages) async {
+    NotationDraft draft,
+    List<SavedPage> pages, {
+    String? notationId,
+  }) async {
     final now = DateTime.now().toIso8601String();
     return Notation(
-      id: 'n-test',
+      id: notationId ?? 'n-test',
       title: draft.title,
       artists: draft.artists,
       languages: draft.languages,
@@ -138,6 +142,10 @@ class _FakeNotationRepository implements NotationRepository {
   Future<void> updatePlayCount(String id) async {}
 }
 
+class _FakeFileStorageService extends FileStorageService {
+  _FakeFileStorageService() : super();
+}
+
 // ---------------------------------------------------------------------------
 // Fake ViewModel
 // ---------------------------------------------------------------------------
@@ -152,7 +160,8 @@ class FakeMetadataFormViewModel extends MetadataFormViewModel {
           instrumentRepository: _FakeInstrumentRepository(),
           customFieldRepository: _FakeCustomFieldRepository(),
           notationRepository: _FakeNotationRepository(),
-          pages: const [],
+          fileStorageService: _FakeFileStorageService(),
+          drafts: const [],
         ) {
     if (initialDepsState != null) _depsState = initialDepsState;
     if (initialSaveState != null) _saveState = initialSaveState;
@@ -603,8 +612,7 @@ void main() {
       );
       await tester.pumpWidget(_buildScreen(vm));
 
-      await _scrollToFind(
-          tester, find.widgetWithText(TextField, 'raga_name'));
+      await _scrollToFind(tester, find.widgetWithText(TextField, 'raga_name'));
       // Field label from keyName
       expect(find.widgetWithText(TextField, 'raga_name'), findsOneWidget);
     });

@@ -12,14 +12,20 @@
 // - loadDependencies: loading -> success / loading -> error transitions
 // - save: blocked when title empty
 // - save: blocked while already saving
+// - save: calls FileStorageService.saveImage for each draft
 // - save: delegates to NotationRepository.saveNotation on success
+// - save: passes the same notationId to file storage and repository
+// - save: rolls back written files on FileStorageService failure
 // - save: transitions to error state on repository failure
 // - notifyListeners called on mutation
 
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:swaralipi/core/storage/file_storage_service.dart';
+import 'package:swaralipi/features/capture/models/capture_page_draft.dart';
 import 'package:swaralipi/features/capture/viewmodels/metadata_form_view_model.dart';
 import 'package:swaralipi/shared/models/custom_field_definition.dart';
 import 'package:swaralipi/shared/models/instrument_class.dart';
@@ -27,6 +33,7 @@ import 'package:swaralipi/shared/models/instrument_instance.dart';
 import 'package:swaralipi/shared/models/notation.dart';
 import 'package:swaralipi/shared/models/notation_detail.dart';
 import 'package:swaralipi/shared/models/notation_draft.dart';
+import 'package:swaralipi/shared/models/render_params.dart';
 import 'package:swaralipi/shared/models/saved_page.dart';
 import 'package:swaralipi/shared/models/tag.dart';
 import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
@@ -71,8 +78,7 @@ class FakeInstrumentRepository implements InstrumentRepository {
       const Stream.empty();
 
   @override
-  Stream<List<InstrumentClass>> watchActiveClasses() =>
-      const Stream.empty();
+  Stream<List<InstrumentClass>> watchActiveClasses() => const Stream.empty();
 
   @override
   Future<InstrumentClass> createClass(String name) =>
@@ -149,14 +155,17 @@ class FakeNotationRepository implements NotationRepository {
 
   @override
   Future<Notation> saveNotation(
-      NotationDraft draft, List<SavedPage> pages) async {
+    NotationDraft draft,
+    List<SavedPage> pages, {
+    String? notationId,
+  }) async {
     callCount++;
     if (saveError != null) throw saveError!;
     lastSavedDraft = draft;
     lastSavedPages = pages;
     final now = DateTime.now().toIso8601String();
     lastSavedNotation = Notation(
-      id: 'n-test',
+      id: notationId ?? 'n-test',
       title: draft.title,
       artists: draft.artists,
       dateWritten: draft.dateWritten,
@@ -195,15 +204,94 @@ class _SlowFakeNotationRepository extends FakeNotationRepository {
 
   @override
   Future<Notation> saveNotation(
-      NotationDraft draft, List<SavedPage> pages) async {
+    NotationDraft draft,
+    List<SavedPage> pages, {
+    String? notationId,
+  }) async {
     callCount++;
     return _slowFuture;
+  }
+}
+
+/// Fake [FileStorageService] that records calls and optionally throws.
+///
+/// [savedPaths] collects the relative paths returned by [saveImage].
+/// [deletedPaths] collects the paths passed to [deletePageFile].
+/// Set [saveError] to an [Exception] to simulate a write failure on
+/// the next [saveImage] call.
+class FakeFileStorageService extends FileStorageService {
+  FakeFileStorageService() : super();
+
+  final List<String> savedPaths = [];
+  final List<String> deletedPaths = [];
+
+  /// When non-null, the next [saveImage] call throws this exception.
+  Exception? saveError;
+
+  /// Counter tracking how many times [saveImage] was called.
+  int saveCallCount = 0;
+
+  @override
+  Future<String> saveImage(
+    Uint8List bytes,
+    String notationId,
+    int pageIndex,
+  ) async {
+    saveCallCount++;
+    if (saveError != null) throw saveError!;
+    final path = 'notations/$notationId/page_${pageIndex}_original.jpg';
+    savedPaths.add(path);
+    return path;
+  }
+
+  @override
+  Future<void> deletePageFile(String relativePath) async {
+    deletedPaths.add(relativePath);
+  }
+}
+
+/// [FileStorageService] fake that succeeds on the first [failAfter] calls and
+/// then throws on the next call to simulate a mid-write failure.
+class _FailingAfterNFileStorageService extends FileStorageService {
+  _FailingAfterNFileStorageService({required this.failAfter}) : super();
+
+  final int failAfter;
+  int _callCount = 0;
+  final List<String> savedPaths = [];
+  final List<String> deletedPaths = [];
+
+  @override
+  Future<String> saveImage(
+    Uint8List bytes,
+    String notationId,
+    int pageIndex,
+  ) async {
+    _callCount++;
+    if (_callCount > failAfter) {
+      throw Exception('Simulated write failure at call $_callCount');
+    }
+    final path = 'notations/$notationId/page_${pageIndex}_original.jpg';
+    savedPaths.add(path);
+    return path;
+  }
+
+  @override
+  Future<void> deletePageFile(String relativePath) async {
+    deletedPaths.add(relativePath);
   }
 }
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/// Builds a minimal [CapturePageDraft] with empty bytes for use in tests.
+CapturePageDraft _makeDraft({String path = 'img/page_0.jpg'}) =>
+    CapturePageDraft(
+      originalPath: path,
+      originalBytes: Uint8List(0),
+      renderParams: RenderParams.identity,
+    );
 
 Tag _makeTag({
   String id = 'tag-1',
@@ -250,7 +338,8 @@ MetadataFormViewModel _buildVm({
   FakeInstrumentRepository? instrumentRepo,
   FakeCustomFieldRepository? customFieldRepo,
   FakeNotationRepository? notationRepo,
-  List<SavedPage> pages = const [],
+  FileStorageService? fileStorage,
+  List<CapturePageDraft> drafts = const [],
   Stream<List<InstrumentInstance>>? allInstancesStream,
 }) {
   return MetadataFormViewModel(
@@ -258,7 +347,8 @@ MetadataFormViewModel _buildVm({
     instrumentRepository: instrumentRepo ?? FakeInstrumentRepository(),
     customFieldRepository: customFieldRepo ?? FakeCustomFieldRepository(),
     notationRepository: notationRepo ?? FakeNotationRepository(),
-    pages: pages,
+    fileStorageService: fileStorage ?? FakeFileStorageService(),
+    drafts: drafts,
     allInstancesStream: allInstancesStream,
   );
 }
@@ -673,12 +763,28 @@ void main() {
       expect(notationRepo.lastSavedDraft?.tagIds, contains('tag-abc'));
     });
 
+    test('save writes each draft to file storage', () async {
+      final storage = FakeFileStorageService();
+      final vm = _buildVm(
+        fileStorage: storage,
+        drafts: [
+          _makeDraft(path: 'img/p0.jpg'),
+          _makeDraft(path: 'img/p1.jpg')
+        ],
+      );
+      vm.setTitle('Test');
+
+      await vm.save();
+
+      expect(storage.saveCallCount, 2);
+    });
+
     test('save passes pages list to repository', () async {
       final notationRepo = FakeNotationRepository();
-      final pages = [
-        const SavedPage(id: 'p1', pageOrder: 0, imagePath: 'img/p1.jpg'),
-      ];
-      final vm = _buildVm(notationRepo: notationRepo, pages: pages);
+      final vm = _buildVm(
+        notationRepo: notationRepo,
+        drafts: [_makeDraft()],
+      );
       vm.setTitle('Test');
 
       await vm.save();
@@ -697,6 +803,51 @@ void main() {
       expect(vm.saveState, isA<MetadataFormSaveError>());
     });
 
+    test('save rolls back written files on FileStorageService failure',
+        () async {
+      // Fail on the second saveImage call; the first file has already been
+      // written and must be rolled back.
+      final failingStorage = _FailingAfterNFileStorageService(failAfter: 1);
+      final notationRepo = FakeNotationRepository();
+      final vm = _buildVm(
+        fileStorage: failingStorage,
+        notationRepo: notationRepo,
+        drafts: [
+          _makeDraft(path: 'img/p0.jpg'),
+          _makeDraft(path: 'img/p1.jpg'),
+        ],
+      );
+      vm.setTitle('Yaman');
+
+      await vm.save();
+
+      expect(vm.saveState, isA<MetadataFormSaveError>());
+      // One file was written before the failure; it must be rolled back.
+      expect(failingStorage.deletedPaths, hasLength(1));
+      // Repository must NOT be called when file writes fail.
+      expect(notationRepo.callCount, 0);
+    });
+
+    test('save passes the same notationId to file storage and repository',
+        () async {
+      final storage = FakeFileStorageService();
+      final notationRepo = FakeNotationRepository();
+      final vm = _buildVm(
+        fileStorage: storage,
+        notationRepo: notationRepo,
+        drafts: [_makeDraft()],
+      );
+      vm.setTitle('Yaman');
+
+      await vm.save();
+
+      // The notationId embedded in the saved path must match the id used
+      // for the notation row.
+      final savedPath = storage.savedPaths.first;
+      final notationId = (vm.saveState as MetadataFormSaveDone).notationId;
+      expect(savedPath, contains(notationId));
+    });
+
     test('save does not call repository again while saving', () async {
       final completer = Completer<Notation>();
       final slowRepo = _SlowFakeNotationRepository(completer.future);
@@ -707,11 +858,11 @@ void main() {
       // Second call while first is in-flight — should be ignored
       await vm.save();
 
-      final result = Notation(
+      const result = Notation(
         id: 'n1',
         title: 'Test',
-        artists: const [],
-        languages: const [],
+        artists: [],
+        languages: [],
         notes: '',
         playCount: 0,
         createdAt: '2024-01-01T00:00:00.000Z',
