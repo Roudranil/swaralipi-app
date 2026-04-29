@@ -75,8 +75,17 @@ class CaptureSessionViewModel extends ChangeNotifier {
   /// The current ordered list of page drafts in this session.
   ///
   /// Returns an unmodifiable view; mutate via [addPage], [removePage],
-  /// [updateRenderParams], [loadFromPaths], or [clear].
+  /// [updateRenderParams], [resetRenderParamsAt], [loadFromPaths], or [clear].
   List<CapturePageDraft> get pages => List.unmodifiable(_pages);
+
+  /// A snapshot of every page's [RenderParams] keyed by 0-based page index.
+  ///
+  /// The returned map is unmodifiable. Keys are always contiguous from `0` to
+  /// `pages.length - 1`. Use [updateRenderParams] or [resetRenderParamsAt] to
+  /// change values.
+  Map<int, RenderParams> get renderParamsMap => Map.unmodifiable({
+        for (var i = 0; i < _pages.length; i++) i: _pages[i].renderParams,
+      });
 
   // -------------------------------------------------------------------------
   // Public API
@@ -152,6 +161,17 @@ class CaptureSessionViewModel extends ChangeNotifier {
     updated[index] = _pages[index].copyWith(renderParams: params);
     _pages = updated;
     notifyListeners();
+  }
+
+  /// Resets the [RenderParams] of the draft at [index] to [RenderParams.identity].
+  ///
+  /// No-op if [index] is out of bounds; does not throw.
+  ///
+  /// Parameters:
+  /// - [index]: 0-based position of the target draft.
+  void resetRenderParamsAt(int index) {
+    if (index < 0 || index >= _pages.length) return;
+    updateRenderParams(index, RenderParams.identity);
   }
 
   /// Replaces the entire page list with [drafts].
