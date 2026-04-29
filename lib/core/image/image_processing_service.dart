@@ -15,10 +15,11 @@
 // when exporting or compositing with crop/rotation transforms.
 
 import 'dart:developer';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
+
 import 'package:image/image.dart' as img;
+
 import 'package:swaralipi/shared/models/render_params.dart';
 
 // ---------------------------------------------------------------------------
@@ -185,7 +186,7 @@ class _CompositePayload {
 Uint8List _applyFilterIsolate(_FilterPayload payload) {
   final decoded = img.decodeJpg(payload.bytes);
   if (decoded == null) {
-    throw ImageProcessingException(
+    throw const ImageProcessingException(
       'Failed to decode image: not a valid JPEG or unsupported format.',
     );
   }
@@ -248,7 +249,7 @@ Uint8List _applyCropIsolate(_CropPayload payload) {
 
   final decoded = img.decodeJpg(payload.bytes);
   if (decoded == null) {
-    throw ImageProcessingException(
+    throw const ImageProcessingException(
       'Failed to decode image: not a valid JPEG or unsupported format.',
     );
   }
@@ -283,7 +284,7 @@ Uint8List _applyRotationIsolate(_RotationPayload payload) {
 
   final decoded = img.decodeJpg(payload.bytes);
   if (decoded == null) {
-    throw ImageProcessingException(
+    throw const ImageProcessingException(
       'Failed to decode image: not a valid JPEG or unsupported format.',
     );
   }
@@ -309,7 +310,7 @@ Uint8List _applyCompositeIsolate(_CompositePayload payload) {
 
   final decoded = img.decodeJpg(payload.bytes);
   if (decoded == null) {
-    throw ImageProcessingException(
+    throw const ImageProcessingException(
       'Failed to decode image: not a valid JPEG or unsupported format.',
     );
   }
