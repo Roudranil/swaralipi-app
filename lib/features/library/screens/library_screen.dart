@@ -12,17 +12,32 @@
 // action appears for 5 seconds. Tapping "Undo" calls
 // [LibraryViewModel.undoDelete].
 //
+// Edit interaction: long-pressing a notation row opens a popup menu with an
+// "Edit" option that launches [EditNotationScreen] via [Navigator.push].
+//
 // Dependencies are injected at the call site:
 //   ChangeNotifierProvider<LibraryViewModel>(
 //     create: (_) => LibraryViewModel(notationRepository, trashRepository),
-//     child: const LibraryScreen(),
+//     child: LibraryScreen(
+//       notationRepository: notationRepository,
+//       tagRepository: tagRepository,
+//       instrumentRepository: instrumentRepository,
+//       customFieldRepository: customFieldRepository,
+//       fileStorageService: fileStorageService,
+//     ),
 //   )
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:swaralipi/core/storage/file_storage_service.dart';
+import 'package:swaralipi/features/edit/screens/edit_notation_screen.dart';
 import 'package:swaralipi/features/library/viewmodels/library_view_model.dart';
 import 'package:swaralipi/shared/models/notation.dart';
+import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
+import 'package:swaralipi/shared/repositories/instrument_repository.dart';
+import 'package:swaralipi/shared/repositories/notation_repository.dart';
+import 'package:swaralipi/shared/repositories/tag_repository.dart';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -45,9 +60,42 @@ const EdgeInsets _kSwipeIconPadding = EdgeInsets.symmetric(horizontal: 24);
 ///
 /// Reads [LibraryViewModel] from the widget tree via [ChangeNotifierProvider].
 /// Calls [LibraryViewModel.init] after the first frame.
+///
+/// When the edit dependencies are provided, long-pressing a notation row
+/// reveals a popup menu with an "Edit" option that launches
+/// [EditNotationScreen].
 class LibraryScreen extends StatefulWidget {
   /// Creates a [LibraryScreen].
-  const LibraryScreen({super.key});
+  ///
+  /// Parameters:
+  /// - [notationRepository]: Passed to [EditNotationScreen] when editing.
+  /// - [tagRepository]: Passed to [EditNotationScreen] for the tag picker.
+  /// - [instrumentRepository]: Passed to [EditNotationScreen] for instruments.
+  /// - [customFieldRepository]: Passed to [EditNotationScreen] for custom fields.
+  /// - [fileStorageService]: Passed to [EditNotationScreen] to resolve paths.
+  const LibraryScreen({
+    this.notationRepository,
+    this.tagRepository,
+    this.instrumentRepository,
+    this.customFieldRepository,
+    this.fileStorageService,
+    super.key,
+  });
+
+  /// Used by [EditNotationScreen]. When null the Edit action is hidden.
+  final NotationRepository? notationRepository;
+
+  /// Used by [EditNotationScreen] for the tag picker.
+  final TagRepository? tagRepository;
+
+  /// Used by [EditNotationScreen] for the instrument picker.
+  final InstrumentRepository? instrumentRepository;
+
+  /// Used by [EditNotationScreen] for custom field inputs.
+  final CustomFieldRepository? customFieldRepository;
+
+  /// Used by [EditNotationScreen] to resolve image paths.
+  final FileStorageService? fileStorageService;
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -76,7 +124,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
         LibraryStateLoading() => const _LoadingView(),
         LibraryStateSuccess(:final notations) => notations.isEmpty
             ? const _EmptyView()
-            : _NotationListView(notations: notations),
+            : _NotationListView(
+                notations: notations,
+                screen: widget,
+              ),
         LibraryStateError(:final message) => _ErrorView(message: message),
       },
     );
@@ -176,16 +227,23 @@ class _ErrorView extends StatelessWidget {
 
 /// Scrollable list of active notation rows.
 class _NotationListView extends StatelessWidget {
-  const _NotationListView({required this.notations});
+  const _NotationListView({
+    required this.notations,
+    required this.screen,
+  });
 
   final List<Notation> notations;
+  final LibraryScreen screen;
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
       padding: _kListPadding,
       itemCount: notations.length,
-      itemBuilder: (context, index) => _NotationRow(notation: notations[index]),
+      itemBuilder: (context, index) => _NotationRow(
+        notation: notations[index],
+        screen: screen,
+      ),
     );
   }
 }
@@ -194,14 +252,22 @@ class _NotationListView extends StatelessWidget {
 // Notation row
 // ---------------------------------------------------------------------------
 
-/// A single library row with swipe-to-delete and an undo SnackBar.
+/// A single library row with swipe-to-delete, undo SnackBar, and long-press
+/// edit menu.
 class _NotationRow extends StatelessWidget {
-  const _NotationRow({required this.notation});
+  const _NotationRow({required this.notation, required this.screen});
 
   final Notation notation;
+  final LibraryScreen screen;
 
   @override
   Widget build(BuildContext context) {
+    final canEdit = screen.notationRepository != null &&
+        screen.tagRepository != null &&
+        screen.instrumentRepository != null &&
+        screen.customFieldRepository != null &&
+        screen.fileStorageService != null;
+
     return Semantics(
       label: notation.title,
       child: Dismissible(
@@ -211,9 +277,67 @@ class _NotationRow extends StatelessWidget {
         confirmDismiss: (_) => _confirmDelete(context),
         // Removal from list is driven by the stream; no local state needed.
         onDismissed: (_) {},
-        child: _NotationRowContent(notation: notation),
+        child: canEdit
+            ? GestureDetector(
+                onLongPress: () => _showContextMenu(context),
+                child: _NotationRowContent(notation: notation),
+              )
+            : _NotationRowContent(notation: notation),
       ),
     );
+  }
+
+  Future<void> _showContextMenu(BuildContext context) async {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final position = RelativeRect.fromLTRB(
+      offset.dx,
+      offset.dy,
+      offset.dx + renderBox.size.width,
+      offset.dy + renderBox.size.height,
+    );
+
+    final choice = await showMenu<String>(
+      context: context,
+      position: position,
+      items: [
+        PopupMenuItem<String>(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(
+                Icons.edit_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 12),
+              const Text('Edit'),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (choice != 'edit') return;
+    if (!context.mounted) return;
+    await _openEdit(context);
+  }
+
+  Future<void> _openEdit(BuildContext context) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => EditNotationScreen(
+          notationId: notation.id,
+          notationRepository: screen.notationRepository!,
+          tagRepository: screen.tagRepository!,
+          instrumentRepository: screen.instrumentRepository!,
+          customFieldRepository: screen.customFieldRepository!,
+          fileStorageService: screen.fileStorageService!,
+        ),
+      ),
+    );
+    // No reload needed — LibraryViewModel observes the notation stream.
   }
 
   Future<bool?> _confirmDelete(BuildContext context) async {
@@ -252,8 +376,8 @@ class _NotationRow extends StatelessWidget {
 
     if (vm.operationError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Could not delete notation. Please try again.'),
+        const SnackBar(
+          content: Text('Could not delete notation. Please try again.'),
         ),
       );
       vm.clearOperationError();

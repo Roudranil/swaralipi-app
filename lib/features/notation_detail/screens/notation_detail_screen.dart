@@ -10,20 +10,37 @@
 // action appears for 5 seconds, and the screen navigates back to the library
 // (route '/').
 //
+// Edit interaction: the AppBar "Edit" action launches [EditNotationScreen]
+// via [Navigator.push]. On return the notation detail is reloaded to reflect
+// any changes.
+//
 // Dependencies are injected at the call site:
 //   ChangeNotifierProvider<NotationDetailViewModel>(
 //     create: (_) => NotationDetailViewModel(
 //       notationRepository,
 //       trashRepository,
 //     ),
-//     child: NotationDetailScreen(notationId: id),
+//     child: NotationDetailScreen(
+//       notationId: id,
+//       notationRepository: notationRepository,
+//       tagRepository: tagRepository,
+//       instrumentRepository: instrumentRepository,
+//       customFieldRepository: customFieldRepository,
+//       fileStorageService: fileStorageService,
+//     ),
 //   )
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:swaralipi/core/storage/file_storage_service.dart';
+import 'package:swaralipi/features/edit/screens/edit_notation_screen.dart';
 import 'package:swaralipi/features/notation_detail/viewmodels/notation_detail_view_model.dart';
 import 'package:swaralipi/shared/models/notation_detail.dart';
+import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
+import 'package:swaralipi/shared/repositories/instrument_repository.dart';
+import 'package:swaralipi/shared/repositories/notation_repository.dart';
+import 'package:swaralipi/shared/repositories/tag_repository.dart';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -44,15 +61,46 @@ const EdgeInsets _kContentPadding =
 ///
 /// Reads [NotationDetailViewModel] from the widget tree. Calls
 /// [NotationDetailViewModel.loadNotation] after the first frame.
+///
+/// When the edit dependencies are provided the AppBar shows an Edit action
+/// that launches [EditNotationScreen]. On return the notation is reloaded.
 class NotationDetailScreen extends StatefulWidget {
   /// Creates a [NotationDetailScreen] for the notation with [notationId].
   ///
   /// Parameters:
   /// - [notationId]: UUIDv4 of the notation to display.
-  const NotationDetailScreen({required this.notationId, super.key});
+  /// - [notationRepository]: Passed to [EditNotationScreen] when editing.
+  /// - [tagRepository]: Passed to [EditNotationScreen] when editing.
+  /// - [instrumentRepository]: Passed to [EditNotationScreen] when editing.
+  /// - [customFieldRepository]: Passed to [EditNotationScreen] when editing.
+  /// - [fileStorageService]: Passed to [EditNotationScreen] when editing.
+  const NotationDetailScreen({
+    required this.notationId,
+    this.notationRepository,
+    this.tagRepository,
+    this.instrumentRepository,
+    this.customFieldRepository,
+    this.fileStorageService,
+    super.key,
+  });
 
   /// UUIDv4 of the notation to display.
   final String notationId;
+
+  /// Used by [EditNotationScreen]. When null the Edit action is hidden.
+  final NotationRepository? notationRepository;
+
+  /// Used by [EditNotationScreen] for tag picker.
+  final TagRepository? tagRepository;
+
+  /// Used by [EditNotationScreen] for instrument picker.
+  final InstrumentRepository? instrumentRepository;
+
+  /// Used by [EditNotationScreen] for custom field inputs.
+  final CustomFieldRepository? customFieldRepository;
+
+  /// Used by [EditNotationScreen] to resolve image paths.
+  final FileStorageService? fileStorageService;
 
   @override
   State<NotationDetailScreen> createState() => _NotationDetailScreenState();
@@ -71,11 +119,27 @@ class _NotationDetailScreenState extends State<NotationDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<NotationDetailViewModel>();
+    final canEdit = vm.state is NotationDetailStateSuccess &&
+        widget.notationRepository != null &&
+        widget.tagRepository != null &&
+        widget.instrumentRepository != null &&
+        widget.customFieldRepository != null &&
+        widget.fileStorageService != null;
 
     return Scaffold(
       appBar: AppBar(
         title: _AppBarTitle(state: vm.state),
         actions: [
+          if (canEdit)
+            Semantics(
+              label: 'Edit notation',
+              button: true,
+              child: IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Edit',
+                onPressed: () => _openEdit(context, vm),
+              ),
+            ),
           if (vm.state is NotationDetailStateSuccess)
             Semantics(
               label: 'Delete notation',
@@ -98,6 +162,27 @@ class _NotationDetailScreenState extends State<NotationDetailScreen> {
           _ErrorView(message: message),
       },
     );
+  }
+
+  Future<void> _openEdit(
+    BuildContext context,
+    NotationDetailViewModel vm,
+  ) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => EditNotationScreen(
+          notationId: widget.notationId,
+          notationRepository: widget.notationRepository!,
+          tagRepository: widget.tagRepository!,
+          instrumentRepository: widget.instrumentRepository!,
+          customFieldRepository: widget.customFieldRepository!,
+          fileStorageService: widget.fileStorageService!,
+        ),
+      ),
+    );
+    if (!context.mounted) return;
+    // Reload so the detail view reflects any saved changes.
+    vm.loadNotation(widget.notationId);
   }
 
   Future<void> _confirmDelete(
