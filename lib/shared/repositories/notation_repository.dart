@@ -101,6 +101,21 @@ abstract interface class NotationRepository {
   /// Parameters:
   /// - [id]: The UUIDv4 primary key of the notation that was played.
   Future<void> updatePlayCount(String id);
+
+  /// Updates the [renderParams] JSON string for a single notation page.
+  ///
+  /// Used by the edit flow to persist non-destructive render-parameter changes
+  /// (filter, crop, rotation) without touching the original image file.
+  ///
+  /// If no page with [pageId] exists the call is silently ignored.
+  ///
+  /// Parameters:
+  /// - [pageId]: The UUIDv4 primary key of the page to update.
+  /// - [renderParamsJson]: Serialised [RenderParams] JSON string.
+  Future<void> updatePageRenderParams(
+    String pageId,
+    String renderParamsJson,
+  );
 }
 
 // ---------------------------------------------------------------------------

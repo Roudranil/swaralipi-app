@@ -195,6 +195,12 @@ class FakeNotationRepository implements NotationRepository {
 
   @override
   Future<void> updatePlayCount(String id) async {}
+
+  @override
+  Future<void> updatePageRenderParams(
+    String pageId,
+    String renderParamsJson,
+  ) async {}
 }
 
 // Slow repo for concurrency test
