@@ -197,6 +197,23 @@ final class NotationRepositoryImpl implements NotationRepository {
     );
   }
 
+  @override
+  Future<void> updatePageRenderParams(
+    String pageId,
+    String renderParamsJson,
+  ) async {
+    await _pageDao.updatePage(
+      NotationPagesTableCompanion(
+        id: Value(pageId),
+        renderParams: Value(renderParamsJson),
+      ),
+    );
+    log(
+      'NotationRepositoryImpl: updated renderParams for page $pageId',
+      name: 'NotationRepository',
+    );
+  }
+
   // -------------------------------------------------------------------------
   // Private write helpers
   // -------------------------------------------------------------------------
