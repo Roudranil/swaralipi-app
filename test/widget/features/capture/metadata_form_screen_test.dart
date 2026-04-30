@@ -140,6 +140,12 @@ class _FakeNotationRepository implements NotationRepository {
   Future<void> softDelete(String id) async {}
   @override
   Future<void> updatePlayCount(String id) async {}
+
+  @override
+  Future<void> updatePageRenderParams(
+    String pageId,
+    String renderParamsJson,
+  ) async {}
 }
 
 class _FakeFileStorageService extends FileStorageService {
