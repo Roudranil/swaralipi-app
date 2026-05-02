@@ -142,6 +142,16 @@ class _NotationDetailScreenState extends State<NotationDetailScreen> {
             ),
           if (vm.state is NotationDetailStateSuccess)
             Semantics(
+              label: 'Duplicate notation',
+              button: true,
+              child: IconButton(
+                icon: const Icon(Icons.copy_outlined),
+                tooltip: 'Duplicate',
+                onPressed: () => _duplicate(context, vm),
+              ),
+            ),
+          if (vm.state is NotationDetailStateSuccess)
+            Semantics(
               label: 'Delete notation',
               button: true,
               child: IconButton(
@@ -183,6 +193,36 @@ class _NotationDetailScreenState extends State<NotationDetailScreen> {
     if (!context.mounted) return;
     // Reload so the detail view reflects any saved changes.
     vm.loadNotation(widget.notationId);
+  }
+
+  Future<void> _duplicate(
+    BuildContext context,
+    NotationDetailViewModel vm,
+  ) async {
+    await vm.duplicate(widget.notationId);
+
+    if (!context.mounted) return;
+
+    if (vm.operationError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not duplicate notation. Please try again.'),
+        ),
+      );
+      vm.clearOperationError();
+      return;
+    }
+
+    final newId = vm.lastDuplicatedId;
+    vm.clearLastDuplicatedId();
+
+    if (newId != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Notation duplicated.'),
+        ),
+      );
+    }
   }
 
   Future<void> _confirmDelete(

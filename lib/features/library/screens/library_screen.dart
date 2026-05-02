@@ -316,12 +316,29 @@ class _NotationRow extends StatelessWidget {
             ],
           ),
         ),
+        PopupMenuItem<String>(
+          value: 'duplicate',
+          child: Row(
+            children: [
+              Icon(
+                Icons.copy_outlined,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+              const SizedBox(width: 12),
+              const Text('Duplicate'),
+            ],
+          ),
+        ),
       ],
     );
 
-    if (choice != 'edit') return;
     if (!context.mounted) return;
-    await _openEdit(context);
+
+    if (choice == 'edit') {
+      await _openEdit(context);
+    } else if (choice == 'duplicate') {
+      await _duplicate(context);
+    }
   }
 
   Future<void> _openEdit(BuildContext context) async {
@@ -338,6 +355,30 @@ class _NotationRow extends StatelessWidget {
       ),
     );
     // No reload needed — LibraryViewModel observes the notation stream.
+  }
+
+  Future<void> _duplicate(BuildContext context) async {
+    final vm = context.read<LibraryViewModel>();
+    await vm.duplicate(notation.id);
+
+    if (!context.mounted) return;
+
+    if (vm.operationError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not duplicate notation. Please try again.'),
+        ),
+      );
+      vm.clearOperationError();
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${notation.title} (copy)" created.'),
+      ),
+    );
+    vm.clearLastDuplicatedId();
   }
 
   Future<bool?> _confirmDelete(BuildContext context) async {
