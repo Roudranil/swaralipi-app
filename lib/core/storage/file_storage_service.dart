@@ -201,6 +201,45 @@ class FileStorageService {
     );
   }
 
+  /// Copies the JPEG at [srcRelativePath] into the directory for
+  /// [newNotationId].
+  ///
+  /// The destination file is placed at
+  /// `<appDocDir>/notations/<newNotationId>/<originalFileName>`. Parent
+  /// directories are created automatically. If a file already exists at the
+  /// destination it is overwritten.
+  ///
+  /// Returns the relative path of the destination file (e.g.
+  /// `notations/<newNotationId>/page_0_original.jpg`).
+  ///
+  /// Parameters:
+  /// - [srcRelativePath]: Relative path of the source file as stored in the
+  ///   database (e.g. `notations/<srcId>/page_0_original.jpg`).
+  /// - [newNotationId]: UUIDv4 of the destination notation. Used to build the
+  ///   destination directory.
+  Future<String> copyImage(
+    String srcRelativePath,
+    String newNotationId,
+  ) async {
+    final appDocDir = await _dirProvider();
+    final srcAbs = p.join(appDocDir.path, srcRelativePath);
+
+    final fileName = p.basename(srcRelativePath);
+    final destRelative = p.join(_kNotationsDir, newNotationId, fileName);
+    final destAbs = p.join(appDocDir.path, destRelative);
+
+    final destFile = File(destAbs);
+    await destFile.parent.create(recursive: true);
+    await File(srcAbs).copy(destAbs);
+
+    log(
+      'FileStorageService: copied $srcRelativePath → $destRelative',
+      name: 'FileStorageService',
+    );
+
+    return destRelative;
+  }
+
   /// Deletes the entire `notations/<notationId>/` directory and all its
   /// contents.
   ///
