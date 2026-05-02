@@ -36,6 +36,8 @@ import 'package:provider/provider.dart';
 import 'package:swaralipi/core/storage/file_storage_service.dart';
 import 'package:swaralipi/features/edit/screens/edit_notation_screen.dart';
 import 'package:swaralipi/features/notation_detail/viewmodels/notation_detail_view_model.dart';
+import 'package:swaralipi/features/player/screens/notation_player_screen.dart';
+import 'package:swaralipi/features/player/viewmodels/notation_player_view_model.dart';
 import 'package:swaralipi/shared/models/notation_detail.dart';
 import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
 import 'package:swaralipi/shared/repositories/instrument_repository.dart';
@@ -152,6 +154,16 @@ class _NotationDetailScreenState extends State<NotationDetailScreen> {
             ),
           if (vm.state is NotationDetailStateSuccess)
             Semantics(
+              label: 'Open notation player',
+              button: true,
+              child: IconButton(
+                icon: const Icon(Icons.play_circle_outline),
+                tooltip: 'Play',
+                onPressed: () => _openPlayer(context),
+              ),
+            ),
+          if (vm.state is NotationDetailStateSuccess)
+            Semantics(
               label: 'Delete notation',
               button: true,
               child: IconButton(
@@ -171,6 +183,24 @@ class _NotationDetailScreenState extends State<NotationDetailScreen> {
         NotationDetailStateError(:final message) =>
           _ErrorView(message: message),
       },
+    );
+  }
+
+  Future<void> _openPlayer(BuildContext context) async {
+    final notationRepository = widget.notationRepository;
+    if (notationRepository == null) return;
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => ChangeNotifierProvider<NotationPlayerViewModel>(
+          create: (_) => NotationPlayerViewModel(
+            notationRepository,
+            notationId: widget.notationId,
+          ),
+          child: const NotationPlayerScreen(),
+        ),
+      ),
     );
   }
 
