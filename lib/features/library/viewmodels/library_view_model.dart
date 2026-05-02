@@ -7,11 +7,15 @@
 // and [undoDelete] for restoring it via [TrashRepository.restoreNotation]
 // within the undo window.
 //
+// Provides [duplicate] for copying a notation via [DuplicateNotationUseCase].
+// Emits the new notation id via [lastDuplicatedId] on success.
+//
 // A single [operationError] field surfaces per-operation failures without
 // replacing the main list state.
 //
 // Construction:
-//   LibraryViewModel(notationRepository, trashRepository)
+//   LibraryViewModel(notationRepository, trashRepository,
+//     duplicateUseCase: useCase)
 //
 // Lifecycle:
 //   Call [init] once (e.g. via addPostFrameCallback in initState).
@@ -22,6 +26,7 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:swaralipi/features/edit/viewmodels/duplicate_notation_use_case.dart';
 import 'package:swaralipi/shared/models/notation.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
 import 'package:swaralipi/shared/repositories/trash_repository.dart';
@@ -83,28 +88,38 @@ final class LibraryStateError extends LibraryState {
 /// ViewModel for the Library screen.
 ///
 /// Observes [NotationRepository.watchAllActive] and translates stream events
-/// into [LibraryState] values. Exposes [softDelete] and [undoDelete]
-/// operations that surface failures via [operationError] without interrupting
-/// the library list display.
+/// into [LibraryState] values. Exposes [softDelete], [undoDelete], and
+/// [duplicate] operations that surface failures via [operationError] without
+/// interrupting the library list display.
 ///
 /// State management contract:
 /// - [state] is the primary display state (idle / loading / success / error).
 /// - [operationError] is an auxiliary error field; it does not affect [state]
 ///   so the list remains visible while an operation error is shown.
+/// - [lastDuplicatedId] carries the new notation id after a successful
+///   [duplicate] call. Clear with [clearLastDuplicatedId].
 class LibraryViewModel extends ChangeNotifier {
   /// Creates a [LibraryViewModel] backed by the given repositories.
   ///
   /// Parameters:
   /// - [_notationRepository]: Source of truth for active notation list.
   /// - [_trashRepository]: Used to restore a soft-deleted notation on undo.
-  LibraryViewModel(this._notationRepository, this._trashRepository);
+  /// - [duplicateUseCase]: Optional use case for duplicating a notation.
+  ///   When null the [duplicate] method is a no-op.
+  LibraryViewModel(
+    this._notationRepository,
+    this._trashRepository, {
+    DuplicateNotationUseCase? duplicateUseCase,
+  }) : _duplicateUseCase = duplicateUseCase;
 
   final NotationRepository _notationRepository;
   final TrashRepository _trashRepository;
+  final DuplicateNotationUseCase? _duplicateUseCase;
   StreamSubscription<List<Notation>>? _subscription;
 
   LibraryState _state = const LibraryStateIdle();
   String? _operationError;
+  String? _lastDuplicatedId;
 
   // -------------------------------------------------------------------------
   // Public getters
@@ -113,10 +128,16 @@ class LibraryViewModel extends ChangeNotifier {
   /// The current display state of the library screen.
   LibraryState get state => _state;
 
-  /// Non-null when the most recent operation (softDelete / undoDelete) failed.
+  /// Non-null when the most recent operation (softDelete / undoDelete / duplicate) failed.
   ///
   /// Clear with [clearOperationError] after the error has been surfaced.
   String? get operationError => _operationError;
+
+  /// Non-null when the most recent [duplicate] call succeeded.
+  ///
+  /// Contains the new notation's UUID. Clear with [clearLastDuplicatedId]
+  /// after the caller has consumed the value (e.g., after navigation).
+  String? get lastDuplicatedId => _lastDuplicatedId;
 
   // -------------------------------------------------------------------------
   // Lifecycle
@@ -209,6 +230,41 @@ class LibraryViewModel extends ChangeNotifier {
     }
   }
 
+  /// Duplicates the notation identified by [id].
+  ///
+  /// Copies all page files to a new directory and creates a new notation
+  /// record with the same metadata and title suffixed with " (copy)".
+  ///
+  /// On success [lastDuplicatedId] is set to the new notation's UUID and
+  /// [notifyListeners] is called. On failure [operationError] is populated.
+  ///
+  /// No-op when [duplicateUseCase] was not provided at construction time.
+  ///
+  /// Parameters:
+  /// - [id]: UUIDv4 of the notation to duplicate.
+  Future<void> duplicate(String id) async {
+    final useCase = _duplicateUseCase;
+    if (useCase == null) return;
+
+    try {
+      final newId = await useCase.execute(id);
+      _lastDuplicatedId = newId;
+      log(
+        'LibraryViewModel: duplicated notation $id → $newId',
+        name: 'LibraryViewModel',
+      );
+    } on Exception catch (e, st) {
+      log(
+        'LibraryViewModel: duplicate failed — $e',
+        name: 'LibraryViewModel',
+        error: e,
+        stackTrace: st,
+      );
+      _operationError = e.toString();
+    }
+    notifyListeners();
+  }
+
   // -------------------------------------------------------------------------
   // Error reset
   // -------------------------------------------------------------------------
@@ -216,6 +272,15 @@ class LibraryViewModel extends ChangeNotifier {
   /// Clears [operationError] and notifies listeners.
   void clearOperationError() {
     _operationError = null;
+    notifyListeners();
+  }
+
+  /// Clears [lastDuplicatedId] and notifies listeners.
+  ///
+  /// Call after the caller has consumed the value (e.g., navigated to the
+  /// new notation's detail screen).
+  void clearLastDuplicatedId() {
+    _lastDuplicatedId = null;
     notifyListeners();
   }
 }

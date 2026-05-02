@@ -12,11 +12,15 @@
 // Provides [undoDelete] for restoring the notation via
 // [TrashRepository.restoreNotation] within the undo window.
 //
+// Provides [duplicate] for copying a notation via [DuplicateNotationUseCase].
+// Emits the new notation id via [lastDuplicatedId] on success.
+//
 // A single [operationError] field surfaces per-operation failures without
 // replacing the main state.
 //
 // Construction:
-//   NotationDetailViewModel(notationRepository, trashRepository)
+//   NotationDetailViewModel(notationRepository, trashRepository,
+//     duplicateUseCase: useCase)
 //
 // Lifecycle:
 //   Call [loadNotation] once per navigation to the detail screen.
@@ -26,6 +30,7 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:swaralipi/features/edit/viewmodels/duplicate_notation_use_case.dart';
 import 'package:swaralipi/shared/models/notation_detail.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
 import 'package:swaralipi/shared/repositories/trash_repository.dart';
@@ -106,13 +111,21 @@ class NotationDetailViewModel extends ChangeNotifier {
   /// Parameters:
   /// - [_notationRepository]: Source of truth for notation loading and delete.
   /// - [_trashRepository]: Used to restore a soft-deleted notation on undo.
-  NotationDetailViewModel(this._notationRepository, this._trashRepository);
+  /// - [duplicateUseCase]: Optional use case for duplicating a notation.
+  ///   When null the [duplicate] method is a no-op.
+  NotationDetailViewModel(
+    this._notationRepository,
+    this._trashRepository, {
+    DuplicateNotationUseCase? duplicateUseCase,
+  }) : _duplicateUseCase = duplicateUseCase;
 
   final NotationRepository _notationRepository;
   final TrashRepository _trashRepository;
+  final DuplicateNotationUseCase? _duplicateUseCase;
 
   NotationDetailState _state = const NotationDetailStateIdle();
   String? _operationError;
+  String? _lastDuplicatedId;
 
   // -------------------------------------------------------------------------
   // Public getters
@@ -121,10 +134,17 @@ class NotationDetailViewModel extends ChangeNotifier {
   /// The current display state of the notation detail screen.
   NotationDetailState get state => _state;
 
-  /// Non-null when the most recent operation (softDelete / undoDelete) failed.
+  /// Non-null when the most recent operation (softDelete / undoDelete /
+  /// duplicate) failed.
   ///
   /// Clear with [clearOperationError] after the error has been surfaced.
   String? get operationError => _operationError;
+
+  /// Non-null when the most recent [duplicate] call succeeded.
+  ///
+  /// Contains the new notation's UUID. Clear with [clearLastDuplicatedId]
+  /// after the caller has consumed the value (e.g., navigated to detail).
+  String? get lastDuplicatedId => _lastDuplicatedId;
 
   // -------------------------------------------------------------------------
   // Load
@@ -220,6 +240,41 @@ class NotationDetailViewModel extends ChangeNotifier {
     }
   }
 
+  /// Duplicates the notation identified by [id].
+  ///
+  /// Copies all page files to a new directory and creates a new notation
+  /// record with the same metadata and title suffixed with " (copy)".
+  ///
+  /// On success [lastDuplicatedId] is set to the new notation's UUID and
+  /// [notifyListeners] is called. On failure [operationError] is populated.
+  ///
+  /// No-op when [duplicateUseCase] was not provided at construction time.
+  ///
+  /// Parameters:
+  /// - [id]: UUIDv4 of the notation to duplicate.
+  Future<void> duplicate(String id) async {
+    final useCase = _duplicateUseCase;
+    if (useCase == null) return;
+
+    try {
+      final newId = await useCase.execute(id);
+      _lastDuplicatedId = newId;
+      log(
+        'NotationDetailViewModel: duplicated notation $id → $newId',
+        name: 'NotationDetailViewModel',
+      );
+    } on Exception catch (e, st) {
+      log(
+        'NotationDetailViewModel: duplicate failed — $e',
+        name: 'NotationDetailViewModel',
+        error: e,
+        stackTrace: st,
+      );
+      _operationError = e.toString();
+    }
+    notifyListeners();
+  }
+
   // -------------------------------------------------------------------------
   // Error reset
   // -------------------------------------------------------------------------
@@ -227,6 +282,15 @@ class NotationDetailViewModel extends ChangeNotifier {
   /// Clears [operationError] and notifies listeners.
   void clearOperationError() {
     _operationError = null;
+    notifyListeners();
+  }
+
+  /// Clears [lastDuplicatedId] and notifies listeners.
+  ///
+  /// Call after the caller has consumed the value (e.g., navigated to the
+  /// new notation's detail screen).
+  void clearLastDuplicatedId() {
+    _lastDuplicatedId = null;
     notifyListeners();
   }
 }
