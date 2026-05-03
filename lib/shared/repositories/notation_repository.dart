@@ -82,6 +82,17 @@ abstract interface class NotationRepository {
   /// The stream re-emits whenever any notation row changes.
   Stream<List<Notation>> watchAllActive();
 
+  /// Returns a live stream of the most-recently-played active notations,
+  /// ordered by [Notation.lastPlayedAt] descending.
+  ///
+  /// Only notations that have been played at least once (non-null
+  /// [Notation.lastPlayedAt]) are included. The stream re-emits whenever the
+  /// underlying table changes.
+  ///
+  /// Parameters:
+  /// - [limit]: Maximum number of notations to return. Defaults to 5.
+  Stream<List<Notation>> watchRecentlyPlayed({int limit = 5});
+
   /// Soft-deletes the notation with [id] by setting `deleted_at` to the
   /// current UTC timestamp.
   ///

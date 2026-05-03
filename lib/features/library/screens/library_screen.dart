@@ -33,6 +33,7 @@ import 'package:provider/provider.dart';
 import 'package:swaralipi/core/storage/file_storage_service.dart';
 import 'package:swaralipi/features/edit/screens/edit_notation_screen.dart';
 import 'package:swaralipi/features/library/viewmodels/library_view_model.dart';
+import 'package:swaralipi/features/library/widgets/recently_played_carousel.dart';
 import 'package:swaralipi/shared/models/notation.dart';
 import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
 import 'package:swaralipi/shared/repositories/instrument_repository.dart';
@@ -61,9 +62,16 @@ const EdgeInsets _kSwipeIconPadding = EdgeInsets.symmetric(horizontal: 24);
 /// Reads [LibraryViewModel] from the widget tree via [ChangeNotifierProvider].
 /// Calls [LibraryViewModel.init] after the first frame.
 ///
+/// Displays a recently-played carousel at the top (hidden when no notations
+/// have been played) above the full notation list.
+///
 /// When the edit dependencies are provided, long-pressing a notation row
 /// reveals a popup menu with an "Edit" option that launches
 /// [EditNotationScreen].
+///
+/// When [onNotationTap] is provided, tapping a carousel card or a notation
+/// row calls [onNotationTap] with the notation id. Callers use this to
+/// navigate to [NotationDetailScreen].
 class LibraryScreen extends StatefulWidget {
   /// Creates a [LibraryScreen].
   ///
@@ -73,12 +81,15 @@ class LibraryScreen extends StatefulWidget {
   /// - [instrumentRepository]: Passed to [EditNotationScreen] for instruments.
   /// - [customFieldRepository]: Passed to [EditNotationScreen] for custom fields.
   /// - [fileStorageService]: Passed to [EditNotationScreen] to resolve paths.
+  /// - [onNotationTap]: Called with a notation id when a notation is tapped
+  ///   (carousel card or list row). When null, tapping is a no-op.
   const LibraryScreen({
     this.notationRepository,
     this.tagRepository,
     this.instrumentRepository,
     this.customFieldRepository,
     this.fileStorageService,
+    this.onNotationTap,
     super.key,
   });
 
@@ -96,6 +107,12 @@ class LibraryScreen extends StatefulWidget {
 
   /// Used by [EditNotationScreen] to resolve image paths.
   final FileStorageService? fileStorageService;
+
+  /// Called with the notation id when a carousel card or list row is tapped.
+  ///
+  /// When null, tapping navigates using [Navigator.push] if the platform
+  /// dependencies are injected; otherwise tapping is a no-op.
+  final ValueChanged<String>? onNotationTap;
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -122,12 +139,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
       body: switch (vm.state) {
         LibraryStateIdle() => const SizedBox.shrink(),
         LibraryStateLoading() => const _LoadingView(),
-        LibraryStateSuccess(:final notations) => notations.isEmpty
-            ? const _EmptyView()
-            : _NotationListView(
-                notations: notations,
-                screen: widget,
-              ),
+        LibraryStateSuccess(:final notations) => _LibraryBody(
+            notations: notations,
+            recentlyPlayedState: vm.recentlyPlayedState,
+            screen: widget,
+          ),
         LibraryStateError(:final message) => _ErrorView(message: message),
       },
     );
@@ -225,25 +241,61 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// Scrollable list of active notation rows.
-class _NotationListView extends StatelessWidget {
-  const _NotationListView({
+/// Full library body: recently-played carousel (if any) + notation list or
+/// empty state.
+///
+/// When [notations] is empty and no recently-played entries exist, shows
+/// [_EmptyView]. Otherwise composes a [CustomScrollView] with the carousel
+/// (if present) and the notation list or empty-state sliver.
+class _LibraryBody extends StatelessWidget {
+  const _LibraryBody({
     required this.notations,
+    required this.recentlyPlayedState,
     required this.screen,
   });
 
   final List<Notation> notations;
+  final RecentlyPlayedState recentlyPlayedState;
   final LibraryScreen screen;
+
+  List<Notation> get _recentNotations => switch (recentlyPlayedState) {
+        RecentlyPlayedStateSuccess(:final notations) => notations,
+        RecentlyPlayedStateIdle() => const [],
+      };
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: _kListPadding,
-      itemCount: notations.length,
-      itemBuilder: (context, index) => _NotationRow(
-        notation: notations[index],
-        screen: screen,
-      ),
+    final recent = _recentNotations;
+    final hasContent = notations.isNotEmpty || recent.isNotEmpty;
+
+    if (!hasContent) return const _EmptyView();
+
+    return CustomScrollView(
+      slivers: [
+        if (recent.isNotEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: RecentlyPlayedCarousel(
+                notations: recent,
+                onTap: screen.onNotationTap ?? (_) {},
+              ),
+            ),
+          ),
+        if (notations.isEmpty)
+          const SliverFillRemaining(child: _EmptyView())
+        else
+          SliverPadding(
+            padding: _kListPadding,
+            sliver: SliverList.builder(
+              itemCount: notations.length,
+              itemBuilder: (context, index) => _NotationRow(
+                notation: notations[index],
+                screen: screen,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

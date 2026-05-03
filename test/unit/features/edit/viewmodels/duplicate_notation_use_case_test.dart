@@ -76,6 +76,10 @@ class FakeNotationRepository implements NotationRepository {
   Stream<List<Notation>> watchAllActive() => throw UnimplementedError();
 
   @override
+  Stream<List<Notation>> watchRecentlyPlayed({int limit = 5}) =>
+      const Stream.empty();
+
+  @override
   Future<void> softDelete(String id) async => softDeletedIds.add(id);
 
   @override

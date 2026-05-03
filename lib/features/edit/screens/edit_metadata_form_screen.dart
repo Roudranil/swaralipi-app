@@ -1023,6 +1023,10 @@ class _NoopNotationRepository implements NotationRepository {
   Stream<List<Notation>> watchAllActive() => const Stream.empty();
 
   @override
+  Stream<List<Notation>> watchRecentlyPlayed({int limit = 5}) =>
+      const Stream.empty();
+
+  @override
   Future<void> softDelete(String id) async {}
 
   @override

@@ -185,4 +185,23 @@ class NotationDao extends DatabaseAccessor<AppDatabase>
           ))
         .get();
   }
+
+  /// Emits a live list of active notations that have been played at least
+  /// once, ordered by [NotationsTable.lastPlayedAt] descending.
+  ///
+  /// Only notations with a non-null [NotationsTable.lastPlayedAt] are
+  /// included; rows where `deleted_at IS NOT NULL` are excluded. The stream
+  /// re-emits whenever the underlying table changes.
+  ///
+  /// Parameters:
+  /// - [limit]: Maximum number of rows to return. Defaults to 5.
+  Stream<List<NotationRow>> watchRecentlyPlayed({int limit = 5}) {
+    return (select(notationsTable)
+          ..where(
+            (t) => t.deletedAt.isNull() & t.lastPlayedAt.isNotNull(),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.lastPlayedAt)])
+          ..limit(limit))
+        .watch();
+  }
 }
