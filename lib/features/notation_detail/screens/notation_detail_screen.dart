@@ -42,6 +42,8 @@ import 'package:swaralipi/shared/models/notation_detail.dart';
 import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
 import 'package:swaralipi/shared/repositories/instrument_repository.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
+import 'package:swaralipi/shared/models/user_preferences.dart';
+import 'package:swaralipi/shared/repositories/preferences_repository.dart';
 import 'package:swaralipi/shared/repositories/tag_repository.dart';
 
 // ---------------------------------------------------------------------------
@@ -79,6 +81,7 @@ class NotationDetailScreen extends StatefulWidget {
   const NotationDetailScreen({
     required this.notationId,
     this.notationRepository,
+    this.preferencesRepository,
     this.tagRepository,
     this.instrumentRepository,
     this.customFieldRepository,
@@ -91,6 +94,9 @@ class NotationDetailScreen extends StatefulWidget {
 
   /// Used by [EditNotationScreen]. When null the Edit action is hidden.
   final NotationRepository? notationRepository;
+
+  /// Used by [NotationPlayerScreen] to persist orientation preferences.
+  final PreferencesRepository? preferencesRepository;
 
   /// Used by [EditNotationScreen] for tag picker.
   final TagRepository? tagRepository;
@@ -190,12 +196,16 @@ class _NotationDetailScreenState extends State<NotationDetailScreen> {
     final notationRepository = widget.notationRepository;
     if (notationRepository == null) return;
 
+    final prefsRepo =
+        widget.preferencesRepository ?? const _NoOpPreferencesRepository();
+
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         fullscreenDialog: true,
         builder: (_) => ChangeNotifierProvider<NotationPlayerViewModel>(
           create: (_) => NotationPlayerViewModel(
             notationRepository,
+            preferencesRepository: prefsRepo,
             notationId: widget.notationId,
           ),
           child: const NotationPlayerScreen(),
@@ -562,4 +572,43 @@ class _MetadataRow extends StatelessWidget {
       ],
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// No-op PreferencesRepository fallback
+// ---------------------------------------------------------------------------
+
+/// A no-op [PreferencesRepository] used when no real implementation is
+/// injected into [NotationDetailScreen].
+///
+/// All write methods are no-ops. [getPreferences] returns a default singleton.
+final class _NoOpPreferencesRepository implements PreferencesRepository {
+  const _NoOpPreferencesRepository();
+
+  @override
+  Future<UserPreferences> getPreferences() async => const UserPreferences(
+        userName: 'Musician',
+        themeMode: AppThemeMode.system,
+        colorSchemeMode: ColorSchemeMode.catppuccin,
+        defaultSort: SortOrder.createdAtDesc,
+        defaultView: ViewMode.list,
+      );
+
+  @override
+  Future<void> updatePreferences(UserPreferences preferences) async {}
+
+  @override
+  Future<void> updateThemeMode(AppThemeMode mode) async {}
+
+  @override
+  Future<void> updateColorSchemeMode(ColorSchemeMode mode) async {}
+
+  @override
+  Future<void> updateSeedColor(String? colorHex) async {}
+
+  @override
+  Future<void> updateTagsSeeded({required bool value}) async {}
+
+  @override
+  Future<void> updatePlayerOrientation(PlayerOrientation orientation) async {}
 }

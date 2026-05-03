@@ -133,8 +133,8 @@ class _EditNotationScreenState extends State<EditNotationScreen> {
     final drafts = <CapturePageDraft>[];
     for (final page in pages) {
       try {
-        final absPath = await widget.fileStorageService
-            .getAbsolutePath(page.imagePath);
+        final absPath =
+            await widget.fileStorageService.getAbsolutePath(page.imagePath);
         final bytes = await File(absPath).readAsBytes();
         final renderParams = _parseRenderParams(page.renderParams);
         drafts.add(
@@ -184,7 +184,8 @@ class _EditNotationScreenState extends State<EditNotationScreen> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<EditNotationViewModel>.value(value: _editVm),
-        ChangeNotifierProvider<CaptureSessionViewModel>.value(value: _sessionVm),
+        ChangeNotifierProvider<CaptureSessionViewModel>.value(
+            value: _sessionVm),
         ChangeNotifierProvider<PageEditorViewModel>.value(value: _pageEditorVm),
       ],
       child: const _EditNotationBody(),

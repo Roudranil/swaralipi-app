@@ -508,8 +508,7 @@ class EditNotationViewModel extends ChangeNotifier {
 
     try {
       final draft = _buildDraft();
-      final updated =
-          await _notationRepository.updateNotation(id, draft);
+      final updated = await _notationRepository.updateNotation(id, draft);
 
       // Persist any render-param changes for each page in the updated list.
       for (final page in updatedPages) {
