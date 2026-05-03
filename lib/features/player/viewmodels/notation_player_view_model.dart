@@ -4,12 +4,13 @@
 // play-count on successful load via [NotationRepository.updatePlayCount], and
 // exposes state as a sealed [NotationPlayerState] hierarchy.
 //
-// Also tracks the active page index and chrome-visibility flag used by
-// [NotationPlayerScreen] for the fade-in/fade-out UI affordance.
+// Also tracks the active page index, chrome-visibility flag, and
+// player-orientation lock used by [NotationPlayerScreen].
 //
 // Construction:
 //   NotationPlayerViewModel(
 //     notationRepository,
+//     preferencesRepository: prefsRepo,
 //     notationId: id,
 //     startPage: 0,    // optional, defaults to 0
 //   )
@@ -24,7 +25,19 @@ import 'dart:developer';
 import 'package:flutter/foundation.dart';
 
 import 'package:swaralipi/shared/models/notation_detail.dart';
+import 'package:swaralipi/shared/models/user_preferences.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
+import 'package:swaralipi/shared/repositories/preferences_repository.dart';
+
+// ---------------------------------------------------------------------------
+// Public constant
+// ---------------------------------------------------------------------------
+
+/// Duration after which the chrome (title + toolbar) fades out.
+///
+/// Exposed as a top-level constant so widget tests can assert on it
+/// without needing access to private state.
+const Duration kChromeFadeDuration = Duration(seconds: 3);
 
 // ---------------------------------------------------------------------------
 // State hierarchy
@@ -89,27 +102,32 @@ final class NotationPlayerStateError extends NotationPlayerState {
 /// ViewModel for the full-screen notation player screen.
 ///
 /// Loads a [NotationDetail], records the play count on success, and exposes
-/// per-page navigation state and chrome-visibility state used by the
-/// [NotationPlayerScreen].
+/// per-page navigation state, chrome-visibility state, and orientation lock
+/// used by the [NotationPlayerScreen].
 ///
 /// State management contract:
 /// - [state] drives the primary display state.
 /// - [currentPage] is the 0-indexed currently-visible page.
 /// - [isChromeVisible] controls whether the title bar and toolbar are shown.
+/// - [playerOrientation] is the active screen orientation lock.
 class NotationPlayerViewModel extends ChangeNotifier {
   /// Creates a [NotationPlayerViewModel].
   ///
   /// Parameters:
   /// - [_repository]: Source of truth for notation loading and play-count.
+  /// - [preferencesRepository]: Persists the player orientation setting.
   /// - [notationId]: UUIDv4 of the notation to load.
   /// - [startPage]: 0-indexed page to open initially. Defaults to `0`.
   NotationPlayerViewModel(
     this._repository, {
+    required PreferencesRepository preferencesRepository,
     required this.notationId,
     int startPage = 0,
-  }) : _currentPage = startPage;
+  })  : _preferencesRepository = preferencesRepository,
+        _currentPage = startPage;
 
   final NotationRepository _repository;
+  final PreferencesRepository _preferencesRepository;
 
   /// UUIDv4 of the notation being displayed.
   final String notationId;
@@ -117,6 +135,7 @@ class NotationPlayerViewModel extends ChangeNotifier {
   NotationPlayerState _state = const NotationPlayerStateIdle();
   int _currentPage;
   bool _isChromeVisible = true;
+  PlayerOrientation _playerOrientation = PlayerOrientation.auto;
 
   // -------------------------------------------------------------------------
   // Public getters
@@ -130,8 +149,13 @@ class NotationPlayerViewModel extends ChangeNotifier {
 
   /// Whether the title bar and bottom toolbar are visible.
   ///
-  /// Fades out after 2 seconds of inactivity; restored on tap.
+  /// Fades out after [kChromeFadeDuration] of inactivity; restored on tap.
   bool get isChromeVisible => _isChromeVisible;
+
+  /// The active screen orientation lock for the player.
+  ///
+  /// Defaults to [PlayerOrientation.auto].
+  PlayerOrientation get playerOrientation => _playerOrientation;
 
   /// Total number of pages in the loaded notation.
   ///
@@ -225,5 +249,45 @@ class NotationPlayerViewModel extends ChangeNotifier {
   void hideChrome() {
     _isChromeVisible = false;
     notifyListeners();
+  }
+
+  // -------------------------------------------------------------------------
+  // Orientation lock
+  // -------------------------------------------------------------------------
+
+  /// Sets the screen orientation lock to [orientation].
+  ///
+  /// Persists the new value to [PreferencesRepository.updatePlayerOrientation]
+  /// and notifies listeners. Does nothing if [orientation] equals the current
+  /// value.
+  ///
+  /// Parameters:
+  /// - [orientation]: The new [PlayerOrientation] to apply.
+  Future<void> setOrientation(PlayerOrientation orientation) async {
+    if (_playerOrientation == orientation) return;
+    _playerOrientation = orientation;
+    notifyListeners();
+    try {
+      await _preferencesRepository.updatePlayerOrientation(orientation);
+    } on Exception catch (e, st) {
+      log(
+        'NotationPlayerViewModel: updatePlayerOrientation failed — $e',
+        name: 'NotationPlayerViewModel',
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  /// Cycles the orientation lock through auto → portrait → landscape → auto.
+  ///
+  /// Persists the new value via [setOrientation].
+  Future<void> cycleOrientation() async {
+    final next = switch (_playerOrientation) {
+      PlayerOrientation.auto => PlayerOrientation.portrait,
+      PlayerOrientation.portrait => PlayerOrientation.landscape,
+      PlayerOrientation.landscape => PlayerOrientation.auto,
+    };
+    await setOrientation(next);
   }
 }
