@@ -24,7 +24,9 @@ import 'package:swaralipi/shared/models/notation_draft.dart';
 import 'package:swaralipi/shared/models/notation_page.dart';
 import 'package:swaralipi/shared/models/saved_page.dart';
 import 'package:swaralipi/shared/models/tag.dart';
+import 'package:swaralipi/shared/models/user_preferences.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
+import 'package:swaralipi/shared/repositories/preferences_repository.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -72,6 +74,35 @@ class FakeNotationRepository implements NotationRepository {
       throw UnimplementedError();
 }
 
+class FakePreferencesRepository implements PreferencesRepository {
+  @override
+  Future<UserPreferences> getPreferences() async => const UserPreferences(
+        userName: 'Test',
+        themeMode: AppThemeMode.system,
+        colorSchemeMode: ColorSchemeMode.catppuccin,
+        defaultSort: SortOrder.createdAtDesc,
+        defaultView: ViewMode.list,
+      );
+
+  @override
+  Future<void> updatePreferences(UserPreferences preferences) async {}
+
+  @override
+  Future<void> updatePlayerOrientation(PlayerOrientation orientation) async {}
+
+  @override
+  Future<void> updateThemeMode(AppThemeMode mode) async {}
+
+  @override
+  Future<void> updateColorSchemeMode(ColorSchemeMode mode) async {}
+
+  @override
+  Future<void> updateSeedColor(String? colorHex) async {}
+
+  @override
+  Future<void> updateTagsSeeded({required bool value}) async {}
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -104,11 +135,7 @@ NotationDetail _makeDetail(String id, int pageCount, {String title = 'Test'}) =>
       customFieldValues: const <CustomFieldValue>[],
     );
 
-Widget _buildScreen(
-  NotationPlayerViewModel vm, {
-  int startPage = 0,
-}) =>
-    MaterialApp(
+Widget _buildScreen(NotationPlayerViewModel vm) => MaterialApp(
       theme: ThemeData(useMaterial3: true),
       home: ChangeNotifierProvider<NotationPlayerViewModel>(
         create: (_) => vm,
@@ -122,9 +149,11 @@ Widget _buildScreen(
 
 void main() {
   late FakeNotationRepository repo;
+  late FakePreferencesRepository prefsRepo;
 
   setUp(() {
     repo = FakeNotationRepository();
+    prefsRepo = FakePreferencesRepository();
   });
 
   // -------------------------------------------------------------------------
@@ -137,7 +166,11 @@ void main() {
       // Use a blocking repo so the load never completes during this test.
       final completer = Completer<NotationDetail?>();
       final blockingRepo = _BlockingFakeRepository(completer.future);
-      final vm = NotationPlayerViewModel(blockingRepo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        blockingRepo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
       // Pump widget.
       await tester.pumpWidget(_buildScreen(vm));
@@ -156,9 +189,8 @@ void main() {
   });
 
   // Helper: pump widget + process the post-frame callback + await async load.
-  Future<NotationPlayerViewModel> _pumpAndLoad(
+  Future<NotationPlayerViewModel> pumpAndLoad(
     WidgetTester tester,
-    FakeNotationRepository fakeRepo,
     NotationPlayerViewModel vm,
   ) async {
     await tester.pumpWidget(_buildScreen(vm));
@@ -177,9 +209,13 @@ void main() {
     testWidgets('shows not-found message when notation is missing',
         (tester) async {
       repo.setDetail(null);
-      final vm = NotationPlayerViewModel(repo, notationId: 'missing');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'missing',
+      );
 
-      await _pumpAndLoad(tester, repo, vm);
+      await pumpAndLoad(tester, vm);
 
       expect(find.textContaining('not found'), findsOneWidget);
     });
@@ -192,9 +228,13 @@ void main() {
   group('error state', () {
     testWidgets('shows error message on load failure', (tester) async {
       repo.setLoadError(Exception('db error'));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
-      await _pumpAndLoad(tester, repo, vm);
+      await pumpAndLoad(tester, vm);
 
       expect(find.textContaining('Error'), findsOneWidget);
     });
@@ -208,18 +248,26 @@ void main() {
     testWidgets('shows page indicator "1 / 3" for 3-page notation',
         (tester) async {
       repo.setDetail(_makeDetail('n1', 3, title: 'My Notation'));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
-      await _pumpAndLoad(tester, repo, vm);
+      await pumpAndLoad(tester, vm);
 
       expect(find.text('1 / 3'), findsOneWidget);
     });
 
     testWidgets('shows notation title in chrome', (tester) async {
       repo.setDetail(_makeDetail('n1', 2, title: 'Raga Yaman'));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
-      await _pumpAndLoad(tester, repo, vm);
+      await pumpAndLoad(tester, vm);
 
       expect(find.text('Raga Yaman'), findsOneWidget);
     });
@@ -227,18 +275,26 @@ void main() {
     testWidgets('shows PageView widget for multi-page notation',
         (tester) async {
       repo.setDetail(_makeDetail('n1', 3));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
-      await _pumpAndLoad(tester, repo, vm);
+      await pumpAndLoad(tester, vm);
 
       expect(find.byType(PageView), findsOneWidget);
     });
 
     testWidgets('shows InteractiveViewer per page', (tester) async {
       repo.setDetail(_makeDetail('n1', 2));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
-      await _pumpAndLoad(tester, repo, vm);
+      await pumpAndLoad(tester, vm);
 
       expect(find.byType(InteractiveViewer), findsAtLeastNWidgets(1));
     });
@@ -246,9 +302,13 @@ void main() {
     testWidgets('page indicator updates when goToPage is called',
         (tester) async {
       repo.setDetail(_makeDetail('n1', 3));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
-      await _pumpAndLoad(tester, repo, vm);
+      await pumpAndLoad(tester, vm);
 
       vm.goToPage(1);
       await tester.pump();
@@ -260,11 +320,12 @@ void main() {
       repo.setDetail(_makeDetail('n1', 4));
       final vm = NotationPlayerViewModel(
         repo,
+        preferencesRepository: prefsRepo,
         notationId: 'n1',
         startPage: 1,
       );
 
-      await _pumpAndLoad(tester, repo, vm);
+      await pumpAndLoad(tester, vm);
 
       expect(find.text('2 / 4'), findsOneWidget);
     });
@@ -278,9 +339,13 @@ void main() {
     testWidgets('tapping screen toggles chrome via showChrome/hideChrome',
         (tester) async {
       repo.setDetail(_makeDetail('n1', 2, title: 'My Song'));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
-      await _pumpAndLoad(tester, repo, vm);
+      await pumpAndLoad(tester, vm);
 
       // Chrome is initially visible.
       expect(vm.isChromeVisible, isTrue);

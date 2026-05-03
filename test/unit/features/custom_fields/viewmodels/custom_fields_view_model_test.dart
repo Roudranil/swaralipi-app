@@ -20,8 +20,7 @@ import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
 
 class FakeCustomFieldRepository implements CustomFieldRepository {
   final _defs = <String, CustomFieldDefinition>{};
-  final _controller =
-      StreamController<List<CustomFieldDefinition>>.broadcast();
+  final _controller = StreamController<List<CustomFieldDefinition>>.broadcast();
 
   Object? watchError;
   Object? createError;
@@ -47,8 +46,7 @@ class FakeCustomFieldRepository implements CustomFieldRepository {
     final def = CustomFieldDefinition(
       id: 'fake-${_defs.length}',
       keyName: keyName,
-      fieldType: CustomFieldType.values
-          .firstWhere((e) => e.name == fieldType),
+      fieldType: CustomFieldType.values.firstWhere((e) => e.name == fieldType),
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
     );
@@ -96,8 +94,7 @@ class FakeCustomFieldRepository implements CustomFieldRepository {
 // Helper
 // ---------------------------------------------------------------------------
 
-CustomFieldDefinition _makeDef(String id, String key) =>
-    CustomFieldDefinition(
+CustomFieldDefinition _makeDef(String id, String key) => CustomFieldDefinition(
       id: id,
       keyName: key,
       fieldType: CustomFieldType.text,

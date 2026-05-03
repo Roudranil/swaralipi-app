@@ -10,7 +10,8 @@
 //     ImageProcessingService.apply + compute()) is intentionally out of scope
 //     for this task — the raw original image is shown in the player.
 //     Non-destructive rendering is handled by the Page Editor flow.
-//   - Title + page indicator fade in/out (chrome) on tap after 2 s idle.
+//   - Title + page indicator fade in/out (chrome) on tap after 3 s idle.
+//   - Orientation lock toggle (auto / portrait / landscape) in bottom chrome.
 //   - Back navigation returns to the previous screen.
 //
 // The screen reads [NotationPlayerViewModel] from a [ChangeNotifierProvider]
@@ -18,7 +19,12 @@
 //
 // Construction (from the route builder in app.dart):
 //   ChangeNotifierProvider(
-//     create: (_) => NotationPlayerViewModel(repo, notationId: id, startPage: page),
+//     create: (_) => NotationPlayerViewModel(
+//       repo,
+//       preferencesRepository: prefsRepo,
+//       notationId: id,
+//       startPage: page,
+//     ),
 //     child: const NotationPlayerScreen(),
 //   )
 
@@ -34,13 +40,11 @@ import 'package:swaralipi/core/storage/file_storage_service.dart';
 import 'package:swaralipi/features/player/viewmodels/notation_player_view_model.dart';
 import 'package:swaralipi/shared/models/notation_detail.dart';
 import 'package:swaralipi/shared/models/notation_page.dart';
+import 'package:swaralipi/shared/models/user_preferences.dart';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-/// Duration after which the chrome (title + toolbar) fades out.
-const Duration _kChromeFadeDuration = Duration(seconds: 2);
 
 /// Animation duration for the chrome fade-in / fade-out.
 const Duration _kChromeAnimationDuration = Duration(milliseconds: 300);
@@ -102,7 +106,7 @@ class _NotationPlayerScreenState extends State<NotationPlayerScreen> {
 
   void _scheduleFade() {
     _chromeFadeTimer?.cancel();
-    _chromeFadeTimer = Timer(_kChromeFadeDuration, () {
+    _chromeFadeTimer = Timer(kChromeFadeDuration, () {
       if (!mounted) return;
       context.read<NotationPlayerViewModel>().hideChrome();
     });
@@ -123,6 +127,8 @@ class _NotationPlayerScreenState extends State<NotationPlayerScreen> {
   void dispose() {
     _chromeFadeTimer?.cancel();
     _pageController.dispose();
+    // Restore auto-rotate when leaving the player.
+    SystemChrome.setPreferredOrientations([]);
     super.dispose();
   }
 
@@ -131,6 +137,9 @@ class _NotationPlayerScreenState extends State<NotationPlayerScreen> {
     // Keep status bar hidden for immersive full-screen feel.
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     final vm = context.watch<NotationPlayerViewModel>();
+
+    // Apply orientation lock whenever it changes.
+    _applyOrientationLock(vm.playerOrientation);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -148,6 +157,22 @@ class _NotationPlayerScreenState extends State<NotationPlayerScreen> {
           ),
       },
     );
+  }
+
+  /// Applies the orientation lock via [SystemChrome].
+  void _applyOrientationLock(PlayerOrientation orientation) {
+    final orientations = switch (orientation) {
+      PlayerOrientation.auto => <DeviceOrientation>[],
+      PlayerOrientation.portrait => [
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ],
+      PlayerOrientation.landscape => [
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ],
+    };
+    SystemChrome.setPreferredOrientations(orientations);
   }
 }
 
@@ -301,6 +326,8 @@ class _PlayerView extends StatelessWidget {
             currentPage: vm.currentPage,
             pageCount: pageCount,
             isVisible: vm.isChromeVisible,
+            playerOrientation: vm.playerOrientation,
+            onOrientationToggle: vm.cycleOrientation,
           ),
         ],
       ),
@@ -458,20 +485,24 @@ class _TitleChrome extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Bottom chrome (page indicator)
+// Bottom chrome (page indicator + orientation toggle)
 // ---------------------------------------------------------------------------
 
-/// Animated bottom bar showing the page indicator.
+/// Animated bottom bar showing the page indicator and orientation toggle.
 class _BottomChrome extends StatelessWidget {
   const _BottomChrome({
     required this.currentPage,
     required this.pageCount,
     required this.isVisible,
+    required this.playerOrientation,
+    required this.onOrientationToggle,
   });
 
   final int currentPage;
   final int pageCount;
   final bool isVisible;
+  final PlayerOrientation playerOrientation;
+  final VoidCallback onOrientationToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -493,20 +524,72 @@ class _BottomChrome extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: SafeArea(
             top: false,
-            child: Center(
-              child: Semantics(
-                label: 'Page ${currentPage + 1} of $pageCount',
-                child: Text(
-                  '${currentPage + 1} / $pageCount',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Colors.white,
-                        letterSpacing: 1.5,
-                      ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Semantics(
+                  label: 'Page ${currentPage + 1} of $pageCount',
+                  child: Text(
+                    '${currentPage + 1} / $pageCount',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Colors.white,
+                          letterSpacing: 1.5,
+                        ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 24),
+                _OrientationToggleButton(
+                  orientation: playerOrientation,
+                  onTap: onOrientationToggle,
+                ),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Orientation toggle button
+// ---------------------------------------------------------------------------
+
+/// Icon button that cycles through orientation lock modes.
+///
+/// Shows a different icon for each [PlayerOrientation] value and calls
+/// [onTap] when pressed.
+class _OrientationToggleButton extends StatelessWidget {
+  const _OrientationToggleButton({
+    required this.orientation,
+    required this.onTap,
+  });
+
+  final PlayerOrientation orientation;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = switch (orientation) {
+      PlayerOrientation.auto => Icons.screen_rotation,
+      PlayerOrientation.portrait => Icons.screen_lock_portrait,
+      PlayerOrientation.landscape => Icons.screen_lock_landscape,
+    };
+
+    final label = switch (orientation) {
+      PlayerOrientation.auto => 'Screen rotation: auto',
+      PlayerOrientation.portrait => 'Screen rotation: locked portrait',
+      PlayerOrientation.landscape => 'Screen rotation: locked landscape',
+    };
+
+    return Semantics(
+      label: label,
+      button: true,
+      child: IconButton(
+        key: const Key('orientation_toggle_button'),
+        onPressed: onTap,
+        icon: Icon(icon, color: Colors.white),
+        tooltip: label,
       ),
     );
   }

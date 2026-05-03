@@ -16,6 +16,9 @@ UserPreferences _$UserPreferencesFromJson(Map<String, dynamic> json) =>
       defaultSort: $enumDecode(_$SortOrderEnumMap, json['default_sort']),
       defaultView: $enumDecode(_$ViewModeEnumMap, json['default_view']),
       tagsSeeded: json['tags_seeded'] as bool? ?? false,
+      playerOrientation: $enumDecodeNullable(
+              _$PlayerOrientationEnumMap, json['player_orientation']) ??
+          PlayerOrientation.auto,
     );
 
 Map<String, dynamic> _$UserPreferencesToJson(UserPreferences instance) =>
@@ -27,6 +30,8 @@ Map<String, dynamic> _$UserPreferencesToJson(UserPreferences instance) =>
       'default_sort': _$SortOrderEnumMap[instance.defaultSort]!,
       'default_view': _$ViewModeEnumMap[instance.defaultView]!,
       'tags_seeded': instance.tagsSeeded,
+      'player_orientation':
+          _$PlayerOrientationEnumMap[instance.playerOrientation]!,
     };
 
 const _$AppThemeModeEnumMap = {
@@ -53,4 +58,10 @@ const _$SortOrderEnumMap = {
 
 const _$ViewModeEnumMap = {
   ViewMode.list: 'list',
+};
+
+const _$PlayerOrientationEnumMap = {
+  PlayerOrientation.auto: 'auto',
+  PlayerOrientation.portrait: 'portrait',
+  PlayerOrientation.landscape: 'landscape',
 };

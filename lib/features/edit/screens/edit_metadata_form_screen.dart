@@ -100,8 +100,7 @@ class EditMetadataFormScreen extends StatefulWidget {
   final CustomFieldRepository customFieldRepository;
 
   @override
-  State<EditMetadataFormScreen> createState() =>
-      _EditMetadataFormScreenState();
+  State<EditMetadataFormScreen> createState() => _EditMetadataFormScreenState();
 }
 
 class _EditMetadataFormScreenState extends State<EditMetadataFormScreen> {
@@ -397,16 +396,13 @@ class _EditFormBody extends StatelessWidget {
           children: [
             _EditTitleField(controller: titleController),
             const SizedBox(height: _kSectionGap),
-
             _EditArtistChipInput(
               artists: fs.artists,
               inputController: artistInputController,
             ),
             const SizedBox(height: _kSectionGap),
-
             _EditDateField(currentValue: fs.dateWritten),
             const SizedBox(height: _kSectionGap),
-
             _EditTextFormRow(
               label: 'Time signature',
               hint: 'e.g. 4/4, 6/8',
@@ -414,7 +410,6 @@ class _EditFormBody extends StatelessWidget {
               onChanged: vm.setTimeSig,
             ),
             const SizedBox(height: _kSectionGap),
-
             _EditTextFormRow(
               label: 'Key signature',
               hint: 'e.g. C major, Yaman',
@@ -422,15 +417,12 @@ class _EditFormBody extends StatelessWidget {
               onChanged: vm.setKeySig,
             ),
             const SizedBox(height: _kSectionGap),
-
             _EditLanguageChips(selected: fs.languages),
             const SizedBox(height: _kSectionGap),
-
             if (tags.isNotEmpty) ...[
               _EditTagChips(tags: tags, selectedIds: fs.selectedTagIds),
               const SizedBox(height: _kSectionGap),
             ],
-
             if (instruments.isNotEmpty) ...[
               _EditInstrumentChips(
                 instruments: instruments,
@@ -438,13 +430,10 @@ class _EditFormBody extends StatelessWidget {
               ),
               const SizedBox(height: _kSectionGap),
             ],
-
             _EditNotesField(controller: notesController),
             const SizedBox(height: _kSectionGap),
-
             if (customFieldDefinitions.isNotEmpty)
               _EditCustomFieldsSection(definitions: customFieldDefinitions),
-
             const SizedBox(height: 32),
           ],
         ),
@@ -825,12 +814,9 @@ class _EditCustomFieldInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (definition.fieldType) {
-      CustomFieldType.text =>
-        _EditCustomTextInput(definition: definition),
-      CustomFieldType.number =>
-        _EditCustomNumberInput(definition: definition),
-      CustomFieldType.date =>
-        _EditCustomDateInput(definition: definition),
+      CustomFieldType.text => _EditCustomTextInput(definition: definition),
+      CustomFieldType.number => _EditCustomNumberInput(definition: definition),
+      CustomFieldType.date => _EditCustomDateInput(definition: definition),
       CustomFieldType.boolean =>
         _EditCustomBooleanInput(definition: definition),
     };
@@ -938,8 +924,7 @@ class _EditCustomDateInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<EditNotationViewModel>();
-    final existing =
-        vm.formState.customFieldValues[definition.id]?.dateValue;
+    final existing = vm.formState.customFieldValues[definition.id]?.dateValue;
 
     return Row(
       children: [
@@ -962,8 +947,7 @@ class _EditCustomDateInput extends StatelessWidget {
     BuildContext context,
     EditNotationViewModel vm,
   ) async {
-    final existing =
-        vm.formState.customFieldValues[definition.id]?.dateValue;
+    final existing = vm.formState.customFieldValues[definition.id]?.dateValue;
     final initial = existing != null
         ? DateTime.tryParse(existing) ?? DateTime.now()
         : DateTime.now();
@@ -1006,8 +990,7 @@ class _EditCustomBooleanInput extends StatelessWidget {
         ),
         Switch(
           value: value,
-          onChanged: (v) =>
-              vm.setCustomFieldBoolean(definition.id, value: v),
+          onChanged: (v) => vm.setCustomFieldBoolean(definition.id, value: v),
         ),
       ],
     );

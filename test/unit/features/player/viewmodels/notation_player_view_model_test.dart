@@ -19,7 +19,9 @@ import 'package:swaralipi/shared/models/notation_draft.dart';
 import 'package:swaralipi/shared/models/notation_page.dart';
 import 'package:swaralipi/shared/models/saved_page.dart';
 import 'package:swaralipi/shared/models/tag.dart';
+import 'package:swaralipi/shared/models/user_preferences.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
+import 'package:swaralipi/shared/repositories/preferences_repository.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -74,6 +76,35 @@ class FakeNotationRepository implements NotationRepository {
       throw UnimplementedError();
 }
 
+class FakePreferencesRepository implements PreferencesRepository {
+  @override
+  Future<UserPreferences> getPreferences() async => const UserPreferences(
+        userName: 'Test',
+        themeMode: AppThemeMode.system,
+        colorSchemeMode: ColorSchemeMode.catppuccin,
+        defaultSort: SortOrder.createdAtDesc,
+        defaultView: ViewMode.list,
+      );
+
+  @override
+  Future<void> updatePreferences(UserPreferences preferences) async {}
+
+  @override
+  Future<void> updatePlayerOrientation(PlayerOrientation orientation) async {}
+
+  @override
+  Future<void> updateThemeMode(AppThemeMode mode) async {}
+
+  @override
+  Future<void> updateColorSchemeMode(ColorSchemeMode mode) async {}
+
+  @override
+  Future<void> updateSeedColor(String? colorHex) async {}
+
+  @override
+  Future<void> updateTagsSeeded({required bool value}) async {}
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -111,9 +142,11 @@ NotationDetail _makeDetail(String id, int pageCount) => NotationDetail(
 
 void main() {
   late FakeNotationRepository repo;
+  late FakePreferencesRepository prefsRepo;
 
   setUp(() {
     repo = FakeNotationRepository();
+    prefsRepo = FakePreferencesRepository();
   });
 
   // -------------------------------------------------------------------------
@@ -122,22 +155,39 @@ void main() {
 
   group('initial state', () {
     test('state is idle before loadNotation is called', () {
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
       expect(vm.state, isA<NotationPlayerStateIdle>());
     });
 
     test('isChromVisible is true initially', () {
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
       expect(vm.isChromeVisible, isTrue);
     });
 
     test('currentPage equals startPage parameter', () {
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1', startPage: 2);
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+        startPage: 2,
+      );
       expect(vm.currentPage, equals(2));
     });
 
     test('currentPage defaults to 0 when startPage not provided', () {
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
       expect(vm.currentPage, equals(0));
     });
   });
@@ -149,7 +199,11 @@ void main() {
   group('loadNotation — success', () {
     test('transitions through loading to success', () async {
       repo.setDetail(_makeDetail('n1', 3));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
       final states = <NotationPlayerState>[];
       vm.addListener(() => states.add(vm.state));
@@ -163,7 +217,11 @@ void main() {
     test('success state contains correct detail', () async {
       final detail = _makeDetail('n1', 3);
       repo.setDetail(detail);
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
       await vm.loadNotation();
 
@@ -174,7 +232,11 @@ void main() {
 
     test('pageCount returns number of pages after success', () async {
       repo.setDetail(_makeDetail('n1', 4));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
       await vm.loadNotation();
 
@@ -183,7 +245,11 @@ void main() {
 
     test('calls updatePlayCount with notationId after success', () async {
       repo.setDetail(_makeDetail('n1', 2));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
       await vm.loadNotation();
 
@@ -198,7 +264,11 @@ void main() {
   group('loadNotation — notFound', () {
     test('transitions to notFound when repository returns null', () async {
       repo.setDetail(null);
-      final vm = NotationPlayerViewModel(repo, notationId: 'missing');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'missing',
+      );
 
       await vm.loadNotation();
 
@@ -207,7 +277,11 @@ void main() {
 
     test('does not call updatePlayCount when not found', () async {
       repo.setDetail(null);
-      final vm = NotationPlayerViewModel(repo, notationId: 'missing');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'missing',
+      );
 
       await vm.loadNotation();
 
@@ -222,7 +296,11 @@ void main() {
   group('loadNotation — error', () {
     test('transitions to error state on exception', () async {
       repo.setLoadError(Exception('db error'));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
       await vm.loadNotation();
 
@@ -231,7 +309,11 @@ void main() {
 
     test('error message is propagated', () async {
       repo.setLoadError(Exception('db error'));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
       await vm.loadNotation();
 
@@ -246,13 +328,21 @@ void main() {
 
   group('pageCount', () {
     test('returns 0 before load', () {
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
       expect(vm.pageCount, equals(0));
     });
 
     test('returns 0 in error state', () async {
       repo.setLoadError(Exception('err'));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
       await vm.loadNotation();
 
       expect(vm.pageCount, equals(0));
@@ -266,7 +356,11 @@ void main() {
   group('goToPage', () {
     test('updates currentPage to valid index', () async {
       repo.setDetail(_makeDetail('n1', 5));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
       await vm.loadNotation();
 
       vm.goToPage(3);
@@ -276,7 +370,11 @@ void main() {
 
     test('clamps negative index to 0', () async {
       repo.setDetail(_makeDetail('n1', 5));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
       await vm.loadNotation();
 
       vm.goToPage(-1);
@@ -286,7 +384,11 @@ void main() {
 
     test('clamps out-of-bounds index to last page', () async {
       repo.setDetail(_makeDetail('n1', 5));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
       await vm.loadNotation();
 
       vm.goToPage(10);
@@ -296,7 +398,11 @@ void main() {
 
     test('notifies listeners on page change', () async {
       repo.setDetail(_makeDetail('n1', 3));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
       await vm.loadNotation();
 
       var notified = false;
@@ -314,7 +420,11 @@ void main() {
   group('chrome visibility', () {
     test('showChrome sets isChromeVisible to true and notifies', () async {
       repo.setDetail(_makeDetail('n1', 2));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
       await vm.loadNotation();
 
       var notified = false;
@@ -327,7 +437,11 @@ void main() {
 
     test('hideChrome sets isChromeVisible to false and notifies', () async {
       repo.setDetail(_makeDetail('n1', 2));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
       await vm.loadNotation();
 
       var notified = false;
@@ -348,7 +462,11 @@ void main() {
         () async {
       repo.setDetail(_makeDetail('n1', 2));
       repo.setUpdatePlayCountError(Exception('update failed'));
-      final vm = NotationPlayerViewModel(repo, notationId: 'n1');
+      final vm = NotationPlayerViewModel(
+        repo,
+        preferencesRepository: prefsRepo,
+        notationId: 'n1',
+      );
 
       await vm.loadNotation();
 

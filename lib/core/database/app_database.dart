@@ -406,6 +406,13 @@ class UserPreferencesTable extends Table {
   /// compatibility; treated as [bool] at the app layer.
   IntColumn get tagsSeeded => integer().withDefault(const Constant(0))();
 
+  /// Preferred screen orientation lock for the notation player.
+  ///
+  /// One of `'auto'`, `'portrait'`, or `'landscape'`. Defaults to `'auto'`
+  /// (sensor-driven, no lock).
+  TextColumn get playerOrientation =>
+      text().withDefault(const Constant('auto'))();
+
   @override
   Set<Column> get primaryKey => {id};
 
@@ -422,6 +429,7 @@ class UserPreferencesTable extends Table {
             '))',
         "CHECK (default_view IN ('list'))",
         'CHECK (tags_seeded IN (0, 1))',
+        "CHECK (player_orientation IN ('auto', 'portrait', 'landscape'))",
       ];
 }
 
@@ -452,6 +460,7 @@ class UserPreferencesTable extends Table {
 /// | 1 | Initial schema: all tables, FTS5, triggers, indexes, seed data |
 /// | 2 | Add `tags_seeded` column to `user_preferences_table` |
 /// | 3 | Add `deleted_at` column to `instrument_classes_table` |
+/// | 4 | Add `player_orientation` column to `user_preferences_table` |
 @DriftDatabase(
   tables: [
     NotationsTable,
@@ -520,7 +529,7 @@ class AppDatabase extends _$AppDatabase {
         );
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -546,6 +555,13 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(
               instrumentClassesTable,
               instrumentClassesTable.deletedAt,
+            );
+          }
+          // v3 → v4: add player_orientation column to user_preferences_table.
+          if (from < 4) {
+            await m.addColumn(
+              userPreferencesTable,
+              userPreferencesTable.playerOrientation,
             );
           }
         },

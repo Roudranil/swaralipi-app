@@ -105,8 +105,7 @@ void main() {
     test('persists the definition to the database', () async {
       await repo.createDefinition('started_date', 'date');
 
-      final rows =
-          await db.select(db.customFieldDefinitionsTable).get();
+      final rows = await db.select(db.customFieldDefinitionsTable).get();
       expect(rows, hasLength(1));
       expect(rows.first.keyName, 'started_date');
     });
@@ -196,8 +195,7 @@ void main() {
     test('persists changes to the database', () async {
       await repo.updateDefinition(existing.id, keyName: 'persisted_key');
 
-      final rows =
-          await db.select(db.customFieldDefinitionsTable).get();
+      final rows = await db.select(db.customFieldDefinitionsTable).get();
       expect(rows.first.keyName, 'persisted_key');
     });
 
@@ -235,8 +233,7 @@ void main() {
     test('removes the definition row from the database', () async {
       await repo.deleteDefinition(existing.id);
 
-      final rows =
-          await db.select(db.customFieldDefinitionsTable).get();
+      final rows = await db.select(db.customFieldDefinitionsTable).get();
       expect(rows, isEmpty);
     });
 
