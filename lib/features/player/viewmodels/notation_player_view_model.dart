@@ -4,8 +4,8 @@
 // play-count on successful load via [NotationRepository.updatePlayCount], and
 // exposes state as a sealed [NotationPlayerState] hierarchy.
 //
-// Also tracks the active page index, chrome-visibility flag, and
-// player-orientation lock used by [NotationPlayerScreen].
+// Also tracks the active page index, chrome-visibility flag, player-
+// orientation lock, and auto-scroll state used by [NotationPlayerScreen].
 //
 // Construction:
 //   NotationPlayerViewModel(
@@ -17,6 +17,7 @@
 //
 // Lifecycle:
 //   Call [loadNotation] once per navigation to the player screen.
+//   Call [loadPersistedSpeed] after [loadNotation] to restore the saved speed.
 //   Call [dispose] when the screen is removed from the tree (ChangeNotifier
 //   lifecycle handles this automatically when used with ChangeNotifierProvider).
 
@@ -30,7 +31,7 @@ import 'package:swaralipi/shared/repositories/notation_repository.dart';
 import 'package:swaralipi/shared/repositories/preferences_repository.dart';
 
 // ---------------------------------------------------------------------------
-// Public constant
+// Public constants
 // ---------------------------------------------------------------------------
 
 /// Duration after which the chrome (title + toolbar) fades out.
@@ -38,6 +39,29 @@ import 'package:swaralipi/shared/repositories/preferences_repository.dart';
 /// Exposed as a top-level constant so widget tests can assert on it
 /// without needing access to private state.
 const Duration kChromeFadeDuration = Duration(seconds: 3);
+
+/// Default auto-scroll speed multiplier.
+///
+/// Applied on first use and after factory reset of preferences.
+const double kDefaultAutoScrollSpeed = 1.0;
+
+/// Minimum auto-scroll speed multiplier (0.1×).
+const double kMinAutoScrollSpeed = 0.1;
+
+/// Maximum auto-scroll speed multiplier (3.0×).
+const double kMaxAutoScrollSpeed = 3.0;
+
+/// Tick interval for the auto-scroll [Timer.periodic] in milliseconds.
+///
+/// A 50 ms tick gives 20 updates per second — smooth enough for reading
+/// without excessive battery drain.
+const int kAutoScrollTickIntervalMs = 50;
+
+/// The fraction of the viewport height scrolled per second at 1× speed.
+///
+/// At speed 1.0 and a viewport height of 800 px, the content scrolls at
+/// `800 × kScrollViewportFractionPerSecond = 80` px/s.
+const double kScrollViewportFractionPerSecond = 0.1;
 
 // ---------------------------------------------------------------------------
 // State hierarchy
@@ -136,6 +160,8 @@ class NotationPlayerViewModel extends ChangeNotifier {
   int _currentPage;
   bool _isChromeVisible = true;
   PlayerOrientation _playerOrientation = PlayerOrientation.auto;
+  bool _autoScrollEnabled = false;
+  double _autoScrollSpeed = kDefaultAutoScrollSpeed;
 
   // -------------------------------------------------------------------------
   // Public getters
@@ -164,6 +190,14 @@ class NotationPlayerViewModel extends ChangeNotifier {
         NotationPlayerStateSuccess(:final detail) => detail.pages.length,
         _ => 0,
       };
+
+  /// Whether auto-scroll is currently active.
+  bool get autoScrollEnabled => _autoScrollEnabled;
+
+  /// The current auto-scroll speed multiplier.
+  ///
+  /// Always in the range [[kMinAutoScrollSpeed], [kMaxAutoScrollSpeed]].
+  double get autoScrollSpeed => _autoScrollSpeed;
 
   // -------------------------------------------------------------------------
   // Load
@@ -289,5 +323,116 @@ class NotationPlayerViewModel extends ChangeNotifier {
       PlayerOrientation.landscape => PlayerOrientation.auto,
     };
     await setOrientation(next);
+  }
+
+  // -------------------------------------------------------------------------
+  // Auto-scroll
+  // -------------------------------------------------------------------------
+
+  /// Toggles the auto-scroll feature on or off and notifies listeners.
+  ///
+  /// When enabled, the screen layer is responsible for starting the scroll
+  /// timer. When disabled, the timer should be cancelled.
+  void toggleAutoScroll() {
+    _autoScrollEnabled = !_autoScrollEnabled;
+    notifyListeners();
+  }
+
+  /// Disables auto-scroll and notifies listeners.
+  ///
+  /// Does nothing (no notification) when auto-scroll is already disabled.
+  /// Called by the screen when a swipe gesture is detected.
+  void stopAutoScroll() {
+    if (!_autoScrollEnabled) return;
+    _autoScrollEnabled = false;
+    notifyListeners();
+  }
+
+  /// Updates the in-memory auto-scroll speed to [speed] without persisting.
+  ///
+  /// Intended for use during continuous slider drag so the ViewModel notifies
+  /// on every frame without triggering a DB write. Call [setScrollSpeed] on
+  /// drag end to persist the final value.
+  ///
+  /// The speed is clamped to [[kMinAutoScrollSpeed], [kMaxAutoScrollSpeed]].
+  /// Does nothing (no notification) when the clamped value equals the current
+  /// speed.
+  ///
+  /// Parameters:
+  /// - [speed]: The desired speed multiplier before clamping.
+  void updateScrollSpeedLocal(double speed) {
+    final clamped = speed.clamp(kMinAutoScrollSpeed, kMaxAutoScrollSpeed);
+    if (clamped == _autoScrollSpeed) return;
+    _autoScrollSpeed = clamped;
+    notifyListeners();
+  }
+
+  /// Sets the auto-scroll speed to [speed], clamped to
+  /// [[kMinAutoScrollSpeed], [kMaxAutoScrollSpeed]], and persists the value.
+  ///
+  /// Does nothing (no notification) when the clamped value equals the
+  /// current speed.
+  ///
+  /// Parameters:
+  /// - [speed]: The desired speed multiplier before clamping.
+  Future<void> setScrollSpeed(double speed) async {
+    final clamped = speed.clamp(kMinAutoScrollSpeed, kMaxAutoScrollSpeed);
+    if (clamped == _autoScrollSpeed) return;
+    _autoScrollSpeed = clamped;
+    notifyListeners();
+    try {
+      await _preferencesRepository.updateAutoScrollSpeed(clamped);
+    } on Exception catch (e, st) {
+      log(
+        'NotationPlayerViewModel: updateAutoScrollSpeed failed — $e',
+        name: 'NotationPlayerViewModel',
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  /// Loads the persisted auto-scroll speed from [PreferencesRepository] and
+  /// applies it, notifying listeners.
+  ///
+  /// Should be called once after [loadNotation] completes. Failures are
+  /// logged and silently ignored (the default speed is retained).
+  Future<void> loadPersistedSpeed() async {
+    try {
+      final prefs = await _preferencesRepository.getPreferences();
+      final clamped =
+          prefs.autoScrollSpeed.clamp(kMinAutoScrollSpeed, kMaxAutoScrollSpeed);
+      _autoScrollSpeed = clamped;
+      notifyListeners();
+    } on Exception catch (e, st) {
+      log(
+        'NotationPlayerViewModel: loadPersistedSpeed failed — $e',
+        name: 'NotationPlayerViewModel',
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  /// Calculates the number of pixels to scroll per timer tick.
+  ///
+  /// The step is derived from [viewportHeight], [speed], and the
+  /// [tickIntervalMs] so that at 1× speed the viewport scrolls at
+  /// [kScrollViewportFractionPerSecond] of its height per second.
+  ///
+  /// Returns the computed pixel step as a [double].
+  ///
+  /// Parameters:
+  /// - [speed]: Auto-scroll speed multiplier.
+  /// - [viewportHeight]: The visible height of the scroll area in logical pixels.
+  /// - [tickIntervalMs]: Timer tick interval in milliseconds.
+  static double calculateScrollStep({
+    required double speed,
+    required double viewportHeight,
+    required int tickIntervalMs,
+  }) {
+    final pixelsPerSecond =
+        viewportHeight * kScrollViewportFractionPerSecond * speed;
+    return pixelsPerSecond * tickIntervalMs / 1000.0;
   }
 }
