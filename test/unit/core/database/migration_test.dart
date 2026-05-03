@@ -1,4 +1,4 @@
-// Migration tests for AppDatabase — schema v4.
+// Migration tests for AppDatabase — schema v5.
 //
 // Verifies that [MigrationStrategy.onCreate] produces the exact schema
 // described in docs/02-technical/data-model.md, including:
@@ -6,7 +6,7 @@
 //   - All 9 indexes (partial and non-partial)
 //   - The FTS5 virtual table (notations_fts) and its 3 sync triggers
 //   - Seed data: 5 default tags and the singleton user_preferences row
-//   - schemaVersion == 4
+//   - schemaVersion == 5
 //
 // [validateDatabaseSchema] (from drift_dev/api/migrations_native.dart) is
 // used to compare the live schema against Drift's reference schema, giving
@@ -110,18 +110,18 @@ void main() {
   setUpAll(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = true);
 
   // -------------------------------------------------------------------------
-  group('Migration v4 — schema version', () {
+  group('Migration v5 — schema version', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
 
-    test('schemaVersion is 4', () {
-      expect(db.schemaVersion, 4);
+    test('schemaVersion is 5', () {
+      expect(db.schemaVersion, 5);
     });
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v4 — Drift schema validation', () {
+  group('Migration v5 — Drift schema validation', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -146,7 +146,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v4 — table presence', () {
+  group('Migration v5 — table presence', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -160,7 +160,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v4 — index presence', () {
+  group('Migration v5 — index presence', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -174,7 +174,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v4 — FTS5 virtual table and triggers', () {
+  group('Migration v5 — FTS5 virtual table and triggers', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -219,7 +219,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v4 — seed data', () {
+  group('Migration v5 — seed data', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -261,11 +261,12 @@ void main() {
       expect(prefs.userName, 'Musician');
       expect(prefs.tagsSeeded, 0);
       expect(prefs.playerOrientation, 'auto');
+      expect(prefs.autoScrollSpeed, closeTo(1.0, 0.001));
     });
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v4 — forTesting mode has no seed data', () {
+  group('Migration v5 — forTesting mode has no seed data', () {
     late AppDatabase db;
     setUp(() {
       db = AppDatabase.forTesting();

@@ -71,6 +71,7 @@ final class UserPreferencesRepositoryImpl implements PreferencesRepository {
         defaultView: Value(preferences.defaultView.dbValue),
         tagsSeeded: Value(preferences.tagsSeeded ? 1 : 0),
         playerOrientation: Value(preferences.playerOrientation.dbValue),
+        autoScrollSpeed: Value(preferences.autoScrollSpeed),
       ),
     );
     log(
@@ -166,6 +167,29 @@ final class UserPreferencesRepositoryImpl implements PreferencesRepository {
   }
 
   @override
+  Future<void> updateAutoScrollSpeed(double speed) async {
+    final existing = await _dao.getPreferences();
+    await _dao.upsertPreferences(
+      UserPreferencesTableCompanion(
+        id: const Value(_kSingletonId),
+        userName: Value(existing.userName),
+        themeMode: Value(existing.themeMode),
+        colorSchemeMode: Value(existing.colorSchemeMode),
+        seedColor: Value(existing.seedColor),
+        defaultSort: Value(existing.defaultSort),
+        defaultView: Value(existing.defaultView),
+        tagsSeeded: Value(existing.tagsSeeded),
+        playerOrientation: Value(existing.playerOrientation),
+        autoScrollSpeed: Value(speed.clamp(0.1, 3.0)),
+      ),
+    );
+    log(
+      'UserPreferencesRepositoryImpl: autoScrollSpeed set to $speed',
+      name: 'UserPreferencesRepository',
+    );
+  }
+
+  @override
   Future<void> updateTagsSeeded({required bool value}) async {
     final existing = await _dao.getPreferences();
     await _dao.upsertPreferences(
@@ -223,6 +247,7 @@ final class UserPreferencesRepositoryImpl implements PreferencesRepository {
       defaultView: defaultView,
       tagsSeeded: row.tagsSeeded == 1,
       playerOrientation: playerOrientation,
+      autoScrollSpeed: row.autoScrollSpeed,
     );
   }
 }

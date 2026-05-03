@@ -611,4 +611,7 @@ final class _NoOpPreferencesRepository implements PreferencesRepository {
 
   @override
   Future<void> updatePlayerOrientation(PlayerOrientation orientation) async {}
+
+  @override
+  Future<void> updateAutoScrollSpeed(double speed) async {}
 }

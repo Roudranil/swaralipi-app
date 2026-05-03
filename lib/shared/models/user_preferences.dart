@@ -147,6 +147,8 @@ class UserPreferences {
   ///   `false`.
   /// - [playerOrientation]: Screen orientation lock for the notation player.
   ///   Defaults to [PlayerOrientation.auto].
+  /// - [autoScrollSpeed]: Auto-scroll speed multiplier in the range
+  ///   [0.1, 3.0]. Defaults to `1.0`.
   const UserPreferences({
     required this.userName,
     required this.themeMode,
@@ -156,6 +158,7 @@ class UserPreferences {
     required this.defaultView,
     this.tagsSeeded = false,
     this.playerOrientation = PlayerOrientation.auto,
+    this.autoScrollSpeed = 1.0,
   });
 
   /// Display name shown in the application UI.
@@ -187,6 +190,11 @@ class UserPreferences {
   /// Defaults to [PlayerOrientation.auto] (sensor-driven, no lock).
   final PlayerOrientation playerOrientation;
 
+  /// Auto-scroll speed multiplier for the notation player.
+  ///
+  /// Valid range: [0.1, 3.0]. Defaults to `1.0` (1× speed).
+  final double autoScrollSpeed;
+
   /// Returns a copy of this [UserPreferences] with the specified fields
   /// replaced.
   ///
@@ -200,6 +208,7 @@ class UserPreferences {
     ViewMode? defaultView,
     bool? tagsSeeded,
     PlayerOrientation? playerOrientation,
+    double? autoScrollSpeed,
   }) =>
       UserPreferences(
         userName: userName ?? this.userName,
@@ -210,6 +219,7 @@ class UserPreferences {
         defaultView: defaultView ?? this.defaultView,
         tagsSeeded: tagsSeeded ?? this.tagsSeeded,
         playerOrientation: playerOrientation ?? this.playerOrientation,
+        autoScrollSpeed: autoScrollSpeed ?? this.autoScrollSpeed,
       );
 
   /// Deserializes [UserPreferences] from a JSON map.
@@ -231,7 +241,8 @@ class UserPreferences {
           defaultSort == other.defaultSort &&
           defaultView == other.defaultView &&
           tagsSeeded == other.tagsSeeded &&
-          playerOrientation == other.playerOrientation;
+          playerOrientation == other.playerOrientation &&
+          autoScrollSpeed == other.autoScrollSpeed;
 
   @override
   int get hashCode => Object.hash(
@@ -243,6 +254,7 @@ class UserPreferences {
         defaultView,
         tagsSeeded,
         playerOrientation,
+        autoScrollSpeed,
       );
 
   @override

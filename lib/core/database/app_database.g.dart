@@ -3462,6 +3462,14 @@ class $UserPreferencesTableTable extends UserPreferencesTable
           type: DriftSqlType.string,
           requiredDuringInsert: false,
           defaultValue: const Constant('auto'));
+  static const VerificationMeta _autoScrollSpeedMeta =
+      const VerificationMeta('autoScrollSpeed');
+  @override
+  late final GeneratedColumn<double> autoScrollSpeed = GeneratedColumn<double>(
+      'auto_scroll_speed', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1.0));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -3473,6 +3481,7 @@ class $UserPreferencesTableTable extends UserPreferencesTable
         defaultView,
         tagsSeeded,
         playerOrientation,
+        autoScrollSpeed
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3529,6 +3538,12 @@ class $UserPreferencesTableTable extends UserPreferencesTable
           playerOrientation.isAcceptableOrUnknown(
               data['player_orientation']!, _playerOrientationMeta));
     }
+    if (data.containsKey('auto_scroll_speed')) {
+      context.handle(
+          _autoScrollSpeedMeta,
+          autoScrollSpeed.isAcceptableOrUnknown(
+              data['auto_scroll_speed']!, _autoScrollSpeedMeta));
+    }
     return context;
   }
 
@@ -3554,9 +3569,10 @@ class $UserPreferencesTableTable extends UserPreferencesTable
           .read(DriftSqlType.string, data['${effectivePrefix}default_view'])!,
       tagsSeeded: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}tags_seeded'])!,
-      playerOrientation: attachedDatabase.typeMapping.read(DriftSqlType.string,
-              data['${effectivePrefix}player_orientation']) ??
-          'auto',
+      playerOrientation: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}player_orientation'])!,
+      autoScrollSpeed: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}auto_scroll_speed'])!,
     );
   }
 
@@ -3600,8 +3616,16 @@ class UserPreferencesRow extends DataClass
 
   /// Preferred screen orientation lock for the notation player.
   ///
-  /// One of `'auto'`, `'portrait'`, or `'landscape'`.
+  /// One of `'auto'`, `'portrait'`, or `'landscape'`. Defaults to `'auto'`
+  /// (sensor-driven, no lock).
   final String playerOrientation;
+
+  /// Auto-scroll speed multiplier for the notation player.
+  ///
+  /// A REAL value in the range [0.1, 3.0]. Defaults to `1.0` (1× speed).
+  /// Persisted across player sessions so the user's last-used speed is
+  /// restored on the next player open.
+  final double autoScrollSpeed;
   const UserPreferencesRow(
       {required this.id,
       required this.userName,
@@ -3611,7 +3635,8 @@ class UserPreferencesRow extends DataClass
       required this.defaultSort,
       required this.defaultView,
       required this.tagsSeeded,
-      this.playerOrientation = 'auto'});
+      required this.playerOrientation,
+      required this.autoScrollSpeed});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -3626,6 +3651,7 @@ class UserPreferencesRow extends DataClass
     map['default_view'] = Variable<String>(defaultView);
     map['tags_seeded'] = Variable<int>(tagsSeeded);
     map['player_orientation'] = Variable<String>(playerOrientation);
+    map['auto_scroll_speed'] = Variable<double>(autoScrollSpeed);
     return map;
   }
 
@@ -3642,6 +3668,7 @@ class UserPreferencesRow extends DataClass
       defaultView: Value(defaultView),
       tagsSeeded: Value(tagsSeeded),
       playerOrientation: Value(playerOrientation),
+      autoScrollSpeed: Value(autoScrollSpeed),
     );
   }
 
@@ -3657,8 +3684,8 @@ class UserPreferencesRow extends DataClass
       defaultSort: serializer.fromJson<String>(json['defaultSort']),
       defaultView: serializer.fromJson<String>(json['defaultView']),
       tagsSeeded: serializer.fromJson<int>(json['tagsSeeded']),
-      playerOrientation:
-          serializer.fromJson<String>(json['playerOrientation'] ?? 'auto'),
+      playerOrientation: serializer.fromJson<String>(json['playerOrientation']),
+      autoScrollSpeed: serializer.fromJson<double>(json['autoScrollSpeed']),
     );
   }
   @override
@@ -3674,6 +3701,7 @@ class UserPreferencesRow extends DataClass
       'defaultView': serializer.toJson<String>(defaultView),
       'tagsSeeded': serializer.toJson<int>(tagsSeeded),
       'playerOrientation': serializer.toJson<String>(playerOrientation),
+      'autoScrollSpeed': serializer.toJson<double>(autoScrollSpeed),
     };
   }
 
@@ -3686,7 +3714,8 @@ class UserPreferencesRow extends DataClass
           String? defaultSort,
           String? defaultView,
           int? tagsSeeded,
-          String? playerOrientation}) =>
+          String? playerOrientation,
+          double? autoScrollSpeed}) =>
       UserPreferencesRow(
         id: id ?? this.id,
         userName: userName ?? this.userName,
@@ -3697,6 +3726,7 @@ class UserPreferencesRow extends DataClass
         defaultView: defaultView ?? this.defaultView,
         tagsSeeded: tagsSeeded ?? this.tagsSeeded,
         playerOrientation: playerOrientation ?? this.playerOrientation,
+        autoScrollSpeed: autoScrollSpeed ?? this.autoScrollSpeed,
       );
   UserPreferencesRow copyWithCompanion(UserPreferencesTableCompanion data) {
     return UserPreferencesRow(
@@ -3716,6 +3746,9 @@ class UserPreferencesRow extends DataClass
       playerOrientation: data.playerOrientation.present
           ? data.playerOrientation.value
           : this.playerOrientation,
+      autoScrollSpeed: data.autoScrollSpeed.present
+          ? data.autoScrollSpeed.value
+          : this.autoScrollSpeed,
     );
   }
 
@@ -3730,14 +3763,24 @@ class UserPreferencesRow extends DataClass
           ..write('defaultSort: $defaultSort, ')
           ..write('defaultView: $defaultView, ')
           ..write('tagsSeeded: $tagsSeeded, ')
-          ..write('playerOrientation: $playerOrientation')
+          ..write('playerOrientation: $playerOrientation, ')
+          ..write('autoScrollSpeed: $autoScrollSpeed')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, userName, themeMode, colorSchemeMode,
-      seedColor, defaultSort, defaultView, tagsSeeded, playerOrientation);
+  int get hashCode => Object.hash(
+      id,
+      userName,
+      themeMode,
+      colorSchemeMode,
+      seedColor,
+      defaultSort,
+      defaultView,
+      tagsSeeded,
+      playerOrientation,
+      autoScrollSpeed);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3750,7 +3793,8 @@ class UserPreferencesRow extends DataClass
           other.defaultSort == this.defaultSort &&
           other.defaultView == this.defaultView &&
           other.tagsSeeded == this.tagsSeeded &&
-          other.playerOrientation == this.playerOrientation);
+          other.playerOrientation == this.playerOrientation &&
+          other.autoScrollSpeed == this.autoScrollSpeed);
 }
 
 class UserPreferencesTableCompanion
@@ -3764,6 +3808,7 @@ class UserPreferencesTableCompanion
   final Value<String> defaultView;
   final Value<int> tagsSeeded;
   final Value<String> playerOrientation;
+  final Value<double> autoScrollSpeed;
   const UserPreferencesTableCompanion({
     this.id = const Value.absent(),
     this.userName = const Value.absent(),
@@ -3774,6 +3819,7 @@ class UserPreferencesTableCompanion
     this.defaultView = const Value.absent(),
     this.tagsSeeded = const Value.absent(),
     this.playerOrientation = const Value.absent(),
+    this.autoScrollSpeed = const Value.absent(),
   });
   UserPreferencesTableCompanion.insert({
     this.id = const Value.absent(),
@@ -3785,6 +3831,7 @@ class UserPreferencesTableCompanion
     this.defaultView = const Value.absent(),
     this.tagsSeeded = const Value.absent(),
     this.playerOrientation = const Value.absent(),
+    this.autoScrollSpeed = const Value.absent(),
   });
   static Insertable<UserPreferencesRow> custom({
     Expression<int>? id,
@@ -3796,6 +3843,7 @@ class UserPreferencesTableCompanion
     Expression<String>? defaultView,
     Expression<int>? tagsSeeded,
     Expression<String>? playerOrientation,
+    Expression<double>? autoScrollSpeed,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -3807,6 +3855,7 @@ class UserPreferencesTableCompanion
       if (defaultView != null) 'default_view': defaultView,
       if (tagsSeeded != null) 'tags_seeded': tagsSeeded,
       if (playerOrientation != null) 'player_orientation': playerOrientation,
+      if (autoScrollSpeed != null) 'auto_scroll_speed': autoScrollSpeed,
     });
   }
 
@@ -3819,7 +3868,8 @@ class UserPreferencesTableCompanion
       Value<String>? defaultSort,
       Value<String>? defaultView,
       Value<int>? tagsSeeded,
-      Value<String>? playerOrientation}) {
+      Value<String>? playerOrientation,
+      Value<double>? autoScrollSpeed}) {
     return UserPreferencesTableCompanion(
       id: id ?? this.id,
       userName: userName ?? this.userName,
@@ -3830,6 +3880,7 @@ class UserPreferencesTableCompanion
       defaultView: defaultView ?? this.defaultView,
       tagsSeeded: tagsSeeded ?? this.tagsSeeded,
       playerOrientation: playerOrientation ?? this.playerOrientation,
+      autoScrollSpeed: autoScrollSpeed ?? this.autoScrollSpeed,
     );
   }
 
@@ -3863,6 +3914,9 @@ class UserPreferencesTableCompanion
     if (playerOrientation.present) {
       map['player_orientation'] = Variable<String>(playerOrientation.value);
     }
+    if (autoScrollSpeed.present) {
+      map['auto_scroll_speed'] = Variable<double>(autoScrollSpeed.value);
+    }
     return map;
   }
 
@@ -3877,7 +3931,8 @@ class UserPreferencesTableCompanion
           ..write('defaultSort: $defaultSort, ')
           ..write('defaultView: $defaultView, ')
           ..write('tagsSeeded: $tagsSeeded, ')
-          ..write('playerOrientation: $playerOrientation')
+          ..write('playerOrientation: $playerOrientation, ')
+          ..write('autoScrollSpeed: $autoScrollSpeed')
           ..write(')'))
         .toString();
   }
@@ -7234,6 +7289,8 @@ typedef $$UserPreferencesTableTableCreateCompanionBuilder
   Value<String> defaultSort,
   Value<String> defaultView,
   Value<int> tagsSeeded,
+  Value<String> playerOrientation,
+  Value<double> autoScrollSpeed,
 });
 typedef $$UserPreferencesTableTableUpdateCompanionBuilder
     = UserPreferencesTableCompanion Function({
@@ -7245,6 +7302,8 @@ typedef $$UserPreferencesTableTableUpdateCompanionBuilder
   Value<String> defaultSort,
   Value<String> defaultView,
   Value<int> tagsSeeded,
+  Value<String> playerOrientation,
+  Value<double> autoScrollSpeed,
 });
 
 class $$UserPreferencesTableTableFilterComposer
@@ -7280,6 +7339,14 @@ class $$UserPreferencesTableTableFilterComposer
 
   ColumnFilters<int> get tagsSeeded => $composableBuilder(
       column: $table.tagsSeeded, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get playerOrientation => $composableBuilder(
+      column: $table.playerOrientation,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get autoScrollSpeed => $composableBuilder(
+      column: $table.autoScrollSpeed,
+      builder: (column) => ColumnFilters(column));
 }
 
 class $$UserPreferencesTableTableOrderingComposer
@@ -7315,6 +7382,14 @@ class $$UserPreferencesTableTableOrderingComposer
 
   ColumnOrderings<int> get tagsSeeded => $composableBuilder(
       column: $table.tagsSeeded, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get playerOrientation => $composableBuilder(
+      column: $table.playerOrientation,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get autoScrollSpeed => $composableBuilder(
+      column: $table.autoScrollSpeed,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$UserPreferencesTableTableAnnotationComposer
@@ -7349,6 +7424,12 @@ class $$UserPreferencesTableTableAnnotationComposer
 
   GeneratedColumn<int> get tagsSeeded => $composableBuilder(
       column: $table.tagsSeeded, builder: (column) => column);
+
+  GeneratedColumn<String> get playerOrientation => $composableBuilder(
+      column: $table.playerOrientation, builder: (column) => column);
+
+  GeneratedColumn<double> get autoScrollSpeed => $composableBuilder(
+      column: $table.autoScrollSpeed, builder: (column) => column);
 }
 
 class $$UserPreferencesTableTableTableManager extends RootTableManager<
@@ -7389,6 +7470,8 @@ class $$UserPreferencesTableTableTableManager extends RootTableManager<
             Value<String> defaultSort = const Value.absent(),
             Value<String> defaultView = const Value.absent(),
             Value<int> tagsSeeded = const Value.absent(),
+            Value<String> playerOrientation = const Value.absent(),
+            Value<double> autoScrollSpeed = const Value.absent(),
           }) =>
               UserPreferencesTableCompanion(
             id: id,
@@ -7399,6 +7482,8 @@ class $$UserPreferencesTableTableTableManager extends RootTableManager<
             defaultSort: defaultSort,
             defaultView: defaultView,
             tagsSeeded: tagsSeeded,
+            playerOrientation: playerOrientation,
+            autoScrollSpeed: autoScrollSpeed,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -7409,6 +7494,8 @@ class $$UserPreferencesTableTableTableManager extends RootTableManager<
             Value<String> defaultSort = const Value.absent(),
             Value<String> defaultView = const Value.absent(),
             Value<int> tagsSeeded = const Value.absent(),
+            Value<String> playerOrientation = const Value.absent(),
+            Value<double> autoScrollSpeed = const Value.absent(),
           }) =>
               UserPreferencesTableCompanion.insert(
             id: id,
@@ -7419,6 +7506,8 @@ class $$UserPreferencesTableTableTableManager extends RootTableManager<
             defaultSort: defaultSort,
             defaultView: defaultView,
             tagsSeeded: tagsSeeded,
+            playerOrientation: playerOrientation,
+            autoScrollSpeed: autoScrollSpeed,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

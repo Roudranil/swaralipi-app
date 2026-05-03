@@ -63,6 +63,15 @@ abstract interface class PreferencesRepository
   /// - [orientation]: The new [PlayerOrientation] to persist.
   Future<void> updatePlayerOrientation(PlayerOrientation orientation);
 
+  /// Updates the `auto_scroll_speed` field to [speed].
+  ///
+  /// All other preference fields are left unchanged. [speed] must be in the
+  /// range [0.1, 3.0]; the implementation clamps to this range.
+  ///
+  /// Parameters:
+  /// - [speed]: The new auto-scroll speed multiplier to persist.
+  Future<void> updateAutoScrollSpeed(double speed);
+
   /// Convenience method to flip the `tagsSeeded` flag.
   ///
   /// Parameters:

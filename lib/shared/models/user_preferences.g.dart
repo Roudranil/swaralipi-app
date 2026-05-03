@@ -19,6 +19,7 @@ UserPreferences _$UserPreferencesFromJson(Map<String, dynamic> json) =>
       playerOrientation: $enumDecodeNullable(
               _$PlayerOrientationEnumMap, json['player_orientation']) ??
           PlayerOrientation.auto,
+      autoScrollSpeed: (json['auto_scroll_speed'] as num?)?.toDouble() ?? 1.0,
     );
 
 Map<String, dynamic> _$UserPreferencesToJson(UserPreferences instance) =>
@@ -32,6 +33,7 @@ Map<String, dynamic> _$UserPreferencesToJson(UserPreferences instance) =>
       'tags_seeded': instance.tagsSeeded,
       'player_orientation':
           _$PlayerOrientationEnumMap[instance.playerOrientation]!,
+      'auto_scroll_speed': instance.autoScrollSpeed,
     };
 
 const _$AppThemeModeEnumMap = {

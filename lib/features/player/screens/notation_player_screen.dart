@@ -12,6 +12,8 @@
 //     Non-destructive rendering is handled by the Page Editor flow.
 //   - Title + page indicator fade in/out (chrome) on tap after 3 s idle.
 //   - Orientation lock toggle (auto / portrait / landscape) in bottom chrome.
+//   - Auto-scroll toggle + speed slider shown in bottom chrome when enabled.
+//   - Timer.periodic drives smooth scroll; pauses on swipe gesture.
 //   - Back navigation returns to the previous screen.
 //
 // The screen reads [NotationPlayerViewModel] from a [ChangeNotifierProvider]
@@ -55,6 +57,12 @@ const double _kMinScale = 0.5;
 /// Maximum scale for [InteractiveViewer] pinch-zoom.
 const double _kMaxScale = 5.0;
 
+/// Slider step increment for the auto-scroll speed control.
+const double _kSpeedSliderStep = 0.1;
+
+/// Scroll animation duration per tick — short for smoothness.
+const Duration _kScrollAnimationDuration = Duration(milliseconds: 80);
+
 // ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
@@ -74,32 +82,60 @@ class NotationPlayerScreen extends StatefulWidget {
 class _NotationPlayerScreenState extends State<NotationPlayerScreen> {
   late PageController _pageController;
   Timer? _chromeFadeTimer;
+  Timer? _autoScrollTimer;
+
+  /// Whether a swipe gesture is currently active (suppresses auto-scroll tick).
+  bool _isSwiping = false;
+
+  /// Cached reference to the ViewModel so we can remove the listener in
+  /// [dispose] without needing [BuildContext] after unmount.
+  late NotationPlayerViewModel _vm;
 
   @override
   void initState() {
     super.initState();
-    final vm = context.read<NotationPlayerViewModel>();
-    _pageController = PageController(initialPage: vm.currentPage);
+    _vm = context.read<NotationPlayerViewModel>();
+    _pageController = PageController(initialPage: _vm.currentPage);
+    // Listen to ViewModel to sync the auto-scroll timer outside build().
+    _vm.addListener(_onViewModelChanged);
     // Defer load to after the first frame to avoid notifyListeners during build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _load();
     });
   }
 
-  Future<void> _load() async {
-    final vm = context.read<NotationPlayerViewModel>();
-    await vm.loadNotation();
+  /// Responds to ViewModel changes to keep the auto-scroll timer in sync.
+  ///
+  /// Runs outside [build] so Timer management is a side-effect-free listener.
+  void _onViewModelChanged() {
     if (!mounted) return;
-    final vmAfterLoad = context.read<NotationPlayerViewModel>();
+    if (_vm.autoScrollEnabled) {
+      if (_autoScrollTimer == null || !_autoScrollTimer!.isActive) {
+        _startAutoScrollTimer(_vm);
+      }
+    } else {
+      if (_autoScrollTimer != null && _autoScrollTimer!.isActive) {
+        _cancelAutoScrollTimer();
+      }
+    }
+  }
+
+  Future<void> _load() async {
+    await _vm.loadNotation();
+    if (!mounted) return;
+    // Load the persisted speed preference so the slider starts at the last
+    // used value.
+    await _vm.loadPersistedSpeed();
+    if (!mounted) return;
     // Sync PageController only when it is attached to a PageView and the
     // current page differs from the controller's page.
-    if (vmAfterLoad.pageCount > 0 &&
+    if (_vm.pageCount > 0 &&
         _pageController.hasClients &&
-        _pageController.page?.round() != vmAfterLoad.currentPage) {
-      _pageController.jumpToPage(vmAfterLoad.currentPage);
+        _pageController.page?.round() != _vm.currentPage) {
+      _pageController.jumpToPage(_vm.currentPage);
     }
     // Start the chrome fade timer only after load completes successfully.
-    if (vmAfterLoad.state is NotationPlayerStateSuccess) {
+    if (_vm.state is NotationPlayerStateSuccess) {
       _scheduleFade();
     }
   }
@@ -108,24 +144,96 @@ class _NotationPlayerScreenState extends State<NotationPlayerScreen> {
     _chromeFadeTimer?.cancel();
     _chromeFadeTimer = Timer(kChromeFadeDuration, () {
       if (!mounted) return;
-      context.read<NotationPlayerViewModel>().hideChrome();
+      _vm.hideChrome();
     });
   }
 
   void _onTapScreen() {
-    final vm = context.read<NotationPlayerViewModel>();
-    if (vm.isChromeVisible) {
-      vm.hideChrome();
+    if (_vm.isChromeVisible) {
+      _vm.hideChrome();
       _chromeFadeTimer?.cancel();
     } else {
-      vm.showChrome();
+      _vm.showChrome();
       _scheduleFade();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Auto-scroll
+  // ---------------------------------------------------------------------------
+
+  /// Starts or restarts the [Timer.periodic] that drives smooth auto-scroll.
+  void _startAutoScrollTimer(NotationPlayerViewModel vm) {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = Timer.periodic(
+      const Duration(milliseconds: kAutoScrollTickIntervalMs),
+      (_) => _onAutoScrollTick(),
+    );
+  }
+
+  /// Cancels the auto-scroll timer without changing ViewModel state.
+  void _cancelAutoScrollTimer() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+  }
+
+  /// Advances the scroll position by one step on each timer tick.
+  ///
+  /// Skips the tick when a swipe is in progress or the controller has no
+  /// clients. Stops auto-scroll when the end of the content is reached.
+  void _onAutoScrollTick() {
+    if (!mounted || _isSwiping) return;
+    if (!_pageController.hasClients) return;
+
+    final position = _pageController.position;
+    final viewportHeight = position.viewportDimension;
+    final step = NotationPlayerViewModel.calculateScrollStep(
+      speed: _vm.autoScrollSpeed,
+      viewportHeight: viewportHeight,
+      tickIntervalMs: kAutoScrollTickIntervalMs,
+    );
+
+    final currentOffset = position.pixels;
+    final maxOffset = position.maxScrollExtent;
+
+    if (currentOffset >= maxOffset) {
+      // Reached the end — stop auto-scroll.
+      _vm.stopAutoScroll();
+      _cancelAutoScrollTimer();
+      return;
+    }
+
+    final targetOffset = (currentOffset + step).clamp(0.0, maxOffset);
+    _pageController.animateTo(
+      targetOffset,
+      duration: _kScrollAnimationDuration,
+      curve: Curves.linear,
+    );
+  }
+
+  /// Called when the user starts a drag/swipe gesture.
+  void _onScrollStart() {
+    _isSwiping = true;
+    // Pause auto-scroll while swiping.
+    if (_vm.autoScrollEnabled) {
+      _cancelAutoScrollTimer();
+    }
+  }
+
+  /// Called when the user ends a drag/swipe gesture.
+  void _onScrollEnd() {
+    _isSwiping = false;
+    // Resume auto-scroll if still enabled after the swipe.
+    if (_vm.autoScrollEnabled) {
+      _startAutoScrollTimer(_vm);
     }
   }
 
   @override
   void dispose() {
+    _vm.removeListener(_onViewModelChanged);
     _chromeFadeTimer?.cancel();
+    _autoScrollTimer?.cancel();
     _pageController.dispose();
     // Restore auto-rotate when leaving the player.
     SystemChrome.setPreferredOrientations([]);
@@ -154,6 +262,8 @@ class _NotationPlayerScreenState extends State<NotationPlayerScreen> {
             vm: vm,
             pageController: _pageController,
             onTap: _onTapScreen,
+            onScrollStart: _onScrollStart,
+            onScrollEnd: _onScrollEnd,
           ),
       },
     );
@@ -289,12 +399,16 @@ class _PlayerView extends StatelessWidget {
     required this.vm,
     required this.pageController,
     required this.onTap,
+    required this.onScrollStart,
+    required this.onScrollEnd,
   });
 
   final NotationDetail detail;
   final NotationPlayerViewModel vm;
   final PageController pageController;
   final VoidCallback onTap;
+  final VoidCallback onScrollStart;
+  final VoidCallback onScrollEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -302,16 +416,28 @@ class _PlayerView extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onPanStart: (_) => onScrollStart(),
+      onPanEnd: (_) => onScrollEnd(),
       behavior: HitTestBehavior.opaque,
       child: Stack(
         children: [
-          // Page content.
-          PageView.builder(
-            controller: pageController,
-            itemCount: pageCount,
-            onPageChanged: (index) => vm.goToPage(index),
-            itemBuilder: (context, index) => _PageView(
-              page: detail.pages[index],
+          // Page content — NotificationListener detects page swipe start/end.
+          NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollStartNotification) {
+                onScrollStart();
+              } else if (notification is ScrollEndNotification) {
+                onScrollEnd();
+              }
+              return false;
+            },
+            child: PageView.builder(
+              controller: pageController,
+              itemCount: pageCount,
+              onPageChanged: (index) => vm.goToPage(index),
+              itemBuilder: (context, index) => _PageView(
+                page: detail.pages[index],
+              ),
             ),
           ),
 
@@ -328,6 +454,11 @@ class _PlayerView extends StatelessWidget {
             isVisible: vm.isChromeVisible,
             playerOrientation: vm.playerOrientation,
             onOrientationToggle: vm.cycleOrientation,
+            autoScrollEnabled: vm.autoScrollEnabled,
+            autoScrollSpeed: vm.autoScrollSpeed,
+            onAutoScrollToggle: vm.toggleAutoScroll,
+            onSpeedChanged: vm.updateScrollSpeedLocal,
+            onSpeedChangeEnd: vm.setScrollSpeed,
           ),
         ],
       ),
@@ -488,7 +619,8 @@ class _TitleChrome extends StatelessWidget {
 // Bottom chrome (page indicator + orientation toggle)
 // ---------------------------------------------------------------------------
 
-/// Animated bottom bar showing the page indicator and orientation toggle.
+/// Animated bottom bar showing the page indicator, orientation toggle,
+/// auto-scroll toggle, and (when enabled) the speed slider.
 class _BottomChrome extends StatelessWidget {
   const _BottomChrome({
     required this.currentPage,
@@ -496,6 +628,11 @@ class _BottomChrome extends StatelessWidget {
     required this.isVisible,
     required this.playerOrientation,
     required this.onOrientationToggle,
+    required this.autoScrollEnabled,
+    required this.autoScrollSpeed,
+    required this.onAutoScrollToggle,
+    required this.onSpeedChanged,
+    required this.onSpeedChangeEnd,
   });
 
   final int currentPage;
@@ -503,6 +640,15 @@ class _BottomChrome extends StatelessWidget {
   final bool isVisible;
   final PlayerOrientation playerOrientation;
   final VoidCallback onOrientationToggle;
+  final bool autoScrollEnabled;
+  final double autoScrollSpeed;
+  final VoidCallback onAutoScrollToggle;
+
+  /// Updates speed in-memory on every drag frame (no DB write).
+  final void Function(double) onSpeedChanged;
+
+  /// Persists speed to storage once drag ends.
+  final Future<void> Function(double) onSpeedChangeEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -513,36 +659,63 @@ class _BottomChrome extends StatelessWidget {
       child: AnimatedOpacity(
         duration: _kChromeAnimationDuration,
         opacity: isVisible ? 1.0 : 0.0,
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
-              colors: [Colors.black87, Colors.transparent],
+        child: IgnorePointer(
+          ignoring: !isVisible,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [Colors.black87, Colors.transparent],
+              ),
             ),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: SafeArea(
-            top: false,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Semantics(
-                  label: 'Page ${currentPage + 1} of $pageCount',
-                  child: Text(
-                    '${currentPage + 1} / $pageCount',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: Colors.white,
-                          letterSpacing: 1.5,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Speed slider — only shown when auto-scroll is enabled.
+                  if (autoScrollEnabled)
+                    _AutoScrollSpeedPanel(
+                      speed: autoScrollSpeed,
+                      onSpeedChanged: onSpeedChanged,
+                      onSpeedChangeEnd: onSpeedChangeEnd,
+                    ),
+                  // Controls row: page indicator, auto-scroll toggle, orient.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Semantics(
+                          label: 'Page ${currentPage + 1} of $pageCount',
+                          child: Text(
+                            '${currentPage + 1} / $pageCount',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelLarge
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  letterSpacing: 1.5,
+                                ),
+                          ),
                         ),
+                        const SizedBox(width: 16),
+                        _AutoScrollToggleButton(
+                          enabled: autoScrollEnabled,
+                          onTap: onAutoScrollToggle,
+                        ),
+                        const SizedBox(width: 8),
+                        _OrientationToggleButton(
+                          orientation: playerOrientation,
+                          onTap: onOrientationToggle,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 24),
-                _OrientationToggleButton(
-                  orientation: playerOrientation,
-                  onTap: onOrientationToggle,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -590,6 +763,121 @@ class _OrientationToggleButton extends StatelessWidget {
         onPressed: onTap,
         icon: Icon(icon, color: Colors.white),
         tooltip: label,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Auto-scroll toggle button
+// ---------------------------------------------------------------------------
+
+/// Icon button that toggles the auto-scroll feature on or off.
+///
+/// Displays a filled play icon when enabled, outlined when disabled.
+class _AutoScrollToggleButton extends StatelessWidget {
+  const _AutoScrollToggleButton({
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = enabled ? 'Auto-scroll: on' : 'Auto-scroll: off';
+    final icon = enabled ? Icons.play_circle : Icons.play_circle_outline;
+
+    return Semantics(
+      label: label,
+      button: true,
+      toggled: enabled,
+      child: IconButton(
+        key: const Key('auto_scroll_toggle_button'),
+        onPressed: onTap,
+        icon: Icon(icon, color: Colors.white),
+        tooltip: label,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Auto-scroll speed panel
+// ---------------------------------------------------------------------------
+
+/// A horizontal row containing the speed label and slider for auto-scroll.
+///
+/// Shown in the bottom chrome when auto-scroll is enabled. The slider range
+/// mirrors [kMinAutoScrollSpeed]–[kMaxAutoScrollSpeed] with [_kSpeedSliderStep]
+/// divisions.
+///
+/// [onSpeedChanged] is called on every drag frame to update the in-memory speed
+/// immediately. [onSpeedChangeEnd] is called once when the drag ends to persist
+/// the final value, avoiding a DB write per drag frame.
+class _AutoScrollSpeedPanel extends StatelessWidget {
+  const _AutoScrollSpeedPanel({
+    required this.speed,
+    required this.onSpeedChanged,
+    required this.onSpeedChangeEnd,
+  });
+
+  final double speed;
+
+  /// Called on every slider drag frame — updates in-memory speed immediately.
+  final void Function(double) onSpeedChanged;
+
+  /// Called once when drag ends — persists the final speed to storage.
+  final Future<void> Function(double) onSpeedChangeEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final divisions =
+        ((kMaxAutoScrollSpeed - kMinAutoScrollSpeed) / _kSpeedSliderStep)
+            .round();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          const Icon(Icons.speed, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Semantics(
+              label: 'Auto-scroll speed: ${speed.toStringAsFixed(1)}×',
+              slider: true,
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: Colors.white,
+                  inactiveTrackColor: Colors.white30,
+                  thumbColor: Colors.white,
+                  overlayColor: Colors.white24,
+                  valueIndicatorColor: Colors.white,
+                  valueIndicatorTextStyle: const TextStyle(
+                    color: Colors.black,
+                  ),
+                ),
+                child: Slider(
+                  key: const Key('auto_scroll_speed_slider'),
+                  value: speed,
+                  min: kMinAutoScrollSpeed,
+                  max: kMaxAutoScrollSpeed,
+                  divisions: divisions,
+                  label: '${speed.toStringAsFixed(1)}×',
+                  onChanged: onSpeedChanged,
+                  onChangeEnd: (v) => onSpeedChangeEnd(v),
+                ),
+              ),
+            ),
+          ),
+          Text(
+            '${speed.toStringAsFixed(1)}×',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Colors.white,
+                ),
+          ),
+        ],
       ),
     );
   }

@@ -413,6 +413,13 @@ class UserPreferencesTable extends Table {
   TextColumn get playerOrientation =>
       text().withDefault(const Constant('auto'))();
 
+  /// Auto-scroll speed multiplier for the notation player.
+  ///
+  /// A REAL value in the range [0.1, 3.0]. Defaults to `1.0` (1× speed).
+  /// Persisted across player sessions so the user's last-used speed is
+  /// restored on the next player open.
+  RealColumn get autoScrollSpeed => real().withDefault(const Constant(1.0))();
+
   @override
   Set<Column> get primaryKey => {id};
 
@@ -430,6 +437,7 @@ class UserPreferencesTable extends Table {
         "CHECK (default_view IN ('list'))",
         'CHECK (tags_seeded IN (0, 1))',
         "CHECK (player_orientation IN ('auto', 'portrait', 'landscape'))",
+        'CHECK (auto_scroll_speed >= 0.1 AND auto_scroll_speed <= 3.0)',
       ];
 }
 
@@ -461,6 +469,7 @@ class UserPreferencesTable extends Table {
 /// | 2 | Add `tags_seeded` column to `user_preferences_table` |
 /// | 3 | Add `deleted_at` column to `instrument_classes_table` |
 /// | 4 | Add `player_orientation` column to `user_preferences_table` |
+/// | 5 | Add `auto_scroll_speed` column to `user_preferences_table` |
 @DriftDatabase(
   tables: [
     NotationsTable,
@@ -529,7 +538,7 @@ class AppDatabase extends _$AppDatabase {
         );
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -562,6 +571,13 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(
               userPreferencesTable,
               userPreferencesTable.playerOrientation,
+            );
+          }
+          // v4 → v5: add auto_scroll_speed column to user_preferences_table.
+          if (from < 5) {
+            await m.addColumn(
+              userPreferencesTable,
+              userPreferencesTable.autoScrollSpeed,
             );
           }
         },
