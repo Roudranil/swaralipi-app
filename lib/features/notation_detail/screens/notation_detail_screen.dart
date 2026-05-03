@@ -38,7 +38,10 @@ import 'package:swaralipi/features/edit/screens/edit_notation_screen.dart';
 import 'package:swaralipi/features/notation_detail/viewmodels/notation_detail_view_model.dart';
 import 'package:swaralipi/features/player/screens/notation_player_screen.dart';
 import 'package:swaralipi/features/player/viewmodels/notation_player_view_model.dart';
+import 'package:swaralipi/shared/models/custom_field_value.dart';
 import 'package:swaralipi/shared/models/notation_detail.dart';
+import 'package:swaralipi/shared/models/notation_page.dart';
+import 'package:swaralipi/shared/models/tag.dart';
 import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
 import 'package:swaralipi/shared/repositories/instrument_repository.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
@@ -502,6 +505,16 @@ class _DetailContent extends StatelessWidget {
             ),
             const SizedBox(height: 4),
           ],
+          if (detail.tags.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _TagChipRow(tags: detail.tags),
+          ],
+          if (detail.customFieldValues.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _CustomFieldValuesSection(
+              customFieldValues: detail.customFieldValues,
+            ),
+          ],
           if (n.notes.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
@@ -521,8 +534,202 @@ class _DetailContent extends StatelessWidget {
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 8),
+            _PageThumbnailRow(pages: detail.pages),
+            const SizedBox(height: 8),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tag chips row
+// ---------------------------------------------------------------------------
+
+/// Horizontal scrolling row of colored [Chip] widgets for each tag.
+class _TagChipRow extends StatelessWidget {
+  const _TagChipRow({required this.tags});
+
+  final List<Tag> tags;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: tags.map((tag) => _TagChip(tag: tag)).toList(),
+    );
+  }
+}
+
+/// A single colored [Chip] for one tag.
+class _TagChip extends StatelessWidget {
+  const _TagChip({required this.tag});
+
+  final Tag tag;
+
+  /// Parses a CSS hex color string like `'#f38ba8'` into a [Color].
+  ///
+  /// Returns [Colors.grey] when the string is not a valid 7-character hex.
+  static Color _hexToColor(String hex) {
+    if (hex.startsWith('#') && hex.length == 7) {
+      final value = int.tryParse(hex.substring(1), radix: 16);
+      if (value != null) return Color(0xFF000000 | value);
+    }
+    return Colors.grey;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final backgroundColor = _hexToColor(tag.colorHex);
+    // Derive a foreground color with sufficient contrast against the chip bg.
+    final brightness = ThemeData.estimateBrightnessForColor(backgroundColor);
+    final foregroundColor =
+        brightness == Brightness.dark ? Colors.white : Colors.black87;
+
+    return Semantics(
+      label: 'Tag: ${tag.name}',
+      child: Chip(
+        label: Text(
+          tag.name,
+          style: Theme.of(context)
+              .textTheme
+              .labelMedium
+              ?.copyWith(color: foregroundColor),
+        ),
+        backgroundColor: backgroundColor,
+        side: BorderSide.none,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Custom field values section
+// ---------------------------------------------------------------------------
+
+/// Displays each non-null custom field value as a label/value pair.
+class _CustomFieldValuesSection extends StatelessWidget {
+  const _CustomFieldValuesSection({required this.customFieldValues});
+
+  final List<CustomFieldValue> customFieldValues;
+
+  /// Returns the display string for a custom field value, or `null` when
+  /// none of the sparse columns is populated.
+  static String? _displayValue(CustomFieldValue cfv) {
+    if (cfv.valueText != null) return cfv.valueText;
+    if (cfv.valueNumber != null) return cfv.valueNumber.toString();
+    if (cfv.valueDate != null) return cfv.valueDate;
+    if (cfv.valueBoolean != null) {
+      return cfv.valueBoolean! ? 'Yes' : 'No';
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayItems = customFieldValues
+        .map((cfv) => _displayValue(cfv))
+        .where((v) => v != null)
+        .cast<String>()
+        .toList();
+
+    if (displayItems.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Custom Fields',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 4),
+        ...displayItems.map(
+          (value) => Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Page thumbnail row
+// ---------------------------------------------------------------------------
+
+/// Horizontal scrolling row of page thumbnails.
+///
+/// Each thumbnail shows a placeholder icon since full image loading via
+/// [FileStorageService] is performed in the player context. The row
+/// communicates page count to the user.
+class _PageThumbnailRow extends StatelessWidget {
+  const _PageThumbnailRow({required this.pages});
+
+  final List<NotationPage> pages;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _kThumbnailHeight,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: pages.length,
+        itemBuilder: (context, index) =>
+            _PageThumbnailItem(page: pages[index], index: index),
+      ),
+    );
+  }
+}
+
+/// Height of each page thumbnail card.
+const double _kThumbnailHeight = 120;
+
+/// Width of each page thumbnail card.
+const double _kThumbnailWidth = 80;
+
+/// A single page thumbnail card showing page number and a placeholder image.
+class _PageThumbnailItem extends StatelessWidget {
+  const _PageThumbnailItem({required this.page, required this.index});
+
+  final NotationPage page;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Page ${index + 1}',
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: SizedBox(
+          width: _kThumbnailWidth,
+          child: Card(
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.image_outlined,
+                  size: 32,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${index + 1}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
