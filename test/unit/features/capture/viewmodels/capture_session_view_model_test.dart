@@ -139,7 +139,9 @@ void main() {
       'skips path and continues when file read throws',
       () async {
         fakeReader = FakeFileReader(
-          data: {'/good.jpg': Uint8List.fromList([1])},
+          data: {
+            '/good.jpg': Uint8List.fromList([1])
+          },
           errorPaths: {'/bad.jpg'},
         );
         viewModel = CaptureSessionViewModel(fileReader: fakeReader);

@@ -79,6 +79,11 @@ class FakePreferencesRepository implements PreferencesRepository {
   Future<void> updateTagsSeeded({required bool value}) async {
     _prefs = _prefs.copyWith(tagsSeeded: value);
   }
+
+  @override
+  Future<void> updatePlayerOrientation(PlayerOrientation orientation) async {
+    _prefs = _prefs.copyWith(playerOrientation: orientation);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -123,6 +128,9 @@ class _BlockingPreferencesRepository implements PreferencesRepository {
 
   @override
   Future<void> updateTagsSeeded({required bool value}) async {}
+
+  @override
+  Future<void> updatePlayerOrientation(PlayerOrientation orientation) async {}
 }
 
 // ---------------------------------------------------------------------------
@@ -316,4 +324,7 @@ class _FailingPreferencesRepository implements PreferencesRepository {
 
   @override
   Future<void> updateTagsSeeded({required bool value}) async {}
+
+  @override
+  Future<void> updatePlayerOrientation(PlayerOrientation orientation) async {}
 }

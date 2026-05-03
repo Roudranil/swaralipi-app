@@ -1,4 +1,4 @@
-// Migration tests for AppDatabase — schema v3.
+// Migration tests for AppDatabase — schema v4.
 //
 // Verifies that [MigrationStrategy.onCreate] produces the exact schema
 // described in docs/02-technical/data-model.md, including:
@@ -6,7 +6,7 @@
 //   - All 9 indexes (partial and non-partial)
 //   - The FTS5 virtual table (notations_fts) and its 3 sync triggers
 //   - Seed data: 5 default tags and the singleton user_preferences row
-//   - schemaVersion == 3
+//   - schemaVersion == 4
 //
 // [validateDatabaseSchema] (from drift_dev/api/migrations_native.dart) is
 // used to compare the live schema against Drift's reference schema, giving
@@ -110,18 +110,18 @@ void main() {
   setUpAll(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = true);
 
   // -------------------------------------------------------------------------
-  group('Migration v3 — schema version', () {
+  group('Migration v4 — schema version', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
 
-    test('schemaVersion is 3', () {
-      expect(db.schemaVersion, 3);
+    test('schemaVersion is 4', () {
+      expect(db.schemaVersion, 4);
     });
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v3 — Drift schema validation', () {
+  group('Migration v4 — Drift schema validation', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -146,7 +146,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v3 — table presence', () {
+  group('Migration v4 — table presence', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -160,7 +160,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v3 — index presence', () {
+  group('Migration v4 — index presence', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -174,7 +174,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v3 — FTS5 virtual table and triggers', () {
+  group('Migration v4 — FTS5 virtual table and triggers', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -219,7 +219,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v3 — seed data', () {
+  group('Migration v4 — seed data', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -260,11 +260,12 @@ void main() {
       expect(prefs.defaultView, 'list');
       expect(prefs.userName, 'Musician');
       expect(prefs.tagsSeeded, 0);
+      expect(prefs.playerOrientation, 'auto');
     });
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v3 — forTesting mode has no seed data', () {
+  group('Migration v4 — forTesting mode has no seed data', () {
     late AppDatabase db;
     setUp(() {
       db = AppDatabase.forTesting();
@@ -332,8 +333,7 @@ void main() {
     });
     tearDown(() => db.close());
 
-    test(
-        'instrument_classes_table has deleted_at column after upgrade',
+    test('instrument_classes_table has deleted_at column after upgrade',
         () async {
       final columns = await db
           .customSelect(
@@ -364,6 +364,45 @@ void main() {
         row.deletedAt,
         isNull,
         reason: 'deleted_at should default to NULL',
+      );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  group('Migration v3 → v4 upgrade', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      // Open a v4 in-memory database and trigger schema creation.
+      db = AppDatabase.forTesting();
+      await db.select(db.notationsTable).get();
+    });
+    tearDown(() => db.close());
+
+    test('user_preferences_table has player_orientation column after upgrade',
+        () async {
+      final columns = await db
+          .customSelect(
+            "PRAGMA table_info('user_preferences_table')",
+          )
+          .get();
+      final columnNames = columns.map((r) => r.read<String>('name')).toList();
+      expect(
+        columnNames,
+        contains('player_orientation'),
+        reason: 'player_orientation column missing from user_preferences_table',
+      );
+    });
+
+    test('player_orientation column has default value auto', () async {
+      await db.into(db.userPreferencesTable).insert(
+            const UserPreferencesTableCompanion(),
+          );
+      final prefs = await db.select(db.userPreferencesTable).getSingle();
+      expect(
+        prefs.playerOrientation,
+        'auto',
+        reason: 'player_orientation should default to auto',
       );
     });
   });

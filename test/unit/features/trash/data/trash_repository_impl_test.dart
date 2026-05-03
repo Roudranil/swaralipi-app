@@ -82,8 +82,7 @@ class FakeRow {
   final String title;
   final String? deletedAt;
 
-  FakeRow copyWith({String? deletedAt, bool clearDeletedAt = false}) =>
-      FakeRow(
+  FakeRow copyWith({String? deletedAt, bool clearDeletedAt = false}) => FakeRow(
         id: id,
         title: title,
         deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),

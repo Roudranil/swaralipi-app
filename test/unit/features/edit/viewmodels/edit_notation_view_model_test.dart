@@ -278,12 +278,14 @@ void main() {
 
     test('artists pre-populated from notation', () async {
       repo.notationToReturn = _makeDetail(
-        notation: _makeNotation(artists: ['Pt. Ravi Shankar', 'Ustad Ali Khan']),
+        notation:
+            _makeNotation(artists: ['Pt. Ravi Shankar', 'Ustad Ali Khan']),
       );
       final vm = makeVm();
       await vm.loadNotation('notation-1');
 
-      expect(vm.formState.artists, equals(['Pt. Ravi Shankar', 'Ustad Ali Khan']));
+      expect(
+          vm.formState.artists, equals(['Pt. Ravi Shankar', 'Ustad Ali Khan']));
     });
 
     test('dateWritten pre-populated from notation', () async {
@@ -349,8 +351,7 @@ void main() {
       expect(vm.formState.selectedTagIds, containsAll(['tag-1', 'tag-2']));
     });
 
-    test(
-        'customFieldValues pre-populated from text custom field values',
+    test('customFieldValues pre-populated from text custom field values',
         () async {
       repo.notationToReturn = _makeDetail(
         customFieldValues: [
@@ -533,8 +534,7 @@ void main() {
 
   group('isTitleValid', () {
     test('returns false when title is empty', () async {
-      repo.notationToReturn =
-          _makeDetail(notation: _makeNotation(title: ''));
+      repo.notationToReturn = _makeDetail(notation: _makeNotation(title: ''));
       final vm = makeVm();
       await vm.loadNotation('notation-1');
       expect(vm.isTitleValid, isFalse);
@@ -562,8 +562,7 @@ void main() {
 
   group('save', () {
     test('no-op when title is empty', () async {
-      repo.notationToReturn =
-          _makeDetail(notation: _makeNotation(title: ''));
+      repo.notationToReturn = _makeDetail(notation: _makeNotation(title: ''));
       final vm = makeVm();
       await vm.loadNotation('notation-1');
 
@@ -589,9 +588,7 @@ void main() {
       expect(repo.lastUpdateId, equals('notation-1'));
     });
 
-    test(
-        'calls updateNotation with correct id and draft on success',
-        () async {
+    test('calls updateNotation with correct id and draft on success', () async {
       repo.notationToReturn = _makeDetail(
         notation: _makeNotation(title: 'Raag Bhairav'),
         tags: [_makeTag(id: 'tag-1')],
@@ -657,11 +654,12 @@ void main() {
       expect(error.message, contains('update failed'));
     });
 
-    test(
-        'passes updatedPages pages as SavedPage list to updateNotation draft',
+    test('passes updatedPages pages as SavedPage list to updateNotation draft',
         () async {
       repo.notationToReturn = _makeDetail(
-        pages: [_makePage(id: 'p1', imagePath: 'notations/n1/page_0_original.jpg')],
+        pages: [
+          _makePage(id: 'p1', imagePath: 'notations/n1/page_0_original.jpg')
+        ],
       );
       repo.updatedNotation = _makeNotation();
       final vm = makeVm();
@@ -693,14 +691,16 @@ void main() {
 
       final updatedPages = [
         _makePage(id: 'p1', renderParams: '{"filter":"grayscale"}'),
-        _makePage(id: 'p2', pageOrder: 1, renderParams: '{"rotation_degrees":90}'),
+        _makePage(
+            id: 'p2', pageOrder: 1, renderParams: '{"rotation_degrees":90}'),
       ];
 
       await vm.save(updatedPages: updatedPages);
 
       expect(repo.pageRenderParamsUpdates, hasLength(2));
       expect(repo.pageRenderParamsUpdates[0].$1, equals('p1'));
-      expect(repo.pageRenderParamsUpdates[0].$2, equals('{"filter":"grayscale"}'));
+      expect(
+          repo.pageRenderParamsUpdates[0].$2, equals('{"filter":"grayscale"}'));
       expect(repo.pageRenderParamsUpdates[1].$1, equals('p2'));
     });
   });
