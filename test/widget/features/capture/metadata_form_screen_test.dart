@@ -136,6 +136,10 @@ class _FakeNotationRepository implements NotationRepository {
   Future<NotationDetail?> loadNotation(String id) async => null;
   @override
   Stream<List<Notation>> watchAllActive() => const Stream.empty();
+
+  @override
+  Stream<List<Notation>> watchRecentlyPlayed({int limit = 5}) =>
+      const Stream.empty();
   @override
   Future<void> softDelete(String id) async {}
   @override

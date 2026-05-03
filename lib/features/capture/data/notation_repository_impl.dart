@@ -180,6 +180,13 @@ final class NotationRepositoryImpl implements NotationRepository {
   }
 
   @override
+  Stream<List<Notation>> watchRecentlyPlayed({int limit = 5}) {
+    return _notationDao
+        .watchRecentlyPlayed(limit: limit)
+        .map((rows) => rows.map(_rowToDomain).toList());
+  }
+
+  @override
   Future<void> softDelete(String id) async {
     await _notationDao.softDelete(id);
     log(

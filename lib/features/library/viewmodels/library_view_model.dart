@@ -35,6 +35,37 @@ import 'package:swaralipi/shared/repositories/trash_repository.dart';
 // State hierarchy
 // ---------------------------------------------------------------------------
 
+/// Sealed state for the recently-played carousel in [LibraryViewModel].
+///
+/// Variants: [RecentlyPlayedStateIdle], [RecentlyPlayedStateSuccess].
+sealed class RecentlyPlayedState {
+  /// Creates a [RecentlyPlayedState].
+  const RecentlyPlayedState();
+}
+
+/// Initial state before [LibraryViewModel.init] is called, or while the first
+/// stream emission is pending.
+final class RecentlyPlayedStateIdle extends RecentlyPlayedState {
+  /// Creates a [RecentlyPlayedStateIdle].
+  const RecentlyPlayedStateIdle();
+}
+
+/// State when the recently-played list has been received from the stream.
+///
+/// An empty [notations] list means no notations have been played yet; the
+/// carousel should be hidden in this case.
+final class RecentlyPlayedStateSuccess extends RecentlyPlayedState {
+  /// Creates a [RecentlyPlayedStateSuccess] with [notations].
+  ///
+  /// Parameters:
+  /// - [notations]: Recently-played notations ordered by last-played date
+  ///   descending. May be empty.
+  const RecentlyPlayedStateSuccess({required this.notations});
+
+  /// Recently-played notations, ordered by [Notation.lastPlayedAt] descending.
+  final List<Notation> notations;
+}
+
 /// Sealed state for [LibraryViewModel].
 ///
 /// Variants: [LibraryStateIdle], [LibraryStateLoading],
@@ -116,8 +147,10 @@ class LibraryViewModel extends ChangeNotifier {
   final TrashRepository _trashRepository;
   final DuplicateNotationUseCase? _duplicateUseCase;
   StreamSubscription<List<Notation>>? _subscription;
+  StreamSubscription<List<Notation>>? _recentSubscription;
 
   LibraryState _state = const LibraryStateIdle();
+  RecentlyPlayedState _recentlyPlayedState = const RecentlyPlayedStateIdle();
   String? _operationError;
   String? _lastDuplicatedId;
 
@@ -127,6 +160,13 @@ class LibraryViewModel extends ChangeNotifier {
 
   /// The current display state of the library screen.
   LibraryState get state => _state;
+
+  /// The current state of the recently-played carousel.
+  ///
+  /// [RecentlyPlayedStateIdle] until [init] is called and the first stream
+  /// emission arrives. [RecentlyPlayedStateSuccess] with an empty list means
+  /// no notations have been played yet; the carousel should be hidden.
+  RecentlyPlayedState get recentlyPlayedState => _recentlyPlayedState;
 
   /// Non-null when the most recent operation (softDelete / undoDelete / duplicate) failed.
   ///
@@ -143,16 +183,18 @@ class LibraryViewModel extends ChangeNotifier {
   // Lifecycle
   // -------------------------------------------------------------------------
 
-  /// Subscribes to the active notation stream and begins emitting state
-  /// updates.
+  /// Subscribes to the active notation stream and the recently-played stream,
+  /// and begins emitting state updates.
   ///
   /// Transitions immediately to [LibraryStateLoading], then to
   /// [LibraryStateSuccess] or [LibraryStateError] as the stream emits.
-  /// Calling [init] again cancels the previous subscription before
+  /// Calling [init] again cancels the previous subscriptions before
   /// restarting.
   void init() {
     _subscription?.cancel();
+    _recentSubscription?.cancel();
     _state = const LibraryStateLoading();
+    _recentlyPlayedState = const RecentlyPlayedStateIdle();
     notifyListeners();
 
     _subscription = _notationRepository.watchAllActive().listen(
@@ -171,11 +213,31 @@ class LibraryViewModel extends ChangeNotifier {
         notifyListeners();
       },
     );
+
+    _recentSubscription =
+        _notationRepository.watchRecentlyPlayed(limit: 5).listen(
+      (notations) {
+        _recentlyPlayedState = RecentlyPlayedStateSuccess(
+          notations: notations,
+        );
+        notifyListeners();
+      },
+      onError: (Object error, StackTrace stack) {
+        log(
+          'LibraryViewModel: recently-played stream error — $error',
+          name: 'LibraryViewModel',
+          error: error,
+          stackTrace: stack,
+        );
+        // Do not replace the main state on a carousel error; keep idle.
+      },
+    );
   }
 
   @override
   void dispose() {
     _subscription?.cancel();
+    _recentSubscription?.cancel();
     super.dispose();
   }
 

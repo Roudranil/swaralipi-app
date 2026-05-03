@@ -42,6 +42,10 @@ class FakeNotationRepository implements NotationRepository {
   Stream<List<Notation>> watchAllActive() => const Stream.empty();
 
   @override
+  Stream<List<Notation>> watchRecentlyPlayed({int limit = 5}) =>
+      const Stream.empty();
+
+  @override
   Future<Notation> saveNotation(
     NotationDraft draft,
     List<SavedPage> pages, {

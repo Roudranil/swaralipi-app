@@ -40,6 +40,10 @@ class FakeNotationRepository implements NotationRepository {
   Stream<List<Notation>> watchAllActive() => _controller.stream;
 
   @override
+  Stream<List<Notation>> watchRecentlyPlayed({int limit = 5}) =>
+      const Stream.empty();
+
+  @override
   Future<void> softDelete(String id) async {
     if (_softDeleteError != null) throw _softDeleteError!;
     softDeletedIds.add(id);
