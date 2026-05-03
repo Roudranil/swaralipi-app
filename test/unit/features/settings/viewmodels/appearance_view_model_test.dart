@@ -78,6 +78,11 @@ class FakePreferencesRepository implements PreferencesRepository {
   Future<void> updatePlayerOrientation(PlayerOrientation orientation) async {
     _prefs = _prefs.copyWith(playerOrientation: orientation);
   }
+
+  @override
+  Future<void> updateAutoScrollSpeed(double speed) async {
+    _prefs = _prefs.copyWith(autoScrollSpeed: speed);
+  }
 }
 
 // ---------------------------------------------------------------------------

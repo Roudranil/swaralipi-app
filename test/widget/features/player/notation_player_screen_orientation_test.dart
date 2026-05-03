@@ -97,6 +97,9 @@ class FakePreferencesRepository implements PreferencesRepository {
   Future<void> updateSeedColor(String? colorHex) async {}
 
   @override
+  Future<void> updateAutoScrollSpeed(double speed) async {}
+
+  @override
   Future<void> updateTagsSeeded({required bool value}) async {}
 }
 
