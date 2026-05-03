@@ -163,8 +163,7 @@ class NotationDao extends DatabaseAccessor<AppDatabase>
   /// Used by [TrashRepository.purgeAll] to obtain the ids of all trashed
   /// notations before performing hard deletes and file-system cleanup.
   Future<List<NotationRow>> getAllTrashed() {
-    return (select(notationsTable)
-          ..where((t) => t.deletedAt.isNotNull()))
+    return (select(notationsTable)..where((t) => t.deletedAt.isNotNull()))
         .get();
   }
 

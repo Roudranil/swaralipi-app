@@ -70,6 +70,7 @@ final class UserPreferencesRepositoryImpl implements PreferencesRepository {
         defaultSort: Value(preferences.defaultSort.dbValue),
         defaultView: Value(preferences.defaultView.dbValue),
         tagsSeeded: Value(preferences.tagsSeeded ? 1 : 0),
+        playerOrientation: Value(preferences.playerOrientation.dbValue),
       ),
     );
     log(
@@ -142,6 +143,29 @@ final class UserPreferencesRepositoryImpl implements PreferencesRepository {
   }
 
   @override
+  Future<void> updatePlayerOrientation(PlayerOrientation orientation) async {
+    final existing = await _dao.getPreferences();
+    await _dao.upsertPreferences(
+      UserPreferencesTableCompanion(
+        id: const Value(_kSingletonId),
+        userName: Value(existing.userName),
+        themeMode: Value(existing.themeMode),
+        colorSchemeMode: Value(existing.colorSchemeMode),
+        seedColor: Value(existing.seedColor),
+        defaultSort: Value(existing.defaultSort),
+        defaultView: Value(existing.defaultView),
+        tagsSeeded: Value(existing.tagsSeeded),
+        playerOrientation: Value(orientation.dbValue),
+      ),
+    );
+    log(
+      'UserPreferencesRepositoryImpl: playerOrientation set to '
+      '${orientation.dbValue}',
+      name: 'UserPreferencesRepository',
+    );
+  }
+
+  @override
   Future<void> updateTagsSeeded({required bool value}) async {
     final existing = await _dao.getPreferences();
     await _dao.upsertPreferences(
@@ -185,6 +209,11 @@ final class UserPreferencesRepositoryImpl implements PreferencesRepository {
       orElse: () => ViewMode.list,
     );
 
+    final playerOrientation = PlayerOrientation.values.firstWhere(
+      (o) => o.dbValue == row.playerOrientation,
+      orElse: () => PlayerOrientation.auto,
+    );
+
     return UserPreferences(
       userName: row.userName,
       themeMode: themeMode,
@@ -193,6 +222,7 @@ final class UserPreferencesRepositoryImpl implements PreferencesRepository {
       defaultSort: defaultSort,
       defaultView: defaultView,
       tagsSeeded: row.tagsSeeded == 1,
+      playerOrientation: playerOrientation,
     );
   }
 }

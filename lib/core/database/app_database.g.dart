@@ -3454,6 +3454,14 @@ class $UserPreferencesTableTable extends UserPreferencesTable
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _playerOrientationMeta =
+      const VerificationMeta('playerOrientation');
+  @override
+  late final GeneratedColumn<String> playerOrientation =
+      GeneratedColumn<String>('player_orientation', aliasedName, false,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultValue: const Constant('auto'));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -3463,7 +3471,8 @@ class $UserPreferencesTableTable extends UserPreferencesTable
         seedColor,
         defaultSort,
         defaultView,
-        tagsSeeded
+        tagsSeeded,
+        playerOrientation,
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3514,6 +3523,12 @@ class $UserPreferencesTableTable extends UserPreferencesTable
           tagsSeeded.isAcceptableOrUnknown(
               data['tags_seeded']!, _tagsSeededMeta));
     }
+    if (data.containsKey('player_orientation')) {
+      context.handle(
+          _playerOrientationMeta,
+          playerOrientation.isAcceptableOrUnknown(
+              data['player_orientation']!, _playerOrientationMeta));
+    }
     return context;
   }
 
@@ -3539,6 +3554,9 @@ class $UserPreferencesTableTable extends UserPreferencesTable
           .read(DriftSqlType.string, data['${effectivePrefix}default_view'])!,
       tagsSeeded: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}tags_seeded'])!,
+      playerOrientation: attachedDatabase.typeMapping.read(DriftSqlType.string,
+              data['${effectivePrefix}player_orientation']) ??
+          'auto',
     );
   }
 
@@ -3579,6 +3597,11 @@ class UserPreferencesRow extends DataClass
   /// `0` = not seeded, `1` = seeded. Stored as INTEGER for SQLite
   /// compatibility; treated as [bool] at the app layer.
   final int tagsSeeded;
+
+  /// Preferred screen orientation lock for the notation player.
+  ///
+  /// One of `'auto'`, `'portrait'`, or `'landscape'`.
+  final String playerOrientation;
   const UserPreferencesRow(
       {required this.id,
       required this.userName,
@@ -3587,7 +3610,8 @@ class UserPreferencesRow extends DataClass
       this.seedColor,
       required this.defaultSort,
       required this.defaultView,
-      required this.tagsSeeded});
+      required this.tagsSeeded,
+      this.playerOrientation = 'auto'});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -3601,6 +3625,7 @@ class UserPreferencesRow extends DataClass
     map['default_sort'] = Variable<String>(defaultSort);
     map['default_view'] = Variable<String>(defaultView);
     map['tags_seeded'] = Variable<int>(tagsSeeded);
+    map['player_orientation'] = Variable<String>(playerOrientation);
     return map;
   }
 
@@ -3616,6 +3641,7 @@ class UserPreferencesRow extends DataClass
       defaultSort: Value(defaultSort),
       defaultView: Value(defaultView),
       tagsSeeded: Value(tagsSeeded),
+      playerOrientation: Value(playerOrientation),
     );
   }
 
@@ -3631,6 +3657,8 @@ class UserPreferencesRow extends DataClass
       defaultSort: serializer.fromJson<String>(json['defaultSort']),
       defaultView: serializer.fromJson<String>(json['defaultView']),
       tagsSeeded: serializer.fromJson<int>(json['tagsSeeded']),
+      playerOrientation:
+          serializer.fromJson<String>(json['playerOrientation'] ?? 'auto'),
     );
   }
   @override
@@ -3645,6 +3673,7 @@ class UserPreferencesRow extends DataClass
       'defaultSort': serializer.toJson<String>(defaultSort),
       'defaultView': serializer.toJson<String>(defaultView),
       'tagsSeeded': serializer.toJson<int>(tagsSeeded),
+      'playerOrientation': serializer.toJson<String>(playerOrientation),
     };
   }
 
@@ -3656,7 +3685,8 @@ class UserPreferencesRow extends DataClass
           Value<String?> seedColor = const Value.absent(),
           String? defaultSort,
           String? defaultView,
-          int? tagsSeeded}) =>
+          int? tagsSeeded,
+          String? playerOrientation}) =>
       UserPreferencesRow(
         id: id ?? this.id,
         userName: userName ?? this.userName,
@@ -3666,6 +3696,7 @@ class UserPreferencesRow extends DataClass
         defaultSort: defaultSort ?? this.defaultSort,
         defaultView: defaultView ?? this.defaultView,
         tagsSeeded: tagsSeeded ?? this.tagsSeeded,
+        playerOrientation: playerOrientation ?? this.playerOrientation,
       );
   UserPreferencesRow copyWithCompanion(UserPreferencesTableCompanion data) {
     return UserPreferencesRow(
@@ -3682,6 +3713,9 @@ class UserPreferencesRow extends DataClass
           data.defaultView.present ? data.defaultView.value : this.defaultView,
       tagsSeeded:
           data.tagsSeeded.present ? data.tagsSeeded.value : this.tagsSeeded,
+      playerOrientation: data.playerOrientation.present
+          ? data.playerOrientation.value
+          : this.playerOrientation,
     );
   }
 
@@ -3695,14 +3729,15 @@ class UserPreferencesRow extends DataClass
           ..write('seedColor: $seedColor, ')
           ..write('defaultSort: $defaultSort, ')
           ..write('defaultView: $defaultView, ')
-          ..write('tagsSeeded: $tagsSeeded')
+          ..write('tagsSeeded: $tagsSeeded, ')
+          ..write('playerOrientation: $playerOrientation')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(id, userName, themeMode, colorSchemeMode,
-      seedColor, defaultSort, defaultView, tagsSeeded);
+      seedColor, defaultSort, defaultView, tagsSeeded, playerOrientation);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3714,7 +3749,8 @@ class UserPreferencesRow extends DataClass
           other.seedColor == this.seedColor &&
           other.defaultSort == this.defaultSort &&
           other.defaultView == this.defaultView &&
-          other.tagsSeeded == this.tagsSeeded);
+          other.tagsSeeded == this.tagsSeeded &&
+          other.playerOrientation == this.playerOrientation);
 }
 
 class UserPreferencesTableCompanion
@@ -3727,6 +3763,7 @@ class UserPreferencesTableCompanion
   final Value<String> defaultSort;
   final Value<String> defaultView;
   final Value<int> tagsSeeded;
+  final Value<String> playerOrientation;
   const UserPreferencesTableCompanion({
     this.id = const Value.absent(),
     this.userName = const Value.absent(),
@@ -3736,6 +3773,7 @@ class UserPreferencesTableCompanion
     this.defaultSort = const Value.absent(),
     this.defaultView = const Value.absent(),
     this.tagsSeeded = const Value.absent(),
+    this.playerOrientation = const Value.absent(),
   });
   UserPreferencesTableCompanion.insert({
     this.id = const Value.absent(),
@@ -3746,6 +3784,7 @@ class UserPreferencesTableCompanion
     this.defaultSort = const Value.absent(),
     this.defaultView = const Value.absent(),
     this.tagsSeeded = const Value.absent(),
+    this.playerOrientation = const Value.absent(),
   });
   static Insertable<UserPreferencesRow> custom({
     Expression<int>? id,
@@ -3756,6 +3795,7 @@ class UserPreferencesTableCompanion
     Expression<String>? defaultSort,
     Expression<String>? defaultView,
     Expression<int>? tagsSeeded,
+    Expression<String>? playerOrientation,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -3766,6 +3806,7 @@ class UserPreferencesTableCompanion
       if (defaultSort != null) 'default_sort': defaultSort,
       if (defaultView != null) 'default_view': defaultView,
       if (tagsSeeded != null) 'tags_seeded': tagsSeeded,
+      if (playerOrientation != null) 'player_orientation': playerOrientation,
     });
   }
 
@@ -3777,7 +3818,8 @@ class UserPreferencesTableCompanion
       Value<String?>? seedColor,
       Value<String>? defaultSort,
       Value<String>? defaultView,
-      Value<int>? tagsSeeded}) {
+      Value<int>? tagsSeeded,
+      Value<String>? playerOrientation}) {
     return UserPreferencesTableCompanion(
       id: id ?? this.id,
       userName: userName ?? this.userName,
@@ -3787,6 +3829,7 @@ class UserPreferencesTableCompanion
       defaultSort: defaultSort ?? this.defaultSort,
       defaultView: defaultView ?? this.defaultView,
       tagsSeeded: tagsSeeded ?? this.tagsSeeded,
+      playerOrientation: playerOrientation ?? this.playerOrientation,
     );
   }
 
@@ -3817,6 +3860,9 @@ class UserPreferencesTableCompanion
     if (tagsSeeded.present) {
       map['tags_seeded'] = Variable<int>(tagsSeeded.value);
     }
+    if (playerOrientation.present) {
+      map['player_orientation'] = Variable<String>(playerOrientation.value);
+    }
     return map;
   }
 
@@ -3830,7 +3876,8 @@ class UserPreferencesTableCompanion
           ..write('seedColor: $seedColor, ')
           ..write('defaultSort: $defaultSort, ')
           ..write('defaultView: $defaultView, ')
-          ..write('tagsSeeded: $tagsSeeded')
+          ..write('tagsSeeded: $tagsSeeded, ')
+          ..write('playerOrientation: $playerOrientation')
           ..write(')'))
         .toString();
   }

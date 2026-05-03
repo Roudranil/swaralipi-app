@@ -104,6 +104,28 @@ enum ViewMode {
   final String dbValue;
 }
 
+/// The preferred screen orientation lock for the notation player.
+///
+/// Mirrors the `CHECK (player_orientation IN ('auto', 'portrait', 'landscape'))`
+/// DB constraint.
+@JsonEnum(valueField: 'dbValue')
+enum PlayerOrientation {
+  /// Follow the device sensor (no lock).
+  auto('auto'),
+
+  /// Lock to portrait mode.
+  portrait('portrait'),
+
+  /// Lock to landscape mode.
+  landscape('landscape');
+
+  /// Creates a [PlayerOrientation] with the given database string value.
+  const PlayerOrientation(this.dbValue);
+
+  /// The string value used in the database and JSON serialization.
+  final String dbValue;
+}
+
 /// Immutable domain model for the singleton user preferences row.
 ///
 /// There is exactly one [UserPreferences] in the database (enforced by
@@ -123,6 +145,8 @@ class UserPreferences {
   /// - [defaultView]: Default view layout for the notation library.
   /// - [tagsSeeded]: Whether the 5 default tags have been seeded. Defaults to
   ///   `false`.
+  /// - [playerOrientation]: Screen orientation lock for the notation player.
+  ///   Defaults to [PlayerOrientation.auto].
   const UserPreferences({
     required this.userName,
     required this.themeMode,
@@ -131,6 +155,7 @@ class UserPreferences {
     required this.defaultSort,
     required this.defaultView,
     this.tagsSeeded = false,
+    this.playerOrientation = PlayerOrientation.auto,
   });
 
   /// Display name shown in the application UI.
@@ -157,6 +182,11 @@ class UserPreferences {
   /// first successful seed. Subsequent launches skip the seed.
   final bool tagsSeeded;
 
+  /// Preferred screen orientation lock for the notation player.
+  ///
+  /// Defaults to [PlayerOrientation.auto] (sensor-driven, no lock).
+  final PlayerOrientation playerOrientation;
+
   /// Returns a copy of this [UserPreferences] with the specified fields
   /// replaced.
   ///
@@ -169,6 +199,7 @@ class UserPreferences {
     SortOrder? defaultSort,
     ViewMode? defaultView,
     bool? tagsSeeded,
+    PlayerOrientation? playerOrientation,
   }) =>
       UserPreferences(
         userName: userName ?? this.userName,
@@ -178,6 +209,7 @@ class UserPreferences {
         defaultSort: defaultSort ?? this.defaultSort,
         defaultView: defaultView ?? this.defaultView,
         tagsSeeded: tagsSeeded ?? this.tagsSeeded,
+        playerOrientation: playerOrientation ?? this.playerOrientation,
       );
 
   /// Deserializes [UserPreferences] from a JSON map.
@@ -198,7 +230,8 @@ class UserPreferences {
           seedColor == other.seedColor &&
           defaultSort == other.defaultSort &&
           defaultView == other.defaultView &&
-          tagsSeeded == other.tagsSeeded;
+          tagsSeeded == other.tagsSeeded &&
+          playerOrientation == other.playerOrientation;
 
   @override
   int get hashCode => Object.hash(
@@ -209,6 +242,7 @@ class UserPreferences {
         defaultSort,
         defaultView,
         tagsSeeded,
+        playerOrientation,
       );
 
   @override

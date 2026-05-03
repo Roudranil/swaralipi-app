@@ -55,6 +55,14 @@ abstract interface class PreferencesRepository
   /// - [colorHex]: A Catppuccin hex string (e.g. `'#f38ba8'`), or `null`.
   Future<void> updateSeedColor(String? colorHex);
 
+  /// Updates the `player_orientation` field to [orientation].
+  ///
+  /// All other preference fields are left unchanged.
+  ///
+  /// Parameters:
+  /// - [orientation]: The new [PlayerOrientation] to persist.
+  Future<void> updatePlayerOrientation(PlayerOrientation orientation);
+
   /// Convenience method to flip the `tagsSeeded` flag.
   ///
   /// Parameters:
