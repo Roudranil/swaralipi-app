@@ -35,6 +35,7 @@ import 'package:swaralipi/features/edit/screens/edit_notation_screen.dart';
 import 'package:swaralipi/features/library/viewmodels/library_view_model.dart';
 import 'package:swaralipi/features/library/widgets/notation_card.dart';
 import 'package:swaralipi/features/library/widgets/recently_played_carousel.dart';
+import 'package:swaralipi/features/library/widgets/tag_filter_row.dart';
 import 'package:swaralipi/shared/models/notation.dart';
 import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
 import 'package:swaralipi/shared/repositories/instrument_repository.dart';
@@ -53,6 +54,9 @@ const EdgeInsets _kListPadding = EdgeInsets.symmetric(vertical: 4);
 
 /// Padding around the delete icon in the swipe background.
 const EdgeInsets _kSwipeIconPadding = EdgeInsets.symmetric(horizontal: 24);
+
+/// Horizontal and vertical padding around the search bar.
+const EdgeInsets _kSearchBarPadding = EdgeInsets.fromLTRB(16, 8, 16, 4);
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -120,6 +124,8 @@ class LibraryScreen extends StatefulWidget {
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
+  final SearchController _searchController = SearchController();
+
   @override
   void initState() {
     super.initState();
@@ -127,6 +133,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
       if (!mounted) return;
       context.read<LibraryViewModel>().init();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -144,16 +156,34 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
         ),
       ),
-      body: switch (vm.state) {
-        LibraryStateIdle() => const SizedBox.shrink(),
-        LibraryStateLoading() => const _LoadingView(),
-        LibraryStateSuccess(:final notations) => _LibraryBody(
-            notations: notations,
-            recentlyPlayedState: vm.recentlyPlayedState,
-            screen: widget,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _LibrarySearchBar(
+            controller: _searchController,
+            onChanged: vm.setSearchQuery,
+            onClear: vm.clearSearch,
           ),
-        LibraryStateError(:final message) => _ErrorView(message: message),
-      },
+          if (vm.availableTags.isNotEmpty)
+            TagFilterRow(
+              tags: vm.availableTags,
+              selectedTagIds: vm.selectedTagIds,
+              onToggle: vm.toggleTag,
+            ),
+          Expanded(
+            child: switch (vm.state) {
+              LibraryStateIdle() => const SizedBox.shrink(),
+              LibraryStateLoading() => const _LoadingView(),
+              LibraryStateSuccess(:final notations) => _LibraryBody(
+                  notations: notations,
+                  recentlyPlayedState: vm.recentlyPlayedState,
+                  screen: widget,
+                ),
+              LibraryStateError(:final message) => _ErrorView(message: message),
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -304,6 +334,64 @@ class _LibraryBody extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Search bar
+// ---------------------------------------------------------------------------
+
+/// Inline [SearchBar] for live fuzzy-search of the notation list.
+///
+/// Text changes are forwarded to [onChanged] so the ViewModel can debounce
+/// and execute the search. The clear (X) button appears when the [controller]
+/// has non-empty text and resets the query via [onClear].
+///
+/// Uses [ListenableBuilder] to rebuild the trailing icon whenever [controller]
+/// changes, ensuring the button appears and disappears reactively.
+class _LibrarySearchBar extends StatelessWidget {
+  const _LibrarySearchBar({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  /// Controls the text shown in the search bar.
+  final SearchController controller;
+
+  /// Called on each text change with the new query string.
+  final ValueChanged<String> onChanged;
+
+  /// Called when the user taps the clear button.
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: _kSearchBarPadding,
+      child: ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) => SearchBar(
+          controller: controller,
+          hintText: 'Search notations…',
+          leading: const Icon(Icons.search_outlined),
+          trailing: [
+            if (controller.text.isNotEmpty)
+              Semantics(
+                label: 'Clear search',
+                child: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    controller.clear();
+                    onClear();
+                  },
+                ),
+              ),
+          ],
+          onChanged: onChanged,
+        ),
+      ),
     );
   }
 }
