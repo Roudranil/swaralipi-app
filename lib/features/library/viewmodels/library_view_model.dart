@@ -26,10 +26,32 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:swaralipi/core/database/daos/notation_dao.dart';
 import 'package:swaralipi/features/edit/viewmodels/duplicate_notation_use_case.dart';
 import 'package:swaralipi/shared/models/notation.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
 import 'package:swaralipi/shared/repositories/trash_repository.dart';
+
+// ---------------------------------------------------------------------------
+// Sort options
+// ---------------------------------------------------------------------------
+
+/// Sort options available to the user on the Library screen.
+///
+/// Each value maps to a [NotationSortBy] pair used in the Drift query.
+enum LibrarySort {
+  /// Most-recently added first (default).
+  dateDesc,
+
+  /// Oldest first.
+  dateAsc,
+
+  /// Alphabetical A-Z by title.
+  titleAsc,
+
+  /// Alphabetical A-Z by first artist name.
+  artistAsc,
+}
 
 // ---------------------------------------------------------------------------
 // State hierarchy
@@ -151,6 +173,7 @@ class LibraryViewModel extends ChangeNotifier {
 
   LibraryState _state = const LibraryStateIdle();
   RecentlyPlayedState _recentlyPlayedState = const RecentlyPlayedStateIdle();
+  LibrarySort _sort = LibrarySort.dateDesc;
   String? _operationError;
   String? _lastDuplicatedId;
 
@@ -179,6 +202,11 @@ class LibraryViewModel extends ChangeNotifier {
   /// after the caller has consumed the value (e.g., after navigation).
   String? get lastDuplicatedId => _lastDuplicatedId;
 
+  /// The currently active sort order for the notation list.
+  ///
+  /// Defaults to [LibrarySort.dateDesc]. Use [setSort] to change it.
+  LibrarySort get sort => _sort;
+
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
@@ -197,7 +225,8 @@ class LibraryViewModel extends ChangeNotifier {
     _recentlyPlayedState = const RecentlyPlayedStateIdle();
     notifyListeners();
 
-    _subscription = _notationRepository.watchAllActive().listen(
+    _subscription =
+        _notationRepository.watchAllActive(sortBy: _daoSort(_sort)).listen(
       (notations) {
         _state = LibraryStateSuccess(notations: notations);
         notifyListeners();
@@ -239,6 +268,34 @@ class LibraryViewModel extends ChangeNotifier {
     _subscription?.cancel();
     _recentSubscription?.cancel();
     super.dispose();
+  }
+
+  // -------------------------------------------------------------------------
+  // Operations
+  // -------------------------------------------------------------------------
+
+  // -------------------------------------------------------------------------
+  // Sort
+  // -------------------------------------------------------------------------
+
+  /// Maps a [LibrarySort] value to its [NotationSortBy] counterpart.
+  NotationSortBy _daoSort(LibrarySort s) => switch (s) {
+        LibrarySort.dateDesc => NotationSortBy.dateDesc,
+        LibrarySort.dateAsc => NotationSortBy.dateAsc,
+        LibrarySort.titleAsc => NotationSortBy.titleAsc,
+        LibrarySort.artistAsc => NotationSortBy.artistAsc,
+      };
+
+  /// Changes the active sort order and re-subscribes to the notation stream.
+  ///
+  /// Calling this with the current [sort] value is a no-op.
+  ///
+  /// Parameters:
+  /// - [sort]: The new sort order to apply.
+  void setSort(LibrarySort sort) {
+    if (sort == _sort) return;
+    _sort = sort;
+    init();
   }
 
   // -------------------------------------------------------------------------

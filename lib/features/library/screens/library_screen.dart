@@ -33,6 +33,7 @@ import 'package:provider/provider.dart';
 import 'package:swaralipi/core/storage/file_storage_service.dart';
 import 'package:swaralipi/features/edit/screens/edit_notation_screen.dart';
 import 'package:swaralipi/features/library/viewmodels/library_view_model.dart';
+import 'package:swaralipi/features/library/widgets/notation_card.dart';
 import 'package:swaralipi/features/library/widgets/recently_played_carousel.dart';
 import 'package:swaralipi/shared/models/notation.dart';
 import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
@@ -135,6 +136,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Library'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: _SortControl(
+            current: vm.sort,
+            onChanged: vm.setSort,
+          ),
+        ),
       ),
       body: switch (vm.state) {
         LibraryStateIdle() => const SizedBox.shrink(),
@@ -301,6 +309,56 @@ class _LibraryBody extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// Sort control
+// ---------------------------------------------------------------------------
+
+/// Horizontal [SegmentedButton] allowing the user to choose the list sort.
+///
+/// Renders Date / Title / Artist segments. Displayed in the [AppBar] bottom
+/// slot so it is always visible while browsing the library.
+class _SortControl extends StatelessWidget {
+  const _SortControl({
+    required this.current,
+    required this.onChanged,
+  });
+
+  /// The currently active sort option.
+  final LibrarySort current;
+
+  /// Called when the user selects a different sort option.
+  final ValueChanged<LibrarySort> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: SegmentedButton<LibrarySort>(
+        segments: const [
+          ButtonSegment(
+            value: LibrarySort.dateDesc,
+            label: Text('Date'),
+            icon: Icon(Icons.calendar_today_outlined),
+          ),
+          ButtonSegment(
+            value: LibrarySort.titleAsc,
+            label: Text('Title'),
+            icon: Icon(Icons.sort_by_alpha_outlined),
+          ),
+          ButtonSegment(
+            value: LibrarySort.artistAsc,
+            label: Text('Artist'),
+            icon: Icon(Icons.person_outline),
+          ),
+        ],
+        selected: {current},
+        onSelectionChanged: (selected) => onChanged(selected.first),
+        showSelectedIcon: false,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Notation row
 // ---------------------------------------------------------------------------
 
@@ -320,21 +378,31 @@ class _NotationRow extends StatelessWidget {
         screen.customFieldRepository != null &&
         screen.fileStorageService != null;
 
-    return Semantics(
-      label: notation.title,
-      child: Dismissible(
-        key: ValueKey(notation.id),
-        direction: DismissDirection.endToStart,
-        background: const _SwipeDeleteBackground(),
-        confirmDismiss: (_) => _confirmDelete(context),
-        // Removal from list is driven by the stream; no local state needed.
-        onDismissed: (_) {},
+    return Dismissible(
+      key: ValueKey(notation.id),
+      direction: DismissDirection.endToStart,
+      background: const _SwipeDeleteBackground(),
+      confirmDismiss: (_) => _confirmDelete(context),
+      // Removal from list is driven by the stream; no local state needed.
+      onDismissed: (_) {},
+      child: Semantics(
+        label: notation.title,
         child: canEdit
             ? GestureDetector(
                 onLongPress: () => _showContextMenu(context),
-                child: _NotationRowContent(notation: notation),
+                child: NotationCard(
+                  notation: notation,
+                  onTap: screen.onNotationTap != null
+                      ? () => screen.onNotationTap!(notation.id)
+                      : null,
+                ),
               )
-            : _NotationRowContent(notation: notation),
+            : NotationCard(
+                notation: notation,
+                onTap: screen.onNotationTap != null
+                    ? () => screen.onNotationTap!(notation.id)
+                    : null,
+              ),
       ),
     );
   }
@@ -494,43 +562,6 @@ class _NotationRow extends StatelessWidget {
           ),
         ),
       );
-  }
-}
-
-/// Content of a single library row.
-class _NotationRowContent extends StatelessWidget {
-  const _NotationRowContent({required this.notation});
-
-  final Notation notation;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      minVerticalPadding: 12,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-      leading: Icon(
-        Icons.music_note_outlined,
-        color: Theme.of(context).colorScheme.primary,
-      ),
-      title: Text(
-        notation.title,
-        style: Theme.of(context).textTheme.bodyLarge,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: notation.artists.isNotEmpty
-          ? Text(
-              notation.artists.join(', '),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-              overflow: TextOverflow.ellipsis,
-            )
-          : null,
-      trailing: Icon(
-        Icons.chevron_right,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
-    );
   }
 }
 

@@ -173,9 +173,11 @@ final class NotationRepositoryImpl implements NotationRepository {
   }
 
   @override
-  Stream<List<Notation>> watchAllActive() {
+  Stream<List<Notation>> watchAllActive({
+    NotationSortBy sortBy = NotationSortBy.dateDesc,
+  }) {
     return _notationDao
-        .watchAllActive()
+        .watchAllActive(sortBy: sortBy)
         .map((rows) => rows.map(_rowToDomain).toList());
   }
 

@@ -20,6 +20,7 @@ import 'package:swaralipi/shared/models/notation.dart';
 import 'package:swaralipi/shared/models/notation_detail.dart';
 import 'package:swaralipi/shared/models/notation_draft.dart';
 import 'package:swaralipi/shared/models/saved_page.dart';
+import 'package:swaralipi/core/database/daos/notation_dao.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
 import 'package:swaralipi/shared/repositories/trash_repository.dart';
 
@@ -28,19 +29,19 @@ import 'package:swaralipi/shared/repositories/trash_repository.dart';
 // ---------------------------------------------------------------------------
 
 class FakeNotationRepository implements NotationRepository {
-  final _allActiveController =
-      StreamController<List<Notation>>.broadcast();
-  final _recentController =
-      StreamController<List<Notation>>.broadcast();
+  final _allActiveController = StreamController<List<Notation>>.broadcast();
+  final _recentController = StreamController<List<Notation>>.broadcast();
 
   void emitAllActive(List<Notation> notations) =>
       _allActiveController.add(notations);
 
-  void emitRecent(List<Notation> notations) =>
-      _recentController.add(notations);
+  void emitRecent(List<Notation> notations) => _recentController.add(notations);
 
   @override
-  Stream<List<Notation>> watchAllActive() => _allActiveController.stream;
+  Stream<List<Notation>> watchAllActive({
+    NotationSortBy sortBy = NotationSortBy.dateDesc,
+  }) =>
+      _allActiveController.stream;
 
   @override
   Stream<List<Notation>> watchRecentlyPlayed({int limit = 5}) =>
@@ -206,8 +207,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Count carousel item cards
-      final carousel =
-          find.byKey(const Key('recently_played_carousel'));
+      final carousel = find.byKey(const Key('recently_played_carousel'));
       expect(carousel, findsOneWidget);
       expect(
         find.descendant(

@@ -16,6 +16,7 @@ import 'package:swaralipi/shared/models/notation_draft.dart';
 import 'package:swaralipi/shared/models/notation.dart';
 import 'package:swaralipi/shared/models/saved_page.dart';
 import 'package:swaralipi/shared/models/user_preferences.dart';
+import 'package:swaralipi/core/database/daos/notation_dao.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
 import 'package:swaralipi/shared/repositories/preferences_repository.dart';
 
@@ -38,7 +39,10 @@ class FakeNotationRepository implements NotationRepository {
   Future<void> softDelete(String id) async => throw UnimplementedError();
 
   @override
-  Stream<List<Notation>> watchAllActive() => const Stream.empty();
+  Stream<List<Notation>> watchAllActive({
+    NotationSortBy sortBy = NotationSortBy.dateDesc,
+  }) =>
+      const Stream.empty();
 
   @override
   Stream<List<Notation>> watchRecentlyPlayed({int limit = 5}) =>

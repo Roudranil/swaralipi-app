@@ -29,6 +29,7 @@ import 'package:swaralipi/shared/models/instrument_instance.dart';
 import 'package:swaralipi/shared/models/notation_page.dart';
 import 'package:swaralipi/shared/models/render_params.dart';
 import 'package:swaralipi/shared/models/tag.dart';
+import 'package:swaralipi/core/database/daos/notation_dao.dart';
 import 'package:swaralipi/core/storage/file_storage_service.dart';
 import 'package:swaralipi/shared/models/notation.dart';
 import 'package:swaralipi/shared/models/notation_detail.dart';
@@ -1020,7 +1021,10 @@ class _NoopNotationRepository implements NotationRepository {
   Future<NotationDetail?> loadNotation(String id) async => null;
 
   @override
-  Stream<List<Notation>> watchAllActive() => const Stream.empty();
+  Stream<List<Notation>> watchAllActive({
+    NotationSortBy sortBy = NotationSortBy.dateDesc,
+  }) =>
+      const Stream.empty();
 
   @override
   Stream<List<Notation>> watchRecentlyPlayed({int limit = 5}) =>

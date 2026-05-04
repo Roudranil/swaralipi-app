@@ -15,6 +15,34 @@ import 'package:swaralipi/core/database/app_database.dart';
 
 part 'notation_dao.g.dart';
 
+// ---------------------------------------------------------------------------
+// Sort options
+// ---------------------------------------------------------------------------
+
+/// Sort options for [NotationDao.watchAllActive].
+///
+/// Each value maps to a specific column and direction used in the ORDER BY
+/// clause of the active-notation query.
+enum NotationSortBy {
+  /// Most-recently added first ([NotationsTable.createdAt] DESC).
+  dateDesc,
+
+  /// Oldest first ([NotationsTable.createdAt] ASC).
+  dateAsc,
+
+  /// Alphabetical by title A-Z ([NotationsTable.title] ASC).
+  titleAsc,
+
+  /// Alphabetical by title Z-A ([NotationsTable.title] DESC).
+  titleDesc,
+
+  /// Alphabetical by first artist A-Z ([NotationsTable.artists] ASC).
+  artistAsc,
+
+  /// Alphabetical by first artist Z-A ([NotationsTable.artists] DESC).
+  artistDesc,
+}
+
 /// Data-access object for the [NotationsTable].
 ///
 /// Provides insert, update, hard-delete, soft-delete, restore, query, and
@@ -135,13 +163,33 @@ class NotationDao extends DatabaseAccessor<AppDatabase>
 
   /// Emits a live list of active notation rows (where [deletedAt] IS NULL).
   ///
-  /// The stream re-emits whenever the underlying table changes. Results are
-  /// ordered by [NotationsTable.updatedAt] descending (most-recently changed
-  /// first), matching the default library sort in data-model.md §8.1.
-  Stream<List<NotationRow>> watchAllActive() {
+  /// The stream re-emits whenever the underlying table changes. The ORDER BY
+  /// clause is determined by [sortBy]; defaults to [NotationSortBy.dateDesc]
+  /// (most-recently created first).
+  ///
+  /// Parameters:
+  /// - [sortBy]: Column and direction to order results by.
+  Stream<List<NotationRow>> watchAllActive({
+    NotationSortBy sortBy = NotationSortBy.dateDesc,
+  }) {
+    final OrderingTerm term;
+    switch (sortBy) {
+      case NotationSortBy.dateDesc:
+        term = OrderingTerm.desc(notationsTable.createdAt);
+      case NotationSortBy.dateAsc:
+        term = OrderingTerm.asc(notationsTable.createdAt);
+      case NotationSortBy.titleAsc:
+        term = OrderingTerm.asc(notationsTable.title);
+      case NotationSortBy.titleDesc:
+        term = OrderingTerm.desc(notationsTable.title);
+      case NotationSortBy.artistAsc:
+        term = OrderingTerm.asc(notationsTable.artists);
+      case NotationSortBy.artistDesc:
+        term = OrderingTerm.desc(notationsTable.artists);
+    }
     return (select(notationsTable)
           ..where((t) => t.deletedAt.isNull())
-          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+          ..orderBy([(t) => term]))
         .watch();
   }
 

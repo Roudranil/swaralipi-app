@@ -23,6 +23,7 @@ import 'package:swaralipi/shared/models/notation_draft.dart';
 import 'package:swaralipi/shared/models/notation_page.dart';
 import 'package:swaralipi/shared/models/saved_page.dart';
 import 'package:swaralipi/shared/models/tag.dart';
+import 'package:swaralipi/core/database/daos/notation_dao.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
 
 // ---------------------------------------------------------------------------
@@ -73,7 +74,10 @@ class FakeNotationRepository implements NotationRepository {
       throw UnimplementedError();
 
   @override
-  Stream<List<Notation>> watchAllActive() => throw UnimplementedError();
+  Stream<List<Notation>> watchAllActive({
+    NotationSortBy sortBy = NotationSortBy.dateDesc,
+  }) =>
+      throw UnimplementedError();
 
   @override
   Stream<List<Notation>> watchRecentlyPlayed({int limit = 5}) =>
