@@ -8,6 +8,7 @@
 // All list reads return Stream<List<T>> so the UI layer can react to changes
 // without polling.
 
+import 'package:swaralipi/core/database/daos/notation_dao.dart';
 import 'package:swaralipi/shared/models/notation.dart';
 import 'package:swaralipi/shared/models/notation_detail.dart';
 import 'package:swaralipi/shared/models/notation_draft.dart';
@@ -76,11 +77,17 @@ abstract interface class NotationRepository {
   /// - [id]: The UUIDv4 primary key of the notation to load.
   Future<NotationDetail?> loadNotation(String id);
 
-  /// Returns a live stream of all active (non-deleted) notations ordered by
-  /// [Notation.updatedAt] descending.
+  /// Returns a live stream of all active (non-deleted) notations.
   ///
-  /// The stream re-emits whenever any notation row changes.
-  Stream<List<Notation>> watchAllActive();
+  /// The stream re-emits whenever any notation row changes. The ordering is
+  /// controlled by [sortBy]; defaults to [NotationSortBy.dateDesc]
+  /// (most-recently created first).
+  ///
+  /// Parameters:
+  /// - [sortBy]: Column and direction to order results by.
+  Stream<List<Notation>> watchAllActive({
+    NotationSortBy sortBy = NotationSortBy.dateDesc,
+  });
 
   /// Returns a live stream of the most-recently-played active notations,
   /// ordered by [Notation.lastPlayedAt] descending.
