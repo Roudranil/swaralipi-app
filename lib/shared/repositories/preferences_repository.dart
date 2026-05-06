@@ -23,6 +23,13 @@ abstract interface class PreferencesRepository
   @override
   Future<UserPreferences> getPreferences();
 
+  /// Returns a [Stream] that emits the current [UserPreferences] and re-emits
+  /// whenever any preference field is updated.
+  ///
+  /// Callers must ensure [getPreferences] has been called once before
+  /// subscribing so the singleton row exists in the database.
+  Stream<UserPreferences> watchPreferences();
+
   /// Persists a complete [UserPreferences] value.
   ///
   /// Parameters:
@@ -71,6 +78,14 @@ abstract interface class PreferencesRepository
   /// Parameters:
   /// - [speed]: The new auto-scroll speed multiplier to persist.
   Future<void> updateAutoScrollSpeed(double speed);
+
+  /// Updates the `user_name` field to [name].
+  ///
+  /// All other preference fields are left unchanged.
+  ///
+  /// Parameters:
+  /// - [name]: The new display name to persist. An empty string is allowed.
+  Future<void> updateUserName(String name);
 
   /// Convenience method to flip the `tagsSeeded` flag.
   ///

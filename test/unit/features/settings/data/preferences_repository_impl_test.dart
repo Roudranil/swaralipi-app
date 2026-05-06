@@ -224,4 +224,73 @@ void main() {
       expect(prefs.tagsSeeded, isFalse);
     });
   });
+
+  group('UserPreferencesRepositoryImpl.updateUserName', () {
+    late AppDatabase db;
+    late UserPreferencesRepositoryImpl repo;
+
+    setUp(() {
+      db = AppDatabase.forTesting();
+      repo = UserPreferencesRepositoryImpl(db.userPreferencesDao);
+    });
+    tearDown(() => db.close());
+
+    test('default userName is empty string', () async {
+      final prefs = await repo.getPreferences();
+      expect(prefs.userName, equals(''));
+    });
+
+    test('persists userName and reads back same value', () async {
+      await repo.updateUserName('Roudranil');
+      final prefs = await repo.getPreferences();
+      expect(prefs.userName, equals('Roudranil'));
+    });
+
+    test('overwriting with new name replaces old value', () async {
+      await repo.updateUserName('First');
+      await repo.updateUserName('Second');
+      final prefs = await repo.getPreferences();
+      expect(prefs.userName, equals('Second'));
+    });
+
+    test('does not affect other fields', () async {
+      await repo.updateThemeMode(AppThemeMode.dark);
+      await repo.updateUserName('Alice');
+      final prefs = await repo.getPreferences();
+      expect(prefs.themeMode, AppThemeMode.dark);
+      expect(prefs.userName, equals('Alice'));
+    });
+  });
+
+  group('UserPreferencesRepositoryImpl.watchPreferences', () {
+    late AppDatabase db;
+    late UserPreferencesRepositoryImpl repo;
+
+    setUp(() {
+      db = AppDatabase.forTesting();
+      repo = UserPreferencesRepositoryImpl(db.userPreferencesDao);
+    });
+    tearDown(() => db.close());
+
+    test('emits initial preferences on subscription', () async {
+      // Ensure row exists before watching.
+      await repo.getPreferences();
+      final prefs = await repo.watchPreferences().first;
+      expect(prefs.themeMode, AppThemeMode.system);
+    });
+
+    test('emits updated preferences after a write', () async {
+      // Trigger row creation.
+      await repo.getPreferences();
+
+      final stream = repo.watchPreferences();
+      final first = await stream.first;
+      expect(first.themeMode, AppThemeMode.system);
+
+      await repo.updateThemeMode(AppThemeMode.dark);
+
+      final second = await stream.first;
+      expect(second.themeMode, AppThemeMode.dark);
+    });
+  });
 }

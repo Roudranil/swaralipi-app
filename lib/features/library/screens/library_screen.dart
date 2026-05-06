@@ -166,9 +166,40 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final prefs = await repo.getPreferences();
     if (!mounted) return;
     final name = prefs.userName.trim();
+    if (name.isEmpty) {
+      await _promptForName(repo);
+      return;
+    }
     setState(() {
-      _greeting = name.isEmpty ? 'Hi there' : 'Hi, $name';
+      _greeting = 'Hi, $name';
     });
+  }
+
+  /// Shows a blocking dialog that asks the user for their name on first launch.
+  ///
+  /// The dialog cannot be dismissed without entering a name. On save, persists
+  /// the name via [repo] and updates the greeting immediately.
+  ///
+  /// Parameters:
+  /// - [repo]: The [PreferencesRepository] used to persist the entered name.
+  Future<void> _promptForName(PreferencesRepository repo) async {
+    final controller = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _NamePromptDialog(
+        controller: controller,
+        onSave: (name) async {
+          Navigator.of(dialogContext).pop();
+          await repo.updateUserName(name);
+          if (!mounted) return;
+          setState(() {
+            _greeting = 'Hi, $name';
+          });
+        },
+      ),
+    );
+    controller.dispose();
   }
 
   @override
@@ -705,6 +736,85 @@ class _SwipeDeleteBackground extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _NamePromptDialog
+// ---------------------------------------------------------------------------
+
+/// Blocking first-launch dialog that asks the user for their display name.
+///
+/// The dialog cannot be dismissed without entering a non-empty name. The
+/// [FilledButton] is disabled while the text field is empty. On save, [onSave]
+/// is called with the trimmed name.
+class _NamePromptDialog extends StatefulWidget {
+  /// Creates a [_NamePromptDialog].
+  ///
+  /// Parameters:
+  /// - [controller]: The [TextEditingController] for the name input.
+  /// - [onSave]: Called with the trimmed name when the user taps "Save".
+  const _NamePromptDialog({
+    required this.controller,
+    required this.onSave,
+  });
+
+  /// Shared controller so the caller can dispose after the dialog closes.
+  final TextEditingController controller;
+
+  /// Invoked with the trimmed, non-empty name on save.
+  final void Function(String name) onSave;
+
+  @override
+  State<_NamePromptDialog> createState() => _NamePromptDialogState();
+}
+
+class _NamePromptDialogState extends State<_NamePromptDialog> {
+  bool _isEmpty = true;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    final empty = widget.controller.text.trim().isEmpty;
+    if (empty != _isEmpty) {
+      setState(() => _isEmpty = empty);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("What's your name?"),
+      content: TextField(
+        controller: widget.controller,
+        autofocus: true,
+        textInputAction: TextInputAction.done,
+        onSubmitted: _isEmpty
+            ? null
+            : (_) => widget.onSave(widget.controller.text.trim()),
+        decoration: const InputDecoration(
+          hintText: 'Enter your name',
+        ),
+      ),
+      actions: [
+        FilledButton(
+          onPressed: _isEmpty
+              ? null
+              : () => widget.onSave(widget.controller.text.trim()),
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }
