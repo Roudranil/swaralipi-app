@@ -2,9 +2,9 @@
 //
 // Covers:
 //   - Permission states: granted, denied, permanentlyDenied
-//   - Camera launch: records launchTimestamp and fires camera via CameraService
-//   - MediaStore query: returns images after camera session
-//   - Empty result after camera session
+//   - Camera launch: returns path directly from launchCamera (Task 2 fix)
+//   - Non-null path → CaptureEntryStateCameraDone
+//   - Null path → CaptureEntryStateCameraEmpty
 //   - Gallery launch delegates to CameraService.pickFromGallery
 
 import 'package:flutter_test/flutter_test.dart';
@@ -24,17 +24,14 @@ class FakeCameraService implements CameraService {
   /// Whether [requestCameraPermission] should return permanently denied.
   bool permissionPermanentlyDenied = false;
 
-  /// Images returned by [queryMediaStoreAfterTimestamp].
-  List<String> mediaStoreImages = [];
+  /// Path returned by [launchCamera]; null simulates user cancellation.
+  String? cameraReturnPath;
 
   /// Images returned by [pickFromGallery].
   List<String> galleryImages = [];
 
   /// Whether [launchCamera] was called.
   bool cameraLaunched = false;
-
-  /// The timestamp passed to [queryMediaStoreAfterTimestamp].
-  DateTime? queriedTimestamp;
 
   @override
   Future<CameraPermissionStatus> requestCameraPermission() async {
@@ -46,16 +43,9 @@ class FakeCameraService implements CameraService {
   }
 
   @override
-  Future<void> launchCamera() async {
+  Future<String?> launchCamera() async {
     cameraLaunched = true;
-  }
-
-  @override
-  Future<List<String>> queryMediaStoreAfterTimestamp(
-    DateTime timestamp,
-  ) async {
-    queriedTimestamp = timestamp;
-    return mediaStoreImages;
+    return cameraReturnPath;
   }
 
   @override
@@ -79,30 +69,24 @@ void main() {
 
   group('requestCameraAndLaunch', () {
     test(
-      'transitions to cameraDone with images when permission granted',
+      'transitions to cameraDone with path when permission granted and '
+      'camera returns a path',
       () async {
-        fakeService.mediaStoreImages = [
-          '/storage/img1.jpg',
-          '/storage/img2.jpg'
-        ];
+        fakeService.cameraReturnPath = '/storage/img1.jpg';
 
         await viewModel.requestCameraAndLaunch();
 
-        expect(
-          viewModel.state,
-          isA<CaptureEntryStateCameraDone>(),
-        );
+        expect(viewModel.state, isA<CaptureEntryStateCameraDone>());
         final done = viewModel.state as CaptureEntryStateCameraDone;
-        expect(done.imagePaths, hasLength(2));
+        expect(done.imagePaths, equals(['/storage/img1.jpg']));
         expect(fakeService.cameraLaunched, isTrue);
-        expect(fakeService.queriedTimestamp, isNotNull);
       },
     );
 
     test(
-      'transitions to cameraEmpty when no images found after camera',
+      'transitions to cameraEmpty when camera returns null (user cancelled)',
       () async {
-        fakeService.mediaStoreImages = [];
+        fakeService.cameraReturnPath = null;
 
         await viewModel.requestCameraAndLaunch();
 
@@ -138,40 +122,18 @@ void main() {
       },
     );
 
-    test('records timestamp before camera launch', () async {
-      final before = DateTime.now();
-      fakeService.mediaStoreImages = ['/storage/img.jpg'];
-
-      await viewModel.requestCameraAndLaunch();
-
-      final after = DateTime.now();
-      expect(fakeService.queriedTimestamp, isNotNull);
-      expect(
-        fakeService.queriedTimestamp!.isAfter(
-          before.subtract(const Duration(seconds: 1)),
-        ),
-        isTrue,
-      );
-      expect(
-        fakeService.queriedTimestamp!.isBefore(
-          after.add(const Duration(seconds: 1)),
-        ),
-        isTrue,
-      );
-    });
-
     test(
       'transitions to loading then resolves — notifies listeners',
       () async {
         final states = <CaptureEntryState>[];
         viewModel.addListener(() => states.add(viewModel.state));
-        fakeService.mediaStoreImages = ['/img.jpg'];
+        fakeService.cameraReturnPath = '/img.jpg';
 
         await viewModel.requestCameraAndLaunch();
 
-        // First notification must be loading
+        // First notification must be loading.
         expect(states.first, isA<CaptureEntryStateLoading>());
-        // Final notification must be cameraDone
+        // Final notification must be cameraDone.
         expect(states.last, isA<CaptureEntryStateCameraDone>());
       },
     );
@@ -188,21 +150,23 @@ void main() {
       expect(done.imagePaths, equals(['/storage/gallery1.jpg']));
     });
 
-    test('transitions to galleryDone with empty list when user cancels',
-        () async {
-      fakeService.galleryImages = [];
+    test(
+      'transitions to galleryDone with empty list when user cancels',
+      () async {
+        fakeService.galleryImages = [];
 
-      await viewModel.launchGallery();
+        await viewModel.launchGallery();
 
-      expect(viewModel.state, isA<CaptureEntryStateGalleryDone>());
-      final done = viewModel.state as CaptureEntryStateGalleryDone;
-      expect(done.imagePaths, isEmpty);
-    });
+        expect(viewModel.state, isA<CaptureEntryStateGalleryDone>());
+        final done = viewModel.state as CaptureEntryStateGalleryDone;
+        expect(done.imagePaths, isEmpty);
+      },
+    );
   });
 
   group('reset', () {
     test('returns state to idle', () async {
-      fakeService.mediaStoreImages = ['/img.jpg'];
+      fakeService.cameraReturnPath = '/img.jpg';
       await viewModel.requestCameraAndLaunch();
       expect(viewModel.state, isA<CaptureEntryStateCameraDone>());
 

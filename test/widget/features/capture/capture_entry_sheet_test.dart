@@ -22,12 +22,12 @@ import 'package:swaralipi/features/capture/viewmodels/capture_entry_view_model.d
 
 class _StubCameraService implements CameraService {
   CameraPermissionStatus status;
-  List<String> mediaImages;
+  String? cameraPath;
   List<String> galleryImages;
 
   _StubCameraService({
     this.status = CameraPermissionStatus.granted,
-    this.mediaImages = const [],
+    this.cameraPath,
     this.galleryImages = const [],
   });
 
@@ -35,13 +35,7 @@ class _StubCameraService implements CameraService {
   Future<CameraPermissionStatus> requestCameraPermission() async => status;
 
   @override
-  Future<void> launchCamera() async {}
-
-  @override
-  Future<List<String>> queryMediaStoreAfterTimestamp(
-    DateTime timestamp,
-  ) async =>
-      mediaImages;
+  Future<String?> launchCamera() async => cameraPath;
 
   @override
   Future<List<String>> pickFromGallery() async => galleryImages;
@@ -84,7 +78,7 @@ void main() {
       var cameraCallCount = 0;
       final service = _StubCameraService(
         status: CameraPermissionStatus.granted,
-        mediaImages: ['/img.jpg'],
+        cameraPath: '/img.jpg',
       );
       final vm = _TrackedViewModel(service, onCamera: () => cameraCallCount++);
 
