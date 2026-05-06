@@ -142,7 +142,7 @@ void main() {
     test('setSort notifies listeners', () {
       var notified = false;
       vm.addListener(() => notified = true);
-      vm.setSort(LibrarySort.artistAsc);
+      vm.setSort(LibrarySort.titleAsc);
       // setSort calls init() which immediately sets loading and notifies.
       expect(notified, isTrue);
     });
@@ -194,14 +194,44 @@ void main() {
       expect(vm.sort, LibrarySort.titleAsc);
     });
 
-    test('setSort artistAsc updates sort field', () {
-      vm.setSort(LibrarySort.artistAsc);
-      expect(vm.sort, LibrarySort.artistAsc);
+    test('setSort titleDesc updates sort field', () {
+      vm.setSort(LibrarySort.titleDesc);
+      expect(vm.sort, LibrarySort.titleDesc);
+    });
+
+    test('setSort dateWrittenDesc updates sort field', () {
+      vm.setSort(LibrarySort.dateWrittenDesc);
+      expect(vm.sort, LibrarySort.dateWrittenDesc);
+    });
+
+    test('setSort dateWrittenAsc updates sort field', () {
+      vm.setSort(LibrarySort.dateWrittenAsc);
+      expect(vm.sort, LibrarySort.dateWrittenAsc);
     });
 
     test('setSort dateAsc updates sort field', () {
       vm.setSort(LibrarySort.dateAsc);
       expect(vm.sort, LibrarySort.dateAsc);
+    });
+
+    test('setSort playCountDesc updates sort field', () {
+      vm.setSort(LibrarySort.playCountDesc);
+      expect(vm.sort, LibrarySort.playCountDesc);
+    });
+
+    test('setSort playCountAsc updates sort field', () {
+      vm.setSort(LibrarySort.playCountAsc);
+      expect(vm.sort, LibrarySort.playCountAsc);
+    });
+
+    test('setSort lastPlayedDesc updates sort field', () {
+      vm.setSort(LibrarySort.lastPlayedDesc);
+      expect(vm.sort, LibrarySort.lastPlayedDesc);
+    });
+
+    test('setSort lastPlayedAsc updates sort field', () {
+      vm.setSort(LibrarySort.lastPlayedAsc);
+      expect(vm.sort, LibrarySort.lastPlayedAsc);
     });
   });
 }

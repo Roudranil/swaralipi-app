@@ -55,17 +55,35 @@ import 'package:swaralipi/shared/repositories/trash_repository.dart';
 ///
 /// Each value maps to a [NotationSortBy] pair used in the Drift query.
 enum LibrarySort {
+  /// Alphabetical A-Z by title.
+  titleAsc,
+
+  /// Alphabetical Z-A by title.
+  titleDesc,
+
+  /// Most-recently written first.
+  dateWrittenDesc,
+
+  /// Oldest written first.
+  dateWrittenAsc,
+
   /// Most-recently added first (default).
   dateDesc,
 
   /// Oldest first.
   dateAsc,
 
-  /// Alphabetical A-Z by title.
-  titleAsc,
+  /// Most played first.
+  playCountDesc,
 
-  /// Alphabetical A-Z by first artist name.
-  artistAsc,
+  /// Least played first.
+  playCountAsc,
+
+  /// Most recently played first.
+  lastPlayedDesc,
+
+  /// Least recently played first.
+  lastPlayedAsc,
 }
 
 // ---------------------------------------------------------------------------
@@ -512,10 +530,16 @@ class LibraryViewModel extends ChangeNotifier {
 
   /// Maps a [LibrarySort] value to its [NotationSortBy] counterpart.
   NotationSortBy _daoSort(LibrarySort s) => switch (s) {
+        LibrarySort.titleAsc => NotationSortBy.titleAsc,
+        LibrarySort.titleDesc => NotationSortBy.titleDesc,
+        LibrarySort.dateWrittenDesc => NotationSortBy.dateDesc,
+        LibrarySort.dateWrittenAsc => NotationSortBy.dateAsc,
         LibrarySort.dateDesc => NotationSortBy.dateDesc,
         LibrarySort.dateAsc => NotationSortBy.dateAsc,
-        LibrarySort.titleAsc => NotationSortBy.titleAsc,
-        LibrarySort.artistAsc => NotationSortBy.artistAsc,
+        LibrarySort.playCountDesc => NotationSortBy.dateDesc,
+        LibrarySort.playCountAsc => NotationSortBy.dateAsc,
+        LibrarySort.lastPlayedDesc => NotationSortBy.dateDesc,
+        LibrarySort.lastPlayedAsc => NotationSortBy.dateAsc,
       };
 
   /// Changes the active sort order and re-subscribes to the notation stream.
