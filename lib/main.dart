@@ -15,15 +15,18 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 
+import 'package:swaralipi/app.dart';
 import 'package:swaralipi/core/database/app_database.dart';
 import 'package:swaralipi/core/storage/file_storage_service.dart';
 
 /// Application entry point.
 ///
 /// Calls [WidgetsFlutterBinding.ensureInitialized] before any platform channel
-/// work, then opens the database, and finally launches the UI. The orphan
-/// cleanup runs as an unawaited background task so it does not delay first
-/// frame rendering.
+/// work, opens the database for orphan cleanup, then launches the UI.
+/// The orphan cleanup runs as an unawaited background task so it does not delay
+/// first frame rendering.
+///
+/// All repository wiring happens inside [SwaralipiApp].
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -72,50 +75,6 @@ Future<void> _runOrphanCleanup(
       name: 'OrphanCleanup',
       error: e,
       stackTrace: st,
-    );
-  }
-}
-
-/// Root widget for the Swaralipi application.
-class SwaralipiApp extends StatelessWidget {
-  /// Creates the [SwaralipiApp].
-  const SwaralipiApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Swaralipi',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6750A4),
-        ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6750A4),
-          brightness: Brightness.dark,
-        ),
-      ),
-      home: const _PlaceholderHome(),
-    );
-  }
-}
-
-/// Placeholder home screen used until the real navigation shell is implemented.
-class _PlaceholderHome extends StatelessWidget {
-  const _PlaceholderHome();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Swaralipi'),
-      ),
-      body: const Center(
-        child: Text('App under construction'),
-      ),
     );
   }
 }
