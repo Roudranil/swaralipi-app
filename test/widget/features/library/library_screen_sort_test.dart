@@ -2,8 +2,9 @@
 // and empty state.
 //
 // Covers:
-//   - Sort SegmentedButton is present in the AppBar
-//   - Tapping a sort segment calls LibraryViewModel.setSort
+//   - Sort icon button is present in the SliverAppBar actions
+//   - Tapping the sort icon opens the sort bottom sheet
+//   - Tapping a sort option in the bottom sheet calls LibraryViewModel.setSort
 //   - Empty state widget is shown when notation list is empty
 //   - NotationCard is rendered for each notation in success state
 //   - NotationCard shows title and artists
@@ -20,6 +21,7 @@ import 'package:swaralipi/core/database/daos/notation_dao.dart';
 import 'package:swaralipi/features/library/screens/library_screen.dart';
 import 'package:swaralipi/features/library/viewmodels/library_view_model.dart';
 import 'package:swaralipi/features/library/widgets/notation_card.dart';
+import 'package:swaralipi/features/library/widgets/sort_bottom_sheet.dart';
 import 'package:swaralipi/shared/models/notation.dart';
 import 'package:swaralipi/shared/models/notation_detail.dart';
 import 'package:swaralipi/shared/models/notation_draft.dart';
@@ -167,45 +169,80 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('Sort control — presence', () {
-    testWidgets('SegmentedButton is present in the AppBar', (tester) async {
+    testWidgets('sort icon button is present in the SliverAppBar',
+        (tester) async {
       await _pumpLibrary(
         tester,
         notationRepo: notationRepo,
         trashRepo: trashRepo,
       );
 
-      expect(find.byType(SegmentedButton<LibrarySort>), findsOneWidget);
+      // The sort button is an IconButton with Icons.sort_outlined.
+      expect(
+        find.widgetWithIcon(IconButton, Icons.sort_outlined),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('all three sort segments are shown', (tester) async {
+    testWidgets('tapping sort icon opens sort bottom sheet', (tester) async {
       await _pumpLibrary(
         tester,
         notationRepo: notationRepo,
         trashRepo: trashRepo,
       );
 
-      expect(find.text('Date'), findsOneWidget);
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.sort_outlined));
+      // Use pump with a short duration instead of pumpAndSettle — the
+      // LibraryViewModel debounce timer keeps the frame loop active.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.byType(SortBottomSheet), findsOneWidget);
+      expect(find.text('Sort by'), findsOneWidget);
+    });
+
+    testWidgets('sort bottom sheet shows all sort option labels',
+        (tester) async {
+      await _pumpLibrary(
+        tester,
+        notationRepo: notationRepo,
+        trashRepo: trashRepo,
+      );
+
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.sort_outlined));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
       expect(find.text('Title'), findsOneWidget);
-      expect(find.text('Artist'), findsOneWidget);
+      expect(find.text('Date written'), findsOneWidget);
+      expect(find.text('Date added'), findsOneWidget);
+      expect(find.text('Play count'), findsOneWidget);
+      expect(find.text('Last played'), findsOneWidget);
     });
   });
 
   group('Sort control — interaction', () {
-    testWidgets('tapping Title segment changes vm.sort to titleAsc',
+    testWidgets('tapping Title in sheet changes vm.sort to titleDesc',
         (tester) async {
       final vm = await _pumpLibrary(
         tester,
         notationRepo: notationRepo,
         trashRepo: trashRepo,
       );
+
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.sort_outlined));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
 
       await tester.tap(find.text('Title'));
       await tester.pump();
 
-      expect(vm.sort, LibrarySort.titleAsc);
+      // Default tap → desc direction.
+      expect(vm.sort, LibrarySort.titleDesc);
     });
 
-    testWidgets('tapping Artist segment changes vm.sort to artistAsc',
+    testWidgets(
+        're-tapping active sort group in sheet toggles direction to asc',
         (tester) async {
       final vm = await _pumpLibrary(
         tester,
@@ -213,26 +250,22 @@ void main() {
         trashRepo: trashRepo,
       );
 
-      await tester.tap(find.text('Artist'));
+      // Open sheet, tap Title (→ titleDesc), then re-open, tap Title again (→ titleAsc).
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.sort_outlined));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.text('Title'));
       await tester.pump();
 
-      expect(vm.sort, LibrarySort.artistAsc);
-    });
+      expect(vm.sort, LibrarySort.titleDesc);
 
-    testWidgets('re-tapping the active segment is a no-op', (tester) async {
-      final vm = await _pumpLibrary(
-        tester,
-        notationRepo: notationRepo,
-        trashRepo: trashRepo,
-      );
-
-      final callsBefore = notationRepo.receivedSortArgs.length;
-      await tester.tap(find.text('Date')); // already selected
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.sort_outlined));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.text('Title'));
       await tester.pump();
 
-      // sort unchanged, no extra subscription
-      expect(vm.sort, LibrarySort.dateDesc);
-      expect(notationRepo.receivedSortArgs.length, callsBefore);
+      expect(vm.sort, LibrarySort.titleAsc);
     });
   });
 
