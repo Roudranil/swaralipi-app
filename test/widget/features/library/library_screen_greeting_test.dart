@@ -8,10 +8,12 @@
 //   - Dialog Save button is disabled while the text field is empty.
 //   - Dialog Save button is enabled after text is entered.
 //   - Saving a name updates the greeting and dismisses the dialog.
+//   - SqliteException from getPreferences is logged; greeting stays "Hi there".
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:sqlite3/common.dart';
 
 import 'package:swaralipi/core/database/daos/notation_dao.dart';
 import 'package:swaralipi/features/library/screens/library_screen.dart';
@@ -142,11 +144,50 @@ class _FakePreferencesRepository implements PreferencesRepository {
   Future<void> updateTagsSeeded({required bool value}) async {}
 }
 
+/// Fake [PreferencesRepository] that throws [SqliteException] from
+/// [getPreferences], simulating a database error.
+class _FakeErrorPreferencesRepository implements PreferencesRepository {
+  @override
+  Future<UserPreferences> getPreferences() async {
+    throw SqliteException(
+      extendedResultCode: 5,
+      message: 'database is locked',
+    );
+  }
+
+  @override
+  Stream<UserPreferences> watchPreferences() => const Stream.empty();
+
+  @override
+  Future<void> updateUserName(String name) async {}
+
+  @override
+  Future<void> updatePreferences(UserPreferences preferences) async {}
+
+  @override
+  Future<void> updateThemeMode(AppThemeMode mode) async {}
+
+  @override
+  Future<void> updateColorSchemeMode(ColorSchemeMode mode) async {}
+
+  @override
+  Future<void> updateSeedColor(String? colorHex) async {}
+
+  @override
+  Future<void> updatePlayerOrientation(PlayerOrientation orientation) async {}
+
+  @override
+  Future<void> updateAutoScrollSpeed(double speed) async {}
+
+  @override
+  Future<void> updateTagsSeeded({required bool value}) async {}
+}
+
 /// Pumps a [LibraryScreen] with a fresh [LibraryViewModel] and the given
 /// optional [preferencesRepository].
 Future<void> _pumpLibrary(
   WidgetTester tester, {
-  _FakePreferencesRepository? preferencesRepository,
+  PreferencesRepository? preferencesRepository,
 }) async {
   final notationRepo = _FakeNotationRepository();
   final trashRepo = _FakeTrashRepository();
@@ -300,6 +341,27 @@ void main() {
 
         // Dialog should still be present because barrierDismissible: false.
         expect(find.text("What's your name?"), findsOneWidget);
+      },
+    );
+  });
+
+  group('LibraryScreen greeting — SqliteException handling', () {
+    testWidgets(
+      'shows "Hi there" and no dialog when getPreferences throws SqliteException',
+      (tester) async {
+        final repo = _FakeErrorPreferencesRepository();
+        await _pumpLibrary(tester, preferencesRepository: repo);
+
+        // Allow postFrameCallback + async _loadGreeting to complete.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump();
+
+        // Greeting stays at the default — error was caught.
+        expect(find.text('Hi there'), findsOneWidget);
+
+        // No dialog appeared (error prevented reaching the empty-name check).
+        expect(find.text("What's your name?"), findsNothing);
       },
     );
   });
