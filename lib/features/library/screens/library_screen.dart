@@ -70,9 +70,6 @@ const EdgeInsets _kListPadding = EdgeInsets.symmetric(vertical: 4);
 /// Padding around the delete icon in the swipe background.
 const EdgeInsets _kSwipeIconPadding = EdgeInsets.symmetric(horizontal: 24);
 
-/// Horizontal and vertical padding around the search bar.
-const EdgeInsets _kSearchBarPadding = EdgeInsets.fromLTRB(16, 8, 16, 4);
-
 // ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
@@ -147,7 +144,6 @@ class LibraryScreen extends StatefulWidget {
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
-  final SearchController _searchController = SearchController();
   String _greeting = 'Hi there';
 
   @override
@@ -202,7 +198,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -243,6 +238,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
             ),
             actions: [
+              // Search icon — opens M3 full-screen search overlay
+              SearchAnchor(
+                viewOnChanged: vm.setSearchQuery,
+                viewOnSubmitted: (_) {},
+                viewLeading: const BackButton(),
+                viewTrailing: const [],
+                suggestionsBuilder: (_, __) => const [],
+                builder: (context, controller) => Semantics(
+                  label: 'Search notations',
+                  child: IconButton(
+                    key: const Key('library_search_icon_button'),
+                    icon: const Icon(Icons.search_outlined),
+                    tooltip: 'Search',
+                    onPressed: () => controller.openView(),
+                  ),
+                ),
+              ),
               Semantics(
                 label: 'Sort notations',
                 child: IconButton(
@@ -252,16 +264,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ),
               ),
             ],
-          ),
-          // ---------------------------------------------------------------
-          // Search bar
-          // ---------------------------------------------------------------
-          SliverToBoxAdapter(
-            child: _LibrarySearchBar(
-              controller: _searchController,
-              onChanged: vm.setSearchQuery,
-              onClear: vm.clearSearch,
-            ),
           ),
           // ---------------------------------------------------------------
           // Tag filter row (conditional)
@@ -447,56 +449,6 @@ class _ErrorView extends StatelessWidget {
 ///
 /// Text changes are forwarded to [onChanged] so the ViewModel can debounce
 /// and execute the search. The clear (X) button appears when the [controller]
-/// has non-empty text and resets the query via [onClear].
-///
-/// Uses [ListenableBuilder] to rebuild the trailing icon whenever [controller]
-/// changes, ensuring the button appears and disappears reactively.
-class _LibrarySearchBar extends StatelessWidget {
-  const _LibrarySearchBar({
-    required this.controller,
-    required this.onChanged,
-    required this.onClear,
-  });
-
-  /// Controls the text shown in the search bar.
-  final SearchController controller;
-
-  /// Called on each text change with the new query string.
-  final ValueChanged<String> onChanged;
-
-  /// Called when the user taps the clear button.
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: _kSearchBarPadding,
-      child: ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) => SearchBar(
-          controller: controller,
-          hintText: 'Search notations…',
-          leading: const Icon(Icons.search_outlined),
-          trailing: [
-            if (controller.text.isNotEmpty)
-              Semantics(
-                label: 'Clear search',
-                child: IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    controller.clear();
-                    onClear();
-                  },
-                ),
-              ),
-          ],
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Notation row
 // ---------------------------------------------------------------------------
