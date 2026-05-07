@@ -43,6 +43,19 @@ You also have access to the Dart MCP server. Use to fetch documentation, analyze
 
 ## 2. Phase 0 — Load Context
 
+### 2.0. Load Skills
+
+Before reading anything else, invoke the following skills using the Skill tool.
+These load production-ready patterns and review checklists you must follow throughout:
+
+```
+Skill({ skill: "dart-flutter-patterns" })
+Skill({ skill: "material-3-skill" })
+Skill({ skill: "flutter-dart-code-review" })
+```
+
+Do not skip this step. The skills override any conflicting guidance in this file.
+
 ### 2.1. Read the Issue
 
 Use the GitHub MCP or `gh` CLI to fetch the issue body in full:
@@ -332,31 +345,25 @@ Use **conventional commits** format. Every commit must:
 ### 9.1. Commit format
 
 ```
-<type>(<scope>): <description>
-
-[optional body — explain WHY, not what]
+<type>(<scope>): <short one/two line description>
 
 Refs: #<ISSUE_NUMBER>
 ```
 
 ### 9.2. Commit types
 
-| Type       | When to use                                          |
-| ---------- | ---------------------------------------------------- |
-| `feat`     | New feature / new behavior visible to the user       |
-| `fix`      | Bug fix                                              |
-| `test`     | Adding or updating tests only                        |
-| `refactor` | Code change that neither fixes a bug nor adds a feat |
-| `perf`     | Performance improvement                              |
-| `docs`     | Documentation-only changes                           |
-| `chore`    | Build system, dependencies, CI — no production code  |
-| `ci`       | CI/CD configuration changes                          |
+| Type       | When to use                                          | Example scopes                               |
+| ---------- | ---------------------------------------------------- | -------------------------------------------- |
+| `feat`     | New feature / new behavior visible to the user       | notation, camera, search, storage, data, etc |
+| `fix`      | Bug fix                                              | bug, notation, camera, <module> etc          |
+| `test`     | Adding or updating tests only                        | any                                          |
+| `refactor` | Code change that neither fixes a bug nor adds a feat | any                                          |
+| `perf`     | Performance improvement                              | any                                          |
+| `docs`     | Documentation-only changes                           | any                                          |
+| `chore`    | Build system, dependencies, CI — no production code  | git, build, deps etc                         |
+| `ci`       | CI/CD configuration changes                          | any                                          |
 
-### 9.3. Scope
-
-Use the Flutter feature or module name, e.g. `notation`, `camera`, `search`, `storage`.
-
-### 9.4. Examples
+### 9.3. Examples
 
 ```
 feat(notation): add NotationRepository.getById use-case
@@ -384,9 +391,10 @@ Unbind in onStop(), rebind in onStart() to match Activity lifecycle.
 Refs: #23
 ```
 
-### 9.5. Commit discipline
+### 9.4. Commit discipline
 
 - **One logical change per commit** — keep commits atomic
+- Each commit must cover small mumber of changes/files
 - Write tests and implementation in **separate commits** (test commit first, then impl)
 - Never bundle unrelated changes in a single commit
 - Never include `Co-Authored-By` or any attribution lines
