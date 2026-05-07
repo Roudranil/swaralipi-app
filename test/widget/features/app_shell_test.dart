@@ -57,16 +57,23 @@ class _FakeNotationRepository implements NotationRepository {
       throw UnimplementedError();
 
   @override
-  Future<void> restoreNotation(String id) async {}
+  Future<Notation> updateNotation(
+    String id,
+    NotationDraft draft,
+  ) async =>
+      throw UnimplementedError();
 
   @override
-  Future<void> permanentlyDelete(String id) async {}
+  Future<void> updatePlayCount(String id) async {}
 
   @override
-  Future<NotationDetail?> getNotationDetail(String id) async => null;
+  Future<NotationDetail?> loadNotation(String id) async => null;
 
   @override
-  Stream<NotationDetail?> watchNotationDetail(String id) => const Stream.empty();
+  Future<void> updatePageRenderParams(
+    String pageId,
+    String renderParamsJson,
+  ) async {}
 }
 
 class _FakeTagRepository implements TagRepository {
@@ -83,20 +90,23 @@ class _FakeTagRepository implements TagRepository {
 
   @override
   Future<void> deleteTag(String id) async {}
-
-  @override
-  Future<void> seedDefaultTagsIfNeeded() async {}
 }
 
 class _FakeTrashRepository implements TrashRepository {
   @override
-  Stream<List<Notation>> watchDeleted() => const Stream.empty();
+  Stream<List<Notation>> watchTrashedNotations() => const Stream.empty();
 
   @override
   Future<void> restoreNotation(String id) async {}
 
   @override
-  Future<void> permanentlyDelete(String id) async {}
+  Future<void> purgeNotation(String id) async {}
+
+  @override
+  Future<void> purgeAll() async {}
+
+  @override
+  Future<int> autoPurgeExpired() async => 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -110,8 +120,8 @@ Widget _buildShellWithLibrary() {
 
   return MaterialApp(
     home: ChangeNotifierProvider<LibraryViewModel>(
-      create: (_) => LibraryViewModel(notationRepo, trashRepo,
-          tagRepository: tagRepo),
+      create: (_) =>
+          LibraryViewModel(notationRepo, trashRepo, tagRepository: tagRepo),
       child: const LibraryScreen(),
     ),
   );
@@ -140,7 +150,8 @@ void main() {
         'ThemeData contains NavigationBarThemeData with surfaceContainer',
         (tester) async {
       // Build a MaterialApp with the same _buildTheme logic as the real app.
-      final colorScheme = ColorScheme.fromSeed(seedColor: const Color(0xFF6750A4));
+      final colorScheme =
+          ColorScheme.fromSeed(seedColor: const Color(0xFF6750A4));
       final themeData = ThemeData(
         useMaterial3: true,
         colorScheme: colorScheme,
