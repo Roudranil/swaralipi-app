@@ -40,8 +40,11 @@
 //     ),
 //   )
 
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sqlite3/common.dart' show SqliteException;
 
 import 'package:swaralipi/core/storage/file_storage_service.dart';
 import 'package:swaralipi/features/edit/screens/edit_notation_screen.dart';
@@ -159,16 +162,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Future<void> _loadGreeting() async {
     final repo = widget.preferencesRepository;
     if (repo == null) return;
-    final prefs = await repo.getPreferences();
-    if (!mounted) return;
-    final name = prefs.userName.trim();
-    if (name.isEmpty) {
-      await _promptForName(repo);
-      return;
+    try {
+      final prefs = await repo.getPreferences();
+      if (!mounted) return;
+      final name = prefs.userName.trim();
+      if (name.isEmpty) {
+        await _promptForName(repo);
+        return;
+      }
+      setState(() {
+        _greeting = 'Hi, $name';
+      });
+    } on SqliteException catch (e, st) {
+      log(
+        '_loadGreeting: failed to read preferences — $e',
+        name: 'LibraryScreen',
+        error: e,
+        stackTrace: st,
+      );
     }
-    setState(() {
-      _greeting = 'Hi, $name';
-    });
   }
 
   /// Shows a blocking dialog that asks the user for their name on first launch.

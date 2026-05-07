@@ -76,18 +76,33 @@ const int _kSettingsIndex = 1;
 
 /// Root widget for the Swaralipi application.
 ///
-/// In production, constructed with no arguments — repositories are created
-/// internally from [AppDatabase] and [FileStorageService].
+/// In production, constructed with optional [database] and [storageService]
+/// parameters — the single instances created in [main] are passed in so that
+/// [_initDependencies] reuses them rather than opening a second connection to
+/// the same on-disk SQLite file (which would cause a WAL lock conflict).
 ///
 /// In tests, use [SwaralipiApp.forTesting] to inject fake repositories and
 /// control [initialLocation].
 class SwaralipiApp extends StatefulWidget {
   /// Creates the production [SwaralipiApp].
   ///
-  /// Builds all real repositories from [AppDatabase] and
-  /// [FileStorageService] opened via platform channels.
-  const SwaralipiApp({super.key})
-      : _initialLocation = '/',
+  /// Pass the [database] and [storageService] instances created in [main] so
+  /// that only one [AppDatabase] connection is open at a time.  When omitted
+  /// (e.g. in legacy test call-sites), a new instance is created internally —
+  /// but this is only safe for tests that do not open a real on-disk file.
+  ///
+  /// Parameters:
+  /// - [database]: The already-opened [AppDatabase] instance from [main].
+  ///   Defaults to `null`; a new instance is created if not provided.
+  /// - [storageService]: The [FileStorageService] instance from [main].
+  ///   Defaults to `null`; a new instance is created if not provided.
+  const SwaralipiApp({
+    super.key,
+    AppDatabase? database,
+    FileStorageService? storageService,
+  })  : _database = database,
+        _storageService = storageService,
+        _initialLocation = '/',
         _tagRepository = null,
         _trashRepository = null,
         _instrumentRepository = null,
@@ -115,7 +130,9 @@ class SwaralipiApp extends StatefulWidget {
     required CustomFieldRepository customFieldRepository,
     required PreferencesRepository preferencesRepository,
     NotationRepository? notationRepository,
-  })  : _initialLocation = initialLocation,
+  })  : _database = null,
+        _storageService = null,
+        _initialLocation = initialLocation,
         _tagRepository = tagRepository,
         _trashRepository = trashRepository,
         _instrumentRepository = instrumentRepository,
@@ -123,6 +140,12 @@ class SwaralipiApp extends StatefulWidget {
         _preferencesRepository = preferencesRepository,
         _notationRepository = notationRepository,
         _forTesting = true;
+
+  /// The [AppDatabase] instance passed from [main], or null for tests.
+  final AppDatabase? _database;
+
+  /// The [FileStorageService] instance passed from [main], or null for tests.
+  final FileStorageService? _storageService;
 
   final String _initialLocation;
   final TagRepository? _tagRepository;
@@ -187,8 +210,11 @@ class _SwaralipiAppState extends State<SwaralipiApp> {
       _preferencesRepository = widget._preferencesRepository!;
       _notationRepository = widget._notationRepository;
     } else {
-      final db = AppDatabase();
-      final storageService = FileStorageService();
+      // Reuse the AppDatabase and FileStorageService instances created in
+      // main() to avoid opening a second connection to the same on-disk
+      // SQLite file (which would cause a WAL lock conflict).
+      final db = widget._database ?? AppDatabase();
+      final storageService = widget._storageService ?? FileStorageService();
       _db = db;
       _storageService = storageService;
 
