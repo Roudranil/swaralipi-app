@@ -57,6 +57,8 @@ import 'package:swaralipi/shared/repositories/preferences_repository.dart';
 import 'package:swaralipi/shared/repositories/tag_repository.dart';
 import 'package:swaralipi/shared/repositories/trash_repository.dart';
 import 'package:swaralipi/features/capture/data/notation_repository_impl.dart';
+import 'package:swaralipi/features/capture/screens/metadata_form_screen.dart';
+import 'package:swaralipi/features/capture/viewmodels/metadata_form_view_model.dart';
 
 // ---------------------------------------------------------------------------
 // Route index constants
@@ -318,8 +320,18 @@ class _SwaralipiAppState extends State<SwaralipiApp> {
   static const Color _kDefaultSeed = Color(0xFF6750A4);
 
   /// Builds a [ThemeData] from a [ColorScheme].
-  ThemeData _buildTheme(ColorScheme scheme) =>
-      ThemeData(useMaterial3: true, colorScheme: scheme);
+  ///
+  /// Includes [NavigationBarThemeData] so the nav bar is visually distinct
+  /// from the page surface on both light and dark themes.
+  ThemeData _buildTheme(ColorScheme scheme) => ThemeData(
+        useMaterial3: true,
+        colorScheme: scheme,
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: scheme.surfaceContainer,
+          indicatorColor: scheme.secondaryContainer,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        ),
+      );
 
   /// Resolves the live [ThemeMode] from stored [AppThemeMode].
   ThemeMode _resolveThemeMode(AppThemeMode mode) => switch (mode) {
@@ -511,9 +523,61 @@ class _AppShell extends StatelessWidget {
               ),
             ],
             child: PageEditorScreen(
-              onNext: (_) {},
+              onNext: (ctx) => _navigateToMetadataForm(
+                ctx,
+                session,
+                pageEditorVm,
+              ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Navigates to [MetadataFormScreen] from the [PageEditorScreen].
+  ///
+  /// Reads the captured drafts from [session] and the required repositories
+  /// from [_AppShell] fields. Creates a fresh [MetadataFormViewModel] and
+  /// wraps the screen in a [MultiProvider] alongside the existing
+  /// [CaptureSessionViewModel] and [PageEditorViewModel] so that the full
+  /// capture context is available downstream.
+  ///
+  /// Parameters:
+  /// - [ctx]: The [BuildContext] passed by [PageEditorScreen.onNext].
+  /// - [session]: The active [CaptureSessionViewModel] holding captured pages.
+  /// - [pageEditorVm]: The [PageEditorViewModel] tracking render params.
+  void _navigateToMetadataForm(
+    BuildContext ctx,
+    CaptureSessionViewModel session,
+    PageEditorViewModel pageEditorVm,
+  ) {
+    final notationRepo = notationRepository;
+    final storage = storageService;
+    if (notationRepo == null || storage == null) return;
+
+    Navigator.of(ctx).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => MultiProvider(
+          providers: [
+            ChangeNotifierProvider<CaptureSessionViewModel>.value(
+              value: session,
+            ),
+            ChangeNotifierProvider<PageEditorViewModel>.value(
+              value: pageEditorVm,
+            ),
+            ChangeNotifierProvider<MetadataFormViewModel>(
+              create: (_) => MetadataFormViewModel(
+                tagRepository: tagRepository,
+                instrumentRepository: instrumentRepository,
+                customFieldRepository: customFieldRepository,
+                notationRepository: notationRepo,
+                fileStorageService: storage,
+                drafts: session.pages,
+              ),
+            ),
+          ],
+          child: const MetadataFormScreen(),
         ),
       ),
     );
@@ -527,21 +591,19 @@ class _AppShell extends StatelessWidget {
       body: child,
       floatingActionButton: _showFab
           ? Semantics(
-              label: 'Capture new notation',
+              label: 'Add notation',
               child: FloatingActionButton.extended(
                 onPressed: () => unawaited(_openCaptureSheet(context)),
                 backgroundColor: colorScheme.primaryContainer,
                 foregroundColor: colorScheme.onPrimaryContainer,
                 icon: const Icon(Icons.add_a_photo_outlined),
-                label: const Text('Capture'),
+                label: const Text('Add notation'),
               ),
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        indicatorColor: colorScheme.secondaryContainer,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         onDestinationSelected: (index) =>
             _onDestinationSelected(context, index),
         destinations: const [
