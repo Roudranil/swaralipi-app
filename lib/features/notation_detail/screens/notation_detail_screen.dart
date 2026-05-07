@@ -821,4 +821,10 @@ final class _NoOpPreferencesRepository implements PreferencesRepository {
 
   @override
   Future<void> updateAutoScrollSpeed(double speed) async {}
+
+  @override
+  Future<void> updateUserName(String name) async {}
+
+  @override
+  Stream<UserPreferences> watchPreferences() => const Stream.empty();
 }

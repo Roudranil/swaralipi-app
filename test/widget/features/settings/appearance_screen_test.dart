@@ -89,6 +89,14 @@ class FakePreferencesRepository implements PreferencesRepository {
   Future<void> updateAutoScrollSpeed(double speed) async {
     _prefs = _prefs.copyWith(autoScrollSpeed: speed);
   }
+
+  @override
+  Future<void> updateUserName(String name) async {
+    _prefs = _prefs.copyWith(userName: name);
+  }
+
+  @override
+  Stream<UserPreferences> watchPreferences() => Stream.value(_prefs);
 }
 
 // ---------------------------------------------------------------------------
@@ -139,6 +147,12 @@ class _BlockingPreferencesRepository implements PreferencesRepository {
 
   @override
   Future<void> updateAutoScrollSpeed(double speed) async {}
+
+  @override
+  Future<void> updateUserName(String name) async {}
+
+  @override
+  Stream<UserPreferences> watchPreferences() => const Stream.empty();
 }
 
 // ---------------------------------------------------------------------------
@@ -338,4 +352,10 @@ class _FailingPreferencesRepository implements PreferencesRepository {
 
   @override
   Future<void> updateAutoScrollSpeed(double speed) async {}
+
+  @override
+  Future<void> updateUserName(String name) async {}
+
+  @override
+  Stream<UserPreferences> watchPreferences() => const Stream.empty();
 }
