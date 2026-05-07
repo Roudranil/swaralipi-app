@@ -2,7 +2,7 @@
 // entry sheet.
 //
 // Manages the camera permission request flow, device camera intent launch,
-// MediaStore timestamp query, and gallery picker delegation.
+// and gallery picker delegation.
 //
 // State hierarchy (sealed):
 //   CaptureEntryStateIdle                — initial, no operation in progress
@@ -113,8 +113,8 @@ class CaptureEntryViewModel extends ChangeNotifier {
 
   /// Requests the CAMERA permission, then launches the device camera.
   ///
-  /// On return from the camera, queries MediaStore for images added on or after
-  /// the timestamp recorded just before the launch.
+  /// The returned path from [CameraService.launchCamera] is used directly —
+  /// no secondary gallery query is needed.
   ///
   /// State transitions:
   ///   idle → loading → permissionDenied | permissionPermanentlyDenied |
@@ -135,10 +135,9 @@ class CaptureEntryViewModel extends ChangeNotifier {
         break;
     }
 
-    final launchTimestamp = DateTime.now();
-
+    final String? path;
     try {
-      await _cameraService.launchCamera();
+      path = await _cameraService.launchCamera();
     } on Exception catch (e, st) {
       log(
         'CaptureEntryViewModel: camera launch error: $e',
@@ -150,14 +149,10 @@ class CaptureEntryViewModel extends ChangeNotifier {
       return;
     }
 
-    final imagePaths = await _cameraService.queryMediaStoreAfterTimestamp(
-      launchTimestamp,
-    );
-
-    if (imagePaths.isEmpty) {
+    if (path == null) {
       _setState(const CaptureEntryStateCameraEmpty());
     } else {
-      _setState(CaptureEntryStateCameraDone(imagePaths));
+      _setState(CaptureEntryStateCameraDone([path]));
     }
   }
 

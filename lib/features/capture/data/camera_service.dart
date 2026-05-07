@@ -1,5 +1,5 @@
 // camera_service.dart — abstraction over camera permission, intent launch,
-// MediaStore query, and gallery picker.
+// and gallery picker.
 //
 // The concrete implementation [CameraServiceImpl] uses:
 //   - permission_handler for runtime camera permission
@@ -7,9 +7,13 @@
 //
 // The abstract [CameraService] interface is kept separate so that unit tests
 // can substitute a [FakeCameraService] without platform dependencies.
+//
+// Change from initial design: [launchCamera] now returns the captured image
+// path directly (Task 2 fix). The defunct
+// [queryMediaStoreAfterTimestamp] has been removed — it opened the gallery
+// picker a second time, which was the original bug.
 
 import 'dart:developer';
-import 'dart:io';
 
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -44,17 +48,9 @@ abstract interface class CameraService {
 
   /// Launches the device camera activity via an intent.
   ///
-  /// Returns after the user presses back / exits the camera app.
-  Future<void> launchCamera();
-
-  /// Queries the device MediaStore for images added on or after [timestamp].
-  ///
-  /// Returns a list of absolute file paths sorted by recency (newest first).
-  ///
-  /// Parameters:
-  /// - [timestamp]: The lower bound for `date_added`; typically recorded just
-  ///   before [launchCamera] is called.
-  Future<List<String>> queryMediaStoreAfterTimestamp(DateTime timestamp);
+  /// Returns the absolute file path of the captured image, or `null` when the
+  /// user cancels without taking a photo.
+  Future<String?> launchCamera();
 
   /// Opens the system gallery picker and returns selected image paths.
   ///
@@ -69,9 +65,8 @@ abstract interface class CameraService {
 /// Production implementation of [CameraService] backed by [ImagePicker] and
 /// [permission_handler].
 ///
-/// MediaStore querying is performed by scanning images returned from the
-/// picker using a timestamp filter, since direct ContentResolver queries are
-/// not available in Dart without platform channels.
+/// [launchCamera] uses `pickImage(source: ImageSource.camera)` and returns the
+/// captured file path directly — no secondary gallery picker is needed.
 class CameraServiceImpl implements CameraService {
   /// Creates a [CameraServiceImpl].
   ///
@@ -97,12 +92,13 @@ class CameraServiceImpl implements CameraService {
   }
 
   @override
-  Future<void> launchCamera() async {
+  Future<String?> launchCamera() async {
     // image_picker uses ACTION_IMAGE_CAPTURE intent on Android.
-    // We ignore the returned XFile here; results are fetched via
-    // queryMediaStoreAfterTimestamp so multi-photo sessions are supported.
+    // Returns the XFile path directly so callers do not need a second
+    // gallery-picker round-trip (which was the original bug).
     try {
-      await _picker.pickImage(source: ImageSource.camera);
+      final xFile = await _picker.pickImage(source: ImageSource.camera);
+      return xFile?.path;
     } on Exception catch (e, st) {
       log(
         'CameraServiceImpl.launchCamera failed: $e',
@@ -110,39 +106,7 @@ class CameraServiceImpl implements CameraService {
         error: e,
         stackTrace: st,
       );
-    }
-  }
-
-  @override
-  Future<List<String>> queryMediaStoreAfterTimestamp(
-    DateTime timestamp,
-  ) async {
-    // image_picker does not provide a MediaStore query API.
-    // We use the image_picker gallery picker restricted to images and sort by
-    // last-modified date, then filter by timestamp ourselves.
-    //
-    // Limitation: only images visible in the picker are returned. This covers
-    // the Samsung Galaxy S25 DCIM folder reliably.
-    try {
-      final images = await _picker.pickMultiImage();
-      final paths = <String>[];
-      for (final xFile in images) {
-        final file = File(xFile.path);
-        if (!file.existsSync()) continue;
-        final stat = file.statSync();
-        if (!stat.modified.isBefore(timestamp)) {
-          paths.add(xFile.path);
-        }
-      }
-      return paths;
-    } on Exception catch (e, st) {
-      log(
-        'CameraServiceImpl.queryMediaStoreAfterTimestamp failed: $e',
-        name: 'CameraService',
-        error: e,
-        stackTrace: st,
-      );
-      return [];
+      return null;
     }
   }
 

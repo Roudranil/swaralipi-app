@@ -59,6 +59,11 @@ final class UserPreferencesRepositoryImpl implements PreferencesRepository {
   }
 
   @override
+  Stream<UserPreferences> watchPreferences() {
+    return _dao.watchPreferences().map(_rowToPreferences);
+  }
+
+  @override
   Future<void> updatePreferences(UserPreferences preferences) async {
     await _dao.upsertPreferences(
       UserPreferencesTableCompanion(
@@ -185,6 +190,29 @@ final class UserPreferencesRepositoryImpl implements PreferencesRepository {
     );
     log(
       'UserPreferencesRepositoryImpl: autoScrollSpeed set to $speed',
+      name: 'UserPreferencesRepository',
+    );
+  }
+
+  @override
+  Future<void> updateUserName(String name) async {
+    final existing = await _dao.getPreferences();
+    await _dao.upsertPreferences(
+      UserPreferencesTableCompanion(
+        id: const Value(_kSingletonId),
+        userName: Value(name),
+        themeMode: Value(existing.themeMode),
+        colorSchemeMode: Value(existing.colorSchemeMode),
+        seedColor: Value(existing.seedColor),
+        defaultSort: Value(existing.defaultSort),
+        defaultView: Value(existing.defaultView),
+        tagsSeeded: Value(existing.tagsSeeded),
+        playerOrientation: Value(existing.playerOrientation),
+        autoScrollSpeed: Value(existing.autoScrollSpeed),
+      ),
+    );
+    log(
+      'UserPreferencesRepositoryImpl: userName set to $name',
       name: 'UserPreferencesRepository',
     );
   }

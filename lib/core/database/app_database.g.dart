@@ -3407,7 +3407,7 @@ class $UserPreferencesTableTable extends UserPreferencesTable
       'user_name', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: const Constant('Musician'));
+      defaultValue: const Constant(''));
   static const VerificationMeta _themeModeMeta =
       const VerificationMeta('themeMode');
   @override
@@ -3591,6 +3591,8 @@ class UserPreferencesRow extends DataClass
   final int id;
 
   /// Display name shown in the app.
+  ///
+  /// Defaults to empty string so the first-launch name dialog is triggered.
   final String userName;
 
   /// Theme mode: `'light'`, `'dark'`, or `'system'`.

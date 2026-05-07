@@ -83,6 +83,14 @@ class FakePreferencesRepository implements PreferencesRepository {
   Future<void> updateAutoScrollSpeed(double speed) async {
     _prefs = _prefs.copyWith(autoScrollSpeed: speed);
   }
+
+  @override
+  Future<void> updateUserName(String name) async {
+    _prefs = _prefs.copyWith(userName: name);
+  }
+
+  @override
+  Stream<UserPreferences> watchPreferences() => Stream.value(_prefs);
 }
 
 // ---------------------------------------------------------------------------

@@ -16,6 +16,9 @@
 //     /settings/appearance     → AppearanceScreen
 //     /settings/custom-fields  → CustomFieldsScreen
 
+import 'dart:async';
+
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -24,7 +27,10 @@ import 'package:swaralipi/core/database/app_database.dart';
 import 'package:swaralipi/core/storage/file_storage_service.dart';
 import 'package:swaralipi/features/capture/data/camera_service.dart';
 import 'package:swaralipi/features/capture/screens/capture_entry_sheet.dart';
+import 'package:swaralipi/features/capture/screens/page_editor_screen.dart';
 import 'package:swaralipi/features/capture/viewmodels/capture_entry_view_model.dart';
+import 'package:swaralipi/features/capture/viewmodels/capture_session_view_model.dart';
+import 'package:swaralipi/features/capture/viewmodels/page_editor_view_model.dart';
 import 'package:swaralipi/features/custom_fields/data/custom_field_repository_impl.dart';
 import 'package:swaralipi/features/custom_fields/screens/custom_fields_screen.dart';
 import 'package:swaralipi/features/custom_fields/viewmodels/custom_fields_view_model.dart';
@@ -46,6 +52,7 @@ import 'package:swaralipi/features/trash/viewmodels/trash_view_model.dart';
 import 'package:swaralipi/shared/repositories/custom_field_repository.dart';
 import 'package:swaralipi/shared/repositories/instrument_repository.dart';
 import 'package:swaralipi/shared/repositories/notation_repository.dart';
+import 'package:swaralipi/shared/models/user_preferences.dart';
 import 'package:swaralipi/shared/repositories/preferences_repository.dart';
 import 'package:swaralipi/shared/repositories/tag_repository.dart';
 import 'package:swaralipi/shared/repositories/trash_repository.dart';
@@ -139,11 +146,32 @@ class _SwaralipiAppState extends State<SwaralipiApp> {
   late final NotationRepository? _notationRepository;
   late final GoRouter _router;
 
+  /// Live preferences value driving [MaterialApp] theme and themeMode.
+  late final ValueNotifier<UserPreferences?> _prefsNotifier;
+
+  StreamSubscription<UserPreferences>? _prefsSub;
+
   @override
   void initState() {
     super.initState();
     _initDependencies();
     _router = _buildRouter();
+    _prefsNotifier = ValueNotifier<UserPreferences?>(null);
+    _subscribeToPreferences();
+  }
+
+  /// Seeds the singleton row then subscribes to live preference changes.
+  ///
+  /// The first [getPreferences] call ensures the row exists so that
+  /// [watchPreferences] emits immediately.
+  Future<void> _subscribeToPreferences() async {
+    // Seed the row so watchPreferences has something to emit.
+    final initial = await _preferencesRepository.getPreferences();
+    if (!mounted) return;
+    _prefsNotifier.value = initial;
+    _prefsSub = _preferencesRepository.watchPreferences().listen((prefs) {
+      _prefsNotifier.value = prefs;
+    });
   }
 
   void _initDependencies() {
@@ -279,30 +307,88 @@ class _SwaralipiAppState extends State<SwaralipiApp> {
 
   @override
   void dispose() {
+    _prefsSub?.cancel();
+    _prefsNotifier.dispose();
     _router.dispose();
     _db?.close();
     super.dispose();
   }
 
+  /// Default seed color used when Monet is unavailable and no seed is stored.
+  static const Color _kDefaultSeed = Color(0xFF6750A4);
+
+  /// Builds a [ThemeData] from a [ColorScheme].
+  ThemeData _buildTheme(ColorScheme scheme) =>
+      ThemeData(useMaterial3: true, colorScheme: scheme);
+
+  /// Resolves the live [ThemeMode] from stored [AppThemeMode].
+  ThemeMode _resolveThemeMode(AppThemeMode mode) => switch (mode) {
+        AppThemeMode.light => ThemeMode.light,
+        AppThemeMode.dark => ThemeMode.dark,
+        AppThemeMode.system => ThemeMode.system,
+      };
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Swaralipi',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6750A4),
-        ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6750A4),
-          brightness: Brightness.dark,
-        ),
-      ),
-      routerConfig: _router,
+    return DynamicColorBuilder(
+      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+        return ValueListenableBuilder<UserPreferences?>(
+          valueListenable: _prefsNotifier,
+          builder: (_, prefs, __) {
+            final ColorScheme lightScheme;
+            final ColorScheme darkScheme;
+            final ThemeMode themeMode;
+
+            if (prefs == null) {
+              // Preferences not yet loaded — use defaults.
+              lightScheme = ColorScheme.fromSeed(seedColor: _kDefaultSeed);
+              darkScheme = ColorScheme.fromSeed(
+                seedColor: _kDefaultSeed,
+                brightness: Brightness.dark,
+              );
+              themeMode = ThemeMode.system;
+            } else {
+              themeMode = _resolveThemeMode(prefs.themeMode);
+
+              final useMonet = prefs.colorSchemeMode == ColorSchemeMode.monet;
+              if (useMonet && lightDynamic != null && darkDynamic != null) {
+                lightScheme = lightDynamic.harmonized();
+                darkScheme = darkDynamic.harmonized();
+              } else {
+                // Parse stored hex seed or fall back to default.
+                final seed = _parseSeedColor(prefs.seedColor) ?? _kDefaultSeed;
+                lightScheme = ColorScheme.fromSeed(seedColor: seed);
+                darkScheme = ColorScheme.fromSeed(
+                  seedColor: seed,
+                  brightness: Brightness.dark,
+                );
+              }
+            }
+
+            return MaterialApp.router(
+              title: 'Swaralipi',
+              theme: _buildTheme(lightScheme),
+              darkTheme: _buildTheme(darkScheme),
+              themeMode: themeMode,
+              routerConfig: _router,
+            );
+          },
+        );
+      },
     );
+  }
+
+  /// Parses a hex color string (e.g. `'#f38ba8'` or `'0xFFf38ba8'`) into a
+  /// [Color], returning `null` when the string is null or unparseable.
+  ///
+  /// Parameters:
+  /// - [hex]: A CSS-style `#RRGGBB` or Dart-style `0xAARRGGBB` hex string.
+  static Color? _parseSeedColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    final normalized = hex.replaceFirst('#', '0xFF');
+    final value = int.tryParse(normalized);
+    if (value == null) return null;
+    return Color(value);
   }
 }
 
@@ -388,12 +474,47 @@ class _AppShell extends StatelessWidget {
     }
   }
 
-  void _openCaptureSheet(BuildContext context) {
-    showModalBottomSheet<void>(
+  /// Opens the capture-entry bottom sheet and, when paths are returned,
+  /// navigates to [PageEditorScreen].
+  ///
+  /// The sheet pops with `List<String>` when the user completes a camera or
+  /// gallery capture. An empty or null result closes the sheet silently.
+  Future<void> _openCaptureSheet(BuildContext context) async {
+    final paths = await showModalBottomSheet<List<String>>(
       context: context,
       builder: (_) => ChangeNotifierProvider<CaptureEntryViewModel>(
         create: (_) => CaptureEntryViewModel(CameraServiceImpl()),
         child: const CaptureEntrySheet(),
+      ),
+    );
+
+    if (paths == null || paths.isEmpty) return;
+    if (!context.mounted) return;
+
+    final session = CaptureSessionViewModel();
+    await session.loadFromPaths(paths);
+
+    if (!context.mounted) return;
+
+    final pageEditorVm = PageEditorViewModel(session: session);
+
+    unawaited(
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CaptureSessionViewModel>.value(
+                value: session,
+              ),
+              ChangeNotifierProvider<PageEditorViewModel>.value(
+                value: pageEditorVm,
+              ),
+            ],
+            child: PageEditorScreen(
+              onNext: (_) {},
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -408,7 +529,7 @@ class _AppShell extends StatelessWidget {
           ? Semantics(
               label: 'Capture new notation',
               child: FloatingActionButton.extended(
-                onPressed: () => _openCaptureSheet(context),
+                onPressed: () => unawaited(_openCaptureSheet(context)),
                 backgroundColor: colorScheme.primaryContainer,
                 foregroundColor: colorScheme.onPrimaryContainer,
                 icon: const Icon(Icons.add_a_photo_outlined),

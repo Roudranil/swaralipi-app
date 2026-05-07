@@ -381,7 +381,9 @@ class UserPreferencesTable extends Table {
   IntColumn get id => integer().withDefault(const Constant(1))();
 
   /// Display name shown in the app.
-  TextColumn get userName => text().withDefault(const Constant('Musician'))();
+  ///
+  /// Defaults to empty string so the first-launch name dialog is triggered.
+  TextColumn get userName => text().withDefault(const Constant(''))();
 
   /// Theme mode: `'light'`, `'dark'`, or `'system'`.
   TextColumn get themeMode => text().withDefault(const Constant('system'))();
@@ -470,6 +472,7 @@ class UserPreferencesTable extends Table {
 /// | 3 | Add `deleted_at` column to `instrument_classes_table` |
 /// | 4 | Add `player_orientation` column to `user_preferences_table` |
 /// | 5 | Add `auto_scroll_speed` column to `user_preferences_table` |
+/// | 6 | Clear `user_name = 'Musician'` rows; first-launch dialog supplies name |
 @DriftDatabase(
   tables: [
     NotationsTable,
@@ -538,7 +541,7 @@ class AppDatabase extends _$AppDatabase {
         );
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -578,6 +581,14 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(
               userPreferencesTable,
               userPreferencesTable.autoScrollSpeed,
+            );
+          }
+          // v5 → v6: clear any existing 'Musician' default userName so the
+          // first-launch name dialog is shown to existing users.
+          if (from < 6) {
+            await customStatement(
+              "UPDATE user_preferences_table SET user_name = '' "
+              "WHERE user_name = 'Musician'",
             );
           }
         },

@@ -65,6 +65,18 @@ class UserPreferencesDao extends DatabaseAccessor<AppDatabase>
         .getSingle();
   }
 
+  /// Returns a [Stream] that emits the singleton user preferences row whenever
+  /// it changes.
+  ///
+  /// The stream does not emit until the row exists. Callers should ensure
+  /// [getPreferences] has been called at least once before subscribing so the
+  /// default row is present.
+  Stream<UserPreferencesRow> watchPreferences() {
+    return (select(userPreferencesTable)
+          ..where((t) => t.id.equals(_kSingletonId)))
+        .watchSingle();
+  }
+
   // -------------------------------------------------------------------------
   // Write operations
   // -------------------------------------------------------------------------

@@ -36,7 +36,7 @@ void main() {
 
       expect(prefs, isNotNull);
       expect(prefs.id, 1);
-      expect(prefs.userName, 'Musician');
+      expect(prefs.userName, '');
       expect(prefs.themeMode, 'system');
       expect(prefs.colorSchemeMode, 'catppuccin');
       expect(prefs.seedColor, isNull);
@@ -52,7 +52,7 @@ void main() {
 
       final prefs = await dao.getPreferences();
       expect(prefs.id, 1);
-      expect(prefs.userName, 'Musician');
+      expect(prefs.userName, '');
     });
 
     test('calling getPreferences twice returns the same row', () async {

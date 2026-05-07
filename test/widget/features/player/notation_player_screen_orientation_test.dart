@@ -109,6 +109,14 @@ class FakePreferencesRepository implements PreferencesRepository {
 
   @override
   Future<void> updateTagsSeeded({required bool value}) async {}
+
+  @override
+  Future<void> updateUserName(String name) async {}
+
+  @override
+  Stream<UserPreferences> watchPreferences() async* {
+    yield await getPreferences();
+  }
 }
 
 // ---------------------------------------------------------------------------
