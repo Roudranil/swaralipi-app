@@ -183,23 +183,21 @@ class _LibraryScreenState extends State<LibraryScreen> {
   /// Parameters:
   /// - [repo]: The [PreferencesRepository] used to persist the entered name.
   Future<void> _promptForName(PreferencesRepository repo) async {
-    final controller = TextEditingController();
-    await showDialog<void>(
+    // showDialog<String?> — the dialog pops with the entered name so this
+    // method never touches the internal TextEditingController (which the dialog
+    // owns and disposes itself).
+    final name = await showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => _NamePromptDialog(
-        controller: controller,
-        onSave: (name) async {
-          Navigator.of(dialogContext).pop();
-          await repo.updateUserName(name);
-          if (!mounted) return;
-          setState(() {
-            _greeting = 'Hi, $name';
-          });
-        },
-      ),
+      builder: (_) => const _NamePromptDialog(),
     );
-    controller.dispose();
+
+    if (name == null || name.isEmpty) return;
+    await repo.updateUserName(name);
+    if (!mounted) return;
+    setState(() {
+      _greeting = 'Hi, $name';
+    });
   }
 
   @override
@@ -747,40 +745,31 @@ class _SwipeDeleteBackground extends StatelessWidget {
 /// Blocking first-launch dialog that asks the user for their display name.
 ///
 /// The dialog cannot be dismissed without entering a non-empty name. The
-/// [FilledButton] is disabled while the text field is empty. On save, [onSave]
-/// is called with the trimmed name.
+/// [FilledButton] is disabled while the text field is empty. When the user
+/// taps "Save", the dialog pops with the trimmed name as the result.
+///
+/// The [TextEditingController] is owned and disposed by this widget.
 class _NamePromptDialog extends StatefulWidget {
   /// Creates a [_NamePromptDialog].
-  ///
-  /// Parameters:
-  /// - [controller]: The [TextEditingController] for the name input.
-  /// - [onSave]: Called with the trimmed name when the user taps "Save".
-  const _NamePromptDialog({
-    required this.controller,
-    required this.onSave,
-  });
-
-  /// Shared controller so the caller can dispose after the dialog closes.
-  final TextEditingController controller;
-
-  /// Invoked with the trimmed, non-empty name on save.
-  final void Function(String name) onSave;
+  const _NamePromptDialog();
 
   @override
   State<_NamePromptDialog> createState() => _NamePromptDialogState();
 }
 
 class _NamePromptDialogState extends State<_NamePromptDialog> {
+  late final TextEditingController _controller;
   bool _isEmpty = true;
 
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_onTextChanged);
+    _controller = TextEditingController();
+    _controller.addListener(_onTextChanged);
   }
 
   void _onTextChanged() {
-    final empty = widget.controller.text.trim().isEmpty;
+    final empty = _controller.text.trim().isEmpty;
     if (empty != _isEmpty) {
       setState(() => _isEmpty = empty);
     }
@@ -788,8 +777,13 @@ class _NamePromptDialogState extends State<_NamePromptDialog> {
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onTextChanged);
+    _controller.removeListener(_onTextChanged);
+    _controller.dispose();
     super.dispose();
+  }
+
+  void _save() {
+    Navigator.of(context).pop(_controller.text.trim());
   }
 
   @override
@@ -797,21 +791,17 @@ class _NamePromptDialogState extends State<_NamePromptDialog> {
     return AlertDialog(
       title: const Text("What's your name?"),
       content: TextField(
-        controller: widget.controller,
+        controller: _controller,
         autofocus: true,
         textInputAction: TextInputAction.done,
-        onSubmitted: _isEmpty
-            ? null
-            : (_) => widget.onSave(widget.controller.text.trim()),
+        onSubmitted: _isEmpty ? null : (_) => _save(),
         decoration: const InputDecoration(
           hintText: 'Enter your name',
         ),
       ),
       actions: [
         FilledButton(
-          onPressed: _isEmpty
-              ? null
-              : () => widget.onSave(widget.controller.text.trim()),
+          onPressed: _isEmpty ? null : _save,
           child: const Text('Save'),
         ),
       ],
