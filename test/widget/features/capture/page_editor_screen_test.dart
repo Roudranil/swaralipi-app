@@ -137,14 +137,14 @@ void main() {
       expect(find.byKey(const Key('page_editor_next_fab')), findsOneWidget);
     });
 
-    testWidgets('shows filter chip row', (tester) async {
+    testWidgets('shows Filters icon button in toolbar', (tester) async {
       session.addPage(_draft('/a.jpg'));
 
       await tester
           .pumpWidget(_buildTestApp(session: session, editorVm: editorVm));
 
       expect(
-        find.byKey(const Key('page_editor_filter_chips')),
+        find.byKey(const Key('page_editor_filters_button')),
         findsOneWidget,
       );
     });
@@ -186,14 +186,22 @@ void main() {
     });
   });
 
-  group('filter chips', () {
-    testWidgets('tapping grayscale chip updates render params', (tester) async {
+  group('filter panel', () {
+    testWidgets('tapping Filters button then grayscale updates render params',
+        (tester) async {
       session.addPage(_draft('/a.jpg'));
 
       await tester
           .pumpWidget(_buildTestApp(session: session, editorVm: editorVm));
 
-      await tester.tap(find.byKey(const Key('filter_chip_grayscale')));
+      // Open the side panel.
+      await tester.tap(find.byKey(const Key('page_editor_filters_button')));
+      await tester.pumpAndSettle();
+
+      // Tap grayscale in the panel.
+      await tester.tap(
+        find.byKey(const Key('filter_panel_item_grayscale')),
+      );
       await tester.pump();
 
       expect(
@@ -202,7 +210,8 @@ void main() {
       );
     });
 
-    testWidgets('tapping none chip resets filter to none', (tester) async {
+    testWidgets('tapping none filter in panel resets filter to none',
+        (tester) async {
       session.addPage(
         _draft('/a.jpg').copyWith(
           renderParams: const RenderParams(filter: NotationFilter.grayscale),
@@ -212,7 +221,12 @@ void main() {
       await tester
           .pumpWidget(_buildTestApp(session: session, editorVm: editorVm));
 
-      await tester.tap(find.byKey(const Key('filter_chip_none')));
+      // Open the side panel.
+      await tester.tap(find.byKey(const Key('page_editor_filters_button')));
+      await tester.pumpAndSettle();
+
+      // Tap "Original" (none) in the panel.
+      await tester.tap(find.byKey(const Key('filter_panel_item_none')));
       await tester.pump();
 
       expect(

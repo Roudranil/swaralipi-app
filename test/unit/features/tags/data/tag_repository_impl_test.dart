@@ -2,7 +2,7 @@
 //
 // Covers all public methods against an in-memory Drift database and a
 // FakeUserPreferencesDao:
-//   watchAllTags, createTag, updateTag, deleteTag, seedDefaultTagsIfNeeded.
+//   watchAllTags, createTag, updateTag, deleteTag.
 //
 // Each test group sets up a fresh AppDatabase.forTesting() in setUp and
 // closes it in tearDown, ensuring full isolation between test cases.
@@ -267,83 +267,6 @@ void main() {
     test('is a no-op for an unknown id', () async {
       // Must not throw.
       await repo.deleteTag('ghost-id');
-    });
-  });
-
-  // -------------------------------------------------------------------------
-
-  group('TagRepositoryImpl.seedDefaultTagsIfNeeded', () {
-    late AppDatabase db;
-    late FakePreferencesRepository prefsRepo;
-    late TagRepositoryImpl repo;
-
-    setUp(() {
-      db = AppDatabase.forTesting();
-      prefsRepo = FakePreferencesRepository();
-      repo = TagRepositoryImpl(db.tagDao, prefsRepo);
-    });
-    tearDown(() => db.close());
-
-    test('inserts 5 default tags when tagsSeeded is false', () async {
-      await repo.seedDefaultTagsIfNeeded();
-
-      final tags = await repo.watchAllTags().first;
-      expect(tags, hasLength(5));
-    });
-
-    test('inserts the correct default tag names', () async {
-      await repo.seedDefaultTagsIfNeeded();
-
-      final tags = await repo.watchAllTags().first;
-      final names = tags.map((t) => t.name).toSet();
-      expect(
-        names,
-        containsAll(
-          const {'Ragas', 'Bhajans', 'Bandishes', 'Thumri', 'Exercises'},
-        ),
-      );
-    });
-
-    test('all default tags have valid Catppuccin hex colors', () async {
-      await repo.seedDefaultTagsIfNeeded();
-
-      final tags = await repo.watchAllTags().first;
-      for (final tag in tags) {
-        expect(
-          tag.colorHex,
-          matches(RegExp(r'^#[0-9a-f]{6}$')),
-          reason: 'invalid color for tag ${tag.name}: ${tag.colorHex}',
-        );
-      }
-    });
-
-    test('sets tagsSeeded flag to true after seeding', () async {
-      await repo.seedDefaultTagsIfNeeded();
-
-      final prefs = await prefsRepo.getPreferences();
-      expect(prefs.tagsSeeded, isTrue);
-    });
-
-    test('does not seed again when tagsSeeded is true', () async {
-      await repo.seedDefaultTagsIfNeeded();
-      // Call a second time — should be a no-op.
-      await repo.seedDefaultTagsIfNeeded();
-
-      final tags = await repo.watchAllTags().first;
-      expect(tags, hasLength(5));
-    });
-
-    test('does not throw if tags already exist', () async {
-      await repo.createTag('Ragas', '#f38ba8');
-      // Force flag back to false to simulate a re-seed scenario.
-      await prefsRepo.updateTagsSeeded(value: false);
-
-      // Should skip seeding entirely since tagsSeeded was false but tags exist
-      // — the implementation must handle duplicate-name errors gracefully.
-      await expectLater(
-        repo.seedDefaultTagsIfNeeded(),
-        completes,
-      );
     });
   });
 }

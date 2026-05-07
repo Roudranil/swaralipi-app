@@ -541,7 +541,7 @@ class AppDatabase extends _$AppDatabase {
         );
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -589,6 +589,14 @@ class AppDatabase extends _$AppDatabase {
             await customStatement(
               "UPDATE user_preferences_table SET user_name = '' "
               "WHERE user_name = 'Musician'",
+            );
+          }
+          // v6 → v7: remove the 5 pre-seeded default tags so existing installs
+          // start with a clean slate (no opinionated tag suggestions).
+          if (from < 7) {
+            await customStatement(
+              "DELETE FROM tags_table WHERE name IN "
+              "('Ragas', 'Bhajans', 'Bandishes', 'Thumri', 'Exercises')",
             );
           }
         },
@@ -674,35 +682,13 @@ class AppDatabase extends _$AppDatabase {
   /// Seeds required initial data after the schema is created for the first
   /// time.
   ///
-  /// Inserts the singleton [UserPreferencesTable] row and the 5 default tags
-  /// as specified in data-model.md §2.3 and §2.10.
+  /// Inserts only the singleton [UserPreferencesTable] row. Tag pre-seeding
+  /// was removed in schema v7 so that fresh installs start with no tags.
   Future<void> _seedInitialData() async {
     // Singleton user preferences row — id defaults to 1 via column default.
     await into(userPreferencesTable).insert(
       const UserPreferencesTableCompanion(),
     );
-
-    // 5 default tags (Catppuccin Mocha palette) — names from issue #75.
-    const defaultTags = [
-      ('tag-default-1', 'Ragas', '#f38ba8'),
-      ('tag-default-2', 'Bhajans', '#a6e3a1'),
-      ('tag-default-3', 'Bandishes', '#89b4fa'),
-      ('tag-default-4', 'Thumri', '#fab387'),
-      ('tag-default-5', 'Exercises', '#cba6f7'),
-    ];
-
-    for (final (id, name, color) in defaultTags) {
-      final now = DateTime.now().toUtc().toIso8601String();
-      await into(tagsTable).insert(
-        TagsTableCompanion.insert(
-          id: id,
-          name: name,
-          colorHex: color,
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
-    }
   }
 }
 

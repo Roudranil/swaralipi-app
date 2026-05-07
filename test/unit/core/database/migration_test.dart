@@ -1,12 +1,12 @@
-// Migration tests for AppDatabase — schema v6.
+// Migration tests for AppDatabase — schema v7.
 //
 // Verifies that [MigrationStrategy.onCreate] produces the exact schema
 // described in docs/02-technical/data-model.md, including:
 //   - All 10 tables
 //   - All 9 indexes (partial and non-partial)
 //   - The FTS5 virtual table (notations_fts) and its 3 sync triggers
-//   - Seed data: 5 default tags and the singleton user_preferences row
-//   - schemaVersion == 6
+//   - Seed data: zero tags and the singleton user_preferences row (v7+)
+//   - schemaVersion == 7
 //
 // [validateDatabaseSchema] (from drift_dev/api/migrations_native.dart) is
 // used to compare the live schema against Drift's reference schema, giving
@@ -59,16 +59,7 @@ const _ftsTableName = 'notations_fts';
 /// FTS5 sync trigger names.
 const _expectedTriggers = {'notations_ai', 'notations_ad', 'notations_au'};
 
-/// Default tag names seeded during onCreate.
-///
-/// Updated in schema v2 to match the spec in issue #75.
-const _expectedTagNames = {
-  'Ragas',
-  'Bhajans',
-  'Bandishes',
-  'Thumri',
-  'Exercises',
-};
+// No tag seeding in schema v7+. Tag pre-seeding was removed (tasks.md Task 6).
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -110,18 +101,18 @@ void main() {
   setUpAll(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = true);
 
   // -------------------------------------------------------------------------
-  group('Migration v6 — schema version', () {
+  group('Migration v7 — schema version', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
 
-    test('schemaVersion is 6', () {
-      expect(db.schemaVersion, 6);
+    test('schemaVersion is 7', () {
+      expect(db.schemaVersion, 7);
     });
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v6 — Drift schema validation', () {
+  group('Migration v7 — Drift schema validation', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -146,7 +137,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v6 — table presence', () {
+  group('Migration v7 — table presence', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -160,7 +151,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v6 — index presence', () {
+  group('Migration v7 — index presence', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -174,7 +165,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v6 — FTS5 virtual table and triggers', () {
+  group('Migration v7 — FTS5 virtual table and triggers', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
@@ -219,31 +210,14 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v6 — seed data', () {
+  group('Migration v7 — seed data', () {
     late AppDatabase db;
     setUp(() async => db = await _openSeeded());
     tearDown(() => db.close());
 
-    test('exactly 5 default tags are seeded', () async {
+    test('zero tags are seeded on fresh install (v7+)', () async {
       final tags = await db.select(db.tagsTable).get();
-      expect(tags, hasLength(5));
-    });
-
-    test('seeded tag names match the spec', () async {
-      final tags = await db.select(db.tagsTable).get();
-      final names = tags.map((t) => t.name).toSet();
-      expect(names, equals(_expectedTagNames));
-    });
-
-    test('each default tag has a valid Catppuccin hex color', () async {
-      final tags = await db.select(db.tagsTable).get();
-      for (final tag in tags) {
-        expect(
-          tag.colorHex,
-          matches(RegExp(r'^#[0-9a-f]{6}$')),
-          reason: 'invalid color for tag ${tag.name}: ${tag.colorHex}',
-        );
-      }
+      expect(tags, isEmpty);
     });
 
     test('singleton user_preferences row exists with id = 1', () async {
@@ -266,7 +240,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  group('Migration v6 — forTesting mode has no seed data', () {
+  group('Migration v7 — forTesting mode has no seed data', () {
     late AppDatabase db;
     setUp(() {
       db = AppDatabase.forTesting();

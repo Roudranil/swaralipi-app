@@ -280,22 +280,25 @@ void main() {
   // LibraryScreen integration (search bar + tag row visible)
   // -------------------------------------------------------------------------
 
-  group('LibraryScreen search bar', () {
-    testWidgets('SearchBar is visible in success state', (tester) async {
+  group('LibraryScreen search', () {
+    testWidgets('search icon button is visible in AppBar', (tester) async {
       await tester.pumpWidget(_buildTestApp(vm: vm));
       vm.init();
       notationRepo.emitAll([_makeNotation('n1')]);
       await tester.pumpAndSettle();
 
-      expect(find.byType(SearchBar), findsOneWidget);
+      expect(
+        find.byKey(const Key('library_search_icon_button')),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('SearchBar is visible in loading state', (tester) async {
+    testWidgets('no standalone SearchBar below AppBar', (tester) async {
       await tester.pumpWidget(_buildTestApp(vm: vm));
       vm.init();
       await tester.pump();
 
-      expect(find.byType(SearchBar), findsOneWidget);
+      expect(find.byType(SearchBar), findsNothing);
     });
   });
 

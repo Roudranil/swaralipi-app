@@ -46,8 +46,14 @@ const double _kToolbarHeight = 56.0;
 /// Spacing between toolbar action buttons.
 const double _kToolbarSpacing = 4.0;
 
-/// Height of the filter chip row.
-const double _kFilterRowHeight = 48.0;
+/// Width of the expanded animated filter side panel.
+const double _kFilterPanelWidth = 180.0;
+
+/// Animation duration for the filter side panel open/close.
+const Duration _kFilterPanelDuration = Duration(milliseconds: 250);
+
+/// Corner radius for the left edge of the filter side panel.
+const double _kFilterPanelRadius = 12.0;
 
 /// Border radius for thumbnail tiles.
 const double _kThumbnailRadius = 8.0;
@@ -218,15 +224,39 @@ class _EmptyState extends StatelessWidget {
 // Editor body
 // ---------------------------------------------------------------------------
 
-class _EditorBody extends StatelessWidget {
+class _EditorBody extends StatefulWidget {
   const _EditorBody({required this.vm});
 
   final PageEditorViewModel vm;
 
   @override
+  State<_EditorBody> createState() => _EditorBodyState();
+}
+
+class _EditorBodyState extends State<_EditorBody> {
+  /// Whether the filter side panel is currently open.
+  bool _filtersExpanded = false;
+
+  void _toggleFilters() {
+    setState(() => _filtersExpanded = !_filtersExpanded);
+  }
+
+  void _collapseFilters() {
+    if (_filtersExpanded) {
+      setState(() => _filtersExpanded = false);
+    }
+  }
+
+  void _applyFilterAndCollapse(NotationFilter filter) {
+    widget.vm.setFilter(filter);
+    setState(() => _filtersExpanded = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final pageCount = vm.pages.length;
+    final colorScheme = Theme.of(context).colorScheme;
+    final pageCount = widget.vm.pages.length;
     final countLabel = pageCount == 1 ? '1 page' : '$pageCount pages';
 
     return Column(
@@ -239,16 +269,48 @@ class _EditorBody extends StatelessWidget {
             child: Text(countLabel, style: textTheme.labelLarge),
           ),
         ),
-        // Active page preview — fill remaining space above the toolbar
+        // Active page preview with animated filter panel overlay
         Expanded(
-          child: _ActivePagePreview(vm: vm),
+          child: Stack(
+            children: [
+              // Image preview — tap outside to collapse filters
+              GestureDetector(
+                key: const Key('page_editor_image_preview'),
+                onTap: _collapseFilters,
+                behavior: HitTestBehavior.opaque,
+                child: _ActivePagePreview(vm: widget.vm),
+              ),
+              // Animated filter panel sliding in from the right
+              Positioned(
+                top: 0,
+                bottom: 0,
+                right: 0,
+                child: AnimatedContainer(
+                  duration: _kFilterPanelDuration,
+                  curve: Curves.easeInOut,
+                  width: _filtersExpanded ? _kFilterPanelWidth : 0,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHigh,
+                    borderRadius: const BorderRadius.horizontal(
+                      left: Radius.circular(_kFilterPanelRadius),
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: _filtersExpanded
+                      ? _FilterPanel(
+                          vm: widget.vm,
+                          onFilterSelected: _applyFilterAndCollapse,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ),
+            ],
+          ),
         ),
-        // Filter chip row
-        _FilterChipRow(vm: vm),
-        // Per-page action toolbar
-        _PageActionBar(vm: vm),
+        // Per-page action toolbar — includes Filters toggle button
+        _PageActionBar(vm: widget.vm, onToggleFilters: _toggleFilters),
         // Thumbnail strip at bottom
-        _ThumbnailStrip(vm: vm),
+        _ThumbnailStrip(vm: widget.vm),
         // Safe-area padding for FAB overlap
         const SizedBox(height: 72.0),
       ],
@@ -320,40 +382,50 @@ class _ActivePagePreview extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Filter chip row
+// Filter panel (vertical list in side panel)
 // ---------------------------------------------------------------------------
 
-/// Horizontal scrolling row of [FilterChip] widgets for [NotationFilter].
-class _FilterChipRow extends StatelessWidget {
-  const _FilterChipRow({required this.vm});
+/// Vertical list of filter options shown inside the animated side panel.
+///
+/// Renders one [ListTile] per [NotationFilter] value. Tapping a tile calls
+/// [onFilterSelected] which applies the filter and collapses the panel.
+class _FilterPanel extends StatelessWidget {
+  /// Creates a [_FilterPanel].
+  ///
+  /// Parameters:
+  /// - [vm]: The [PageEditorViewModel] supplying the active filter.
+  /// - [onFilterSelected]: Called when the user taps a filter option.
+  const _FilterPanel({
+    required this.vm,
+    required this.onFilterSelected,
+  });
 
+  /// The [PageEditorViewModel] for reading the currently active filter.
   final PageEditorViewModel vm;
+
+  /// Callback invoked with the chosen [NotationFilter].
+  final void Function(NotationFilter) onFilterSelected;
 
   @override
   Widget build(BuildContext context) {
     final activeFilter =
         vm.activePage?.renderParams.filter ?? NotationFilter.none;
 
-    return SizedBox(
-      key: const Key('page_editor_filter_chips'),
-      height: _kFilterRowHeight,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-        children: NotationFilter.values.map((filter) {
-          final label = _kFilterLabels[filter] ?? filter.name;
-          final keyName = _kFilterKeyNames[filter] ?? filter.name;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: FilterChip(
-              key: Key('filter_chip_$keyName'),
-              label: Text(label),
-              selected: activeFilter == filter,
-              onSelected: (_) => vm.setFilter(filter),
-            ),
-          );
-        }).toList(),
-      ),
+    return ListView(
+      key: const Key('page_editor_filter_panel'),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      children: NotationFilter.values.map((filter) {
+        final label = _kFilterLabels[filter] ?? filter.name;
+        final keyName = _kFilterKeyNames[filter] ?? filter.name;
+        final isActive = activeFilter == filter;
+        return ListTile(
+          key: Key('filter_panel_item_$keyName'),
+          dense: true,
+          title: Text(label),
+          selected: isActive,
+          onTap: () => onFilterSelected(filter),
+        );
+      }).toList(),
     );
   }
 }
@@ -362,11 +434,23 @@ class _FilterChipRow extends StatelessWidget {
 // Per-page action bar
 // ---------------------------------------------------------------------------
 
-/// Toolbar row with crop, rotate CW/CCW, and reset action buttons.
+/// Toolbar row with Filters, crop, rotate CW/CCW, and reset action buttons.
 class _PageActionBar extends StatelessWidget {
-  const _PageActionBar({required this.vm});
+  /// Creates a [_PageActionBar].
+  ///
+  /// Parameters:
+  /// - [vm]: The [PageEditorViewModel] for action delegates.
+  /// - [onToggleFilters]: Called when the Filters icon button is tapped.
+  const _PageActionBar({
+    required this.vm,
+    required this.onToggleFilters,
+  });
 
+  /// The [PageEditorViewModel] for action delegates.
   final PageEditorViewModel vm;
+
+  /// Called when the Filters toggle button is tapped.
+  final VoidCallback onToggleFilters;
 
   @override
   Widget build(BuildContext context) {
@@ -375,6 +459,18 @@ class _PageActionBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Filters
+          Semantics(
+            label: 'Toggle filters panel',
+            button: true,
+            child: IconButton(
+              key: const Key('page_editor_filters_button'),
+              tooltip: 'Filters',
+              icon: const Icon(Icons.tune_outlined),
+              onPressed: onToggleFilters,
+            ),
+          ),
+          const SizedBox(width: _kToolbarSpacing),
           // Crop
           Semantics(
             label: 'Crop page',

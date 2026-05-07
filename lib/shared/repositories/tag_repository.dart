@@ -1,13 +1,8 @@
 // Abstract TagRepository interface.
 //
-// Defines the contract for all tag CRUD operations and seed data
-// initialisation. The concrete implementation lives in
+// Defines the contract for all tag CRUD operations.
+// The concrete implementation lives in
 // lib/features/tags/data/tag_repository_impl.dart.
-//
-// Seeding policy:
-//   Call [seedDefaultTagsIfNeeded] once at app startup. It checks the
-//   UserPreferences.tagsSeeded flag; if false it inserts the 5 default tags
-//   and sets the flag to true so subsequent launches are a no-op.
 
 import 'package:swaralipi/shared/models/tag.dart';
 import 'package:swaralipi/shared/models/user_preferences.dart';
@@ -18,8 +13,7 @@ import 'package:swaralipi/shared/models/user_preferences.dart';
 
 /// Contract for all tag data operations.
 ///
-/// Implementations translate between [TagRow] (Drift) and [Tag] (domain)
-/// and enforce the seeding policy via [seedDefaultTagsIfNeeded].
+/// Implementations translate between [TagRow] (Drift) and [Tag] (domain).
 ///
 /// All write methods return the persisted domain model so callers never need
 /// to issue a follow-up read.
@@ -58,15 +52,6 @@ abstract interface class TagRepository {
   /// Parameters:
   /// - [id]: The UUIDv4 primary key of the tag to delete.
   Future<void> deleteTag(String id);
-
-  /// Seeds the 5 default tags if they have not been seeded yet.
-  ///
-  /// Reads the `UserPreferences.tagsSeeded` flag. If `false`, inserts the
-  /// default tags and sets the flag to `true`. If `true`, returns immediately
-  /// without touching the database.
-  ///
-  /// This method is idempotent and safe to call on every app launch.
-  Future<void> seedDefaultTagsIfNeeded();
 }
 
 // ---------------------------------------------------------------------------
