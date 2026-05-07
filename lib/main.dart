@@ -36,7 +36,7 @@ Future<void> main() async {
   // Fire-and-forget: orphan cleanup must not block the first frame.
   unawaited(_runOrphanCleanup(db, storageService));
 
-  runApp(const SwaralipiApp());
+  runApp(SwaralipiApp(database: db, storageService: storageService));
 }
 
 /// Fetches all known image paths from the database then scans and purges any
