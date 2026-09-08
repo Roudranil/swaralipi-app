@@ -21,8 +21,7 @@ Out-of-shell screens (full-screen, no nav chrome):
 | Screen | Route |
 | --- | --- |
 | `PlayerScreen` | `/notation/:notationId/play` |
-| `PageEditorScreen` | `/capture/editor` |
-| `MetadataFormScreen` | `/capture/metadata` |
+| `CaptureScreen` | `/capture` |
 
 Tab switch: `navigate('/')` / `navigate('/settings')` via `react-router`.
 
@@ -40,7 +39,7 @@ Top app bar
   [Tag chips row]          <- active filter shortcuts
 Recently Played Carousel   <- hidden if nothing played yet
 Notation List
-FAB (bottom-right)
+FAB (bottom-right)          <- laptop width mounts it in the nav rail instead, see §4.1
 ```
 
 ### 3.2 Recently Played Carousel
@@ -92,89 +91,78 @@ tags only) — tap to apply immediately.
 
 ## 4. Notation Capture
 
+One out-of-shell screen for the whole flow — not the separate page-editor and
+metadata-form screens an earlier draft of this doc described. See
+`docs/modules/capture.md` for the full component/data breakdown; this section
+covers the user-facing flow only.
+
 ### 4.1 Entry point
 
-Tap the FAB on `LibraryScreen` -> bottom sheet with two options: Gallery or
-Camera.
+An extended FAB ("Add notation"), placement per width tier:
 
-### 4.2 Gallery flow
+- **Phone (`< 840px`):** bottom-right on `LibraryScreen`, above the bottom
+  nav bar's safe area.
+- **Laptop (`>= 840px`):** inside the nav rail, below the rail's own
+  expand/collapse toggle and above the nav items (Gmail's placement) — tied
+  to the rail's `expanded` state, so it collapses to a circle with the rail.
 
-FAB -> Capture Entry Sheet -> Gallery -> browser file picker (multi-select,
-`<input type="file" multiple accept="image/*">`) -> selected images arrive as
-a page set in `PageEditorScreen`.
+Tapping it navigates to `/capture`, which immediately opens the device's file
+picker (`<input type="file" multiple accept="image/*">`) if the draft has no
+pages yet. There is no Gallery/Camera chooser sheet — camera capture is out
+of scope for this pass (an M3 FAB menu is reserved for 2+ actions and is
+never paired with an extended FAB; with exactly one action, a plain picker is
+the direct path). Selected images arrive as pages, in selection order.
 
-### 4.3 Camera flow
-
-FAB -> Capture Entry Sheet -> Camera -> `<input type="file" accept="image/*"
-capture="environment">` (mobile browsers route this to the native camera) ->
-photo arrives as a page in `PageEditorScreen`. Capacitor's Camera plugin is a
-candidate upgrade if the input-capture UX proves insufficient on-device —
-not decided yet.
-
-## 5. Page Editor
-
-Route: `/capture/editor` · Out-of-shell.
-
-### 5.1 Layout
+### 4.2 Layout
 
 ```
-Top bar: [Save]  [Discard]
-Active page preview        <- full-width, large
-Per-page toolbar:
-  Filter | Crop | Rotate | Auto-straighten | Delete page
-Thumbnail strip (bottom)
-  [+Add] [thumb1] [thumb2] ...
+[Title]                    [v]     <- required, expands the musical-basics panel
+  Artist(s) | Date written | Time signature | Key signature   <- only when expanded
+Active page preview                <- large, with prev/next arrows
+Thumbnail carousel (or a mode's action row — see §4.4)
+Tool row: Crop | Rotate | Resize | Reorder | Delete | Add more pages
 ```
 
-Swipe or tap a thumbnail to switch the active page. Thumbnail strip supports
-drag-to-reorder.
+The metadata panel holds only the fields already on `Notation` that are
+musical basics — artists, date written, time signature, key signature.
+Languages, tags, instruments, personal notes, and custom fields are **not**
+captured here; editing those is a separate future feature.
 
-### 5.2 Per-page actions
+### 4.3 Selecting and stepping through pages
 
-| Action | Behavior |
-| --- | --- |
-| Filter | Original, B&W, Grayscale, Enhanced, Warm Tint, Cool Tint. Apply-to-all shortcut. Non-destructive — applied at display time via `src/lib/render.ts`. |
-| Crop | Corner-handle drag, aspect lock toggle, confirm/cancel. |
-| Rotate | Cycles 0 -> 90 -> 180 -> 270 -> 0. |
-| Auto-straighten | Per-page toggle, off by default. Skew correction applied at render. |
-| Delete page | Confirm. If it's the last page, warn before allowing delete. |
+Tap a carousel thumbnail, or the prev/next arrows beside the preview, to
+change the active page. The selected thumbnail gets a ring in the accent
+colour, matching the selection indicator used elsewhere in the app.
 
-### 5.3 Notation-level actions
+### 4.4 Tools
 
-Add page (`[+]` in the thumbnail strip, reopens the §4.1 sheet, appends after
-the current last page) and reorder pages (drag in the strip).
+Tapping a tool replaces the thumbnail carousel with that tool's action row;
+tapping the same tool again (or finishing its action) returns to the
+carousel. A tool's mode **persists across the prev/next arrows** — stepping
+to another page while in Crop mode keeps Crop mode active on that page.
 
-### 5.4 Save / discard
-
-Save locks pages in and navigates to `MetadataFormScreen`. Discard prompts
-"Discard all pages?" -> yes returns to Library with nothing written.
-
-## 6. Metadata Form
-
-Route: `/capture/metadata` · Out-of-shell.
-
-### 6.1 Fields
-
-| Field | Input | Notes |
+| Tool | Action row | Behavior |
 | --- | --- | --- |
-| Title | Text | Required. Blocks save if empty. |
-| Artist(s) | Chip input | Comma or Enter commits a chip. |
-| Date written | `<input type="date">` | Defaults to today. |
-| Time signature | Free text | e.g. 4/4, 6/8, free |
-| Key signature | Free text | e.g. C major, Yaman |
-| Language | Multi-select chips | Hindi, Bengali, English, Sanskrit, Other |
-| Tags | Multi-select + inline create | Type to create new inline |
-| Instruments | Multi-select chips | From the instrument list, §13 |
-| Personal notes | Multi-line text | Free-form |
-| Custom fields | Per-field input | Shown if defined in Settings, §17 |
+| Crop | `No crop` / `Save cropped region` | A drag box (4 corners + 4 edges + whole-box move) appears over the un-cropped, still-rotated image. `No crop` resets to full-frame. Rectangle-only, free aspect ratio, in this pass. |
+| Rotate | `Rotate left` / `Rotate right` | Steps 0 -> 90 -> 180 -> 270 -> 0 in either direction. A crop set before rotating stays over the same region of the page. |
+| Resize | `Original` `A3` `A4` `A5` `A6` | Fits the page into the chosen ISO preset, aspect preserved, white padding filling the rest. Always re-derives from the original image — switching presets does not compound. Fixed-orientation presets; no auto-rotate-to-match. |
+| Reorder | *(opens a full-screen grid, not an action row)* | 2 columns on phone, 4 on laptop, drag to reorder with an animated shift; keyboard-reachable. |
+| Delete | `Keep this image` (neutral) / `Delete this image` (destructive) | Removes the active page from the draft. |
+| Add more pages | *(opens the file picker directly)* | Appends newly selected images after the current last page, in selection order. |
 
-### 6.2 Save gate
+Filter presets and auto-straighten, named in an earlier draft of this
+section, are not part of the app — dropped, not deferred.
 
-Save is disabled until Title is non-empty. On Save: write blobs via
-`blobStore`, insert `Notation` + `NotationPage` rows, navigate back to `/`.
-New notation appears at the top under the default sort.
+### 4.5 Save / discard
 
-## 7. Notation Detail View
+The close (`X`) button in the top bar discards the draft with no confirmation
+and returns to Library — nothing is written until Save. Save is disabled
+until Title is non-empty and at least one page exists; on Save, blobs are
+written via `blobStore`, `Notation` and `NotationPage` rows are written in
+one transaction, and the screen navigates back to `/`. The new notation
+appears at the top under the default sort.
+
+## 5. Notation Detail View
 
 Route: `/notation/:notationId` · In shell.
 
@@ -188,16 +176,16 @@ Metadata block: title, artists, date written, language, key/time sig, tags
 Tapping the page stack or Play navigates to `PlayerScreen`, increments
 `playCount`, and sets `lastPlayedAt`.
 
-## 8. Notation Player
+## 6. Notation Player
 
 Route: `/notation/:notationId/play` · Out-of-shell.
 
-### 8.1 Entry & exit
+### 6.1 Entry & exit
 
 Entry: Play button or page-preview tap in Detail View. Exit: back button
 returns to Detail View.
 
-### 8.2 Controls
+### 6.2 Controls
 
 ```
 Title (top, fades)
@@ -211,7 +199,7 @@ Toolbar (bottom, fades):
   Auto-scroll toggle + speed control
 ```
 
-### 8.3 Auto-scroll
+### 6.3 Auto-scroll
 
 `CLAUDE.md` requirement 6 requires auto-scroll — this supersedes the prior
 Flutter spec, which had deferred it. A `requestAnimationFrame` loop advances
@@ -219,32 +207,32 @@ Flutter spec, which had deferred it. A `requestAnimationFrame` loop advances
 slider). Toggling auto-scroll off stops the loop; manual scroll pauses it
 until re-enabled.
 
-### 8.4 Chrome fade
+### 6.4 Chrome fade
 
 Title and toolbar visible on entry, fade out after 2s of inactivity. Tap
 anywhere to restore chrome for 2s.
 
-## 9. Edit Notation
+## 7. Edit Notation
 
 Entry points: swipe-left Edit badge, long-press Edit, Detail View Edit icon.
-Opens `PageEditorScreen` with pages pre-loaded (add/delete/reorder/re-crop/
-re-filter available) -> Save -> `MetadataFormScreen` pre-filled -> Save ->
-back to Detail View. Unchanged images are not rewritten to the blob store.
+Opens `CaptureScreen` with pages and metadata pre-loaded (add/delete/reorder/
+re-crop/re-rotate/re-resize available) -> Save -> back to Detail View.
+Unchanged images are not rewritten to the blob store.
 
-## 10. Delete Notation (soft delete)
+## 8. Delete Notation (soft delete)
 
 Entry points: swipe-left Delete badge, long-press Delete, Detail View Delete
 icon. Confirmation dialog "Move to Trash?" -> sets `deletedAt`, removes from
 the Library list, shows a snackbar with Undo (clears `deletedAt`). Auto-purge
-permanently deletes 30 days after `deletedAt` — see §14.
+permanently deletes 30 days after `deletedAt` — see §12.
 
-## 11. Duplicate Notation
+## 9. Duplicate Notation
 
 Long-press context menu -> Duplicate. Creates a new notation row, copies
 blobs to new paths, sets title to "Copy of <original>", copies all metadata,
-opens immediately in `PageEditorScreen` (edit mode) for the new notation.
+opens immediately in `CaptureScreen` (edit mode) for the new notation.
 
-## 12. Tags
+## 10. Tags
 
 Route: `/settings/tags`.
 
@@ -255,30 +243,30 @@ notations." and cascades via `untagAllNotations` (see `docs/data-model.md`
 §4). Apply Tag from Library: long-press a row -> Add Tag -> tap chips in a
 bottom sheet -> Done.
 
-## 13. Instrument Tracker
+## 11. Instrument Tracker
 
 Route: `/settings/instruments`.
 
-### 13.1 Instrument class
+### 11.1 Instrument class
 
 List of classes, each expandable to show instances, with a
 per-class Add Instance action. Create Class: Name (required). No pre-seeded
 classes.
 
-### 13.2 Instrument instance
+### 11.2 Instrument instance
 
 Create/Edit form: Instrument Class (pre-selected or dropdown), Brand,
 Model (optional), Color (Catppuccin palette), Price (INR, optional), Photo
 (gallery picker, optional), Notes (optional). Detail screen shows all fields
 with Edit and Archive actions.
 
-### 13.3 Archive instance
+### 11.3 Archive instance
 
 Confirmation "Archive instrument? It will no longer appear in pickers." Sets
 `deletedAt`; the instance is removed from pickers but stays visible (greyed
 out or badged) on notations that already reference it. No hard delete.
 
-## 14. Trash
+## 12. Trash
 
 Route: `/settings/trash`.
 
@@ -287,7 +275,7 @@ List of soft-deleted notations with "Deleted X days ago" and per-row Restore
 and Empty Trash both confirm, then call `purgeNotation` (blobs + pages +
 notation row). Auto-purge runs on app start for anything past 30 days.
 
-## 15. Settings
+## 13. Settings
 
 Route: `/settings`. A declarative, section-divided list — see
 `docs/modules/settings.md` for the full registry contract. Sections, in
@@ -310,7 +298,7 @@ subscreen does not open a second nav column beside it. Content is capped at
 docs/modules/settings.md §6 for why a rail-plus-list-detail three-column
 layout was rejected.
 
-### 15.1 Personalisation
+### 13.1 Personalisation
 
 Route: `/settings/personalisation`. One field, "Your name" — one word,
 letters only (any script), empty allowed. Feeds the Library greeting
@@ -321,7 +309,7 @@ preview of the exact greeting string sits between the field and the Save
 button. Title-casing is applied on blur, not per keystroke, so it doesn't
 fight the cursor mid-word.
 
-## 16. Appearance & Theming
+## 14. Appearance & Theming
 
 Route: `/settings/appearance`. Two groups, in order:
 
@@ -344,7 +332,7 @@ A "Reset appearance" text button opens the §11.3 confirm dialog and restores
 All other color pickers in-app (tags, instrument color) use the Catppuccin
 palette only. No free-form color pickers anywhere.
 
-## 17. Custom Fields
+## 15. Custom Fields
 
 Route: `/settings/custom-fields`.
 
