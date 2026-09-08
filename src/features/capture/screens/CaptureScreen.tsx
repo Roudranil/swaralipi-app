@@ -15,6 +15,7 @@ import { MetadataHeader } from '../components/MetadataHeader';
 import { MetadataPanel } from '../components/MetadataPanel';
 import { PageCarousel } from '../components/PageCarousel';
 import { PagePreview } from '../components/PagePreview';
+import { ReorderSheet } from '../components/ReorderSheet';
 import { ToolActionRow } from '../components/ToolActionRow';
 import { ToolRow } from '../components/ToolRow';
 import type { ToolMode } from '../toolMode';
@@ -35,6 +36,7 @@ export function CaptureScreen(): ReactElement {
   const navigate = useNavigate();
   const [draft, dispatch] = useReducer(draftReducer, todayIsoDate(), initialDraft);
   const [toolMode, setToolMode] = useState<ToolMode>('none');
+  const [reorderOpen, setReorderOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const openedPickerRef = useRef(false);
 
@@ -158,17 +160,22 @@ export function CaptureScreen(): ReactElement {
           />
         )}
 
-        {/* reorder + crop overlay land in later commits */}
         <ToolRow
           activeMode={toolMode}
           disabled={activePage === undefined}
           onSelect={setToolMode}
-          onReorder={() => {
-            /* wired once ReorderSheet exists */
-          }}
+          onReorder={() => setReorderOpen(true)}
           onAddPages={() => fileInputRef.current?.click()}
         />
       </div>
+
+      {reorderOpen && (
+        <ReorderSheet
+          pages={draft.pages}
+          onReorder={(from, to) => dispatch({ type: 'reorderPages', from, to })}
+          onClose={() => setReorderOpen(false)}
+        />
+      )}
     </div>
   );
 }
