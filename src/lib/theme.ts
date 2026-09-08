@@ -8,6 +8,9 @@ import {
   SchemeTonalSpot,
 } from '@material/material-color-utilities';
 
+import type { ThemeSeeds } from './catppuccin';
+import type { ThemeMode } from '../db/types';
+
 /**
  * Generates the `--mdui-color-*` custom properties at the 2025 Expressive
  * color spec and writes them to `:root`, overriding MDUI's own 2021-spec
@@ -94,19 +97,25 @@ const buildSchemeVars = (
 
 let styleElement: HTMLStyleElement | undefined;
 
-/** Applies the M3 token layer for the given seed color to `document.documentElement`. */
-export function applyTheme(seedHex: string): void {
+/**
+ * Applies the M3 token layer to `document.head`, generating the light
+ * (Latte) scheme from `seeds.lightSeedHex` and the dark (Mocha) scheme from
+ * `seeds.darkSeedHex` — see `swatchSeeds()` in `src/lib/catppuccin.ts`, which
+ * resolves both from a single stored swatch name.
+ */
+export function applyTheme(seeds: ThemeSeeds): void {
   const colors = new MaterialDynamicColors();
-  const sourceHct = Hct.fromInt(argbFromHex(seedHex));
+  const lightSourceHct = Hct.fromInt(argbFromHex(seeds.lightSeedHex));
+  const darkSourceHct = Hct.fromInt(argbFromHex(seeds.darkSeedHex));
 
   const lightScheme = new SchemeTonalSpot(
-    sourceHct,
+    lightSourceHct,
     false,
     CONTRAST_LEVEL,
     COLOR_SPEC,
   );
   const darkScheme = new SchemeTonalSpot(
-    sourceHct,
+    darkSourceHct,
     true,
     CONTRAST_LEVEL,
     COLOR_SPEC,
@@ -149,4 +158,36 @@ export function applyTheme(seedHex: string): void {
     document.head.append(styleElement);
   }
   styleElement.textContent = cssText;
+}
+
+const MODE_CLASSES = [
+  'mdui-theme-light',
+  'mdui-theme-dark',
+  'mdui-theme-auto',
+] as const;
+
+const MODE_CLASS: Record<ThemeMode, (typeof MODE_CLASSES)[number]> = {
+  light: 'mdui-theme-light',
+  dark: 'mdui-theme-dark',
+  system: 'mdui-theme-auto',
+};
+
+const MODE_COLOR_SCHEME: Record<ThemeMode, string> = {
+  light: 'light',
+  dark: 'dark',
+  system: 'light dark',
+};
+
+/**
+ * Sets the single `mdui-theme-*` class that selects between the `-light` and
+ * `-dark` variable sets `applyTheme()` writes to `:root`. Also mirrors the
+ * mode to `documentElement.style.colorScheme` so native form controls and
+ * scrollbars follow. Never call MDUI's `setColorScheme()` — see
+ * docs/design-system.md §2.
+ */
+export function applyThemeMode(mode: ThemeMode): void {
+  const root = document.documentElement;
+  root.classList.remove(...MODE_CLASSES);
+  root.classList.add(MODE_CLASS[mode]);
+  root.style.colorScheme = MODE_COLOR_SCHEME[mode];
 }

@@ -5,8 +5,9 @@ import { createRoot } from 'react-dom/client';
 import materialSymbolsRoundedFontUrl from 'material-symbols/material-symbols-rounded.woff2?url';
 
 import { AppRouter } from './routes';
-import { applyTheme } from './lib/theme';
-import { DEFAULT_SEED_LIGHT } from './lib/catppuccin';
+import { applyTheme, applyThemeMode } from './lib/theme';
+import { swatchSeeds } from './lib/catppuccin';
+import { readBootTheme } from './lib/themeBoot';
 import './styles/index.css';
 
 /**
@@ -25,7 +26,12 @@ function preloadDefaultIconFont(): void {
 }
 
 preloadDefaultIconFont();
-applyTheme(DEFAULT_SEED_LIGHT);
+
+// synchronous localStorage-cached theme for first paint; useAppliedTheme()
+// reconciles against the real preferences table once Dexie has loaded.
+const bootTheme = readBootTheme();
+applyTheme(swatchSeeds(bootTheme.seed));
+applyThemeMode(bootTheme.mode);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
