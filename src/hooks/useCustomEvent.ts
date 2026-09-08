@@ -4,7 +4,7 @@ import { useEffect, useRef, type RefObject } from 'react';
  * Binds a listener for a custom element's CustomEvent (e.g. mdui's `change`,
  * `input`, `open`, `close`). React 19's synthetic event system does not bind
  * to CustomEvents, so `onChange` on an `mdui-*` element typechecks but never
- * fires. See docs/design-system.md §2.6.
+ * fires. See docs/design-system.md §10 item 1.
  *
  * `handler` is latched into a ref rather than the effect's dependency array
  * so passing an inline closure (the common case) doesn't tear down and

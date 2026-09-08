@@ -1,4 +1,4 @@
-/* mdui.css first so Tailwind utilities win on source order (§2.6). */
+/* mdui.css first so Tailwind utilities win on source order (docs/design-system.md §10). */
 @import 'mdui/mdui.css';
 @import 'tailwindcss';
 @import 'material-symbols/outlined.css';
@@ -27,7 +27,7 @@
   --radius-xl: 28px;
   --radius-full: 9999px;
 
-  /* Spring approximation (mass:1, stiffness:800, damping:80) from ui-spec.md §2.6 */
+  /* Spring approximation (mass:1, stiffness:800, damping:80) from docs/design-system.md §8.2 */
   --ease-spring: linear(
     0,
     0.4327,
