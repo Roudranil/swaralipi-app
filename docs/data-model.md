@@ -60,7 +60,7 @@ empty string is a valid, intentional value: the Library greeting
 | Prior | Now | Why |
 | --- | --- | --- |
 | `notation_tags` join table | `notations.tagIds: string[]`, `*tagIds` index | IndexedDB multi-entry index. One table fewer |
-| `notation_instruments` join table | `notations.instrumentInstanceIds: string[]`, indexed | Same |
+| `notation_instruments` join table | `notations.instrumentInstanceIds: string[]` | Same. Unlike `tagIds`/`artists`/`languages`, the `version(1).stores()` schema string has no `*instrumentInstanceIds` — not multi-entry indexed, since nothing queries by it yet |
 | `notation_custom_fields` sparse columns | `notations.customFields: Record<string, CustomFieldValue>` | No SQL type columns to align |
 | `artists` / `languages` JSON TEXT | Native `string[]`, `*` indexed | IndexedDB stores structured data |
 | `notations_fts` + 3 triggers | Fuse.js over the loaded list | Dexie has no FTS. Dataset is one user's library |
@@ -88,16 +88,53 @@ repository functions run inside a Dexie transaction.
 ## 5. RenderParams
 
 Non-destructive image editing. The original blob at `blobPath` is never
-mutated; `RenderParams` applies at display time via `src/lib/render.ts`.
+mutated; `RenderParams` applies at display time via `src/lib/render.ts`
+(canvas I/O) over pure math in `src/lib/renderGeometry.ts`. See
+`docs/modules/capture.md` for the full capture flow this feeds.
 
 ```ts
 interface RenderParams {
-  filter: 'original' | 'bw' | 'grayscale' | 'enhanced' | 'warm' | 'cool';
+  crop: { left: number; top: number; right: number; bottom: number }; // normalized 0-1, ORIGINAL image space
   rotationDegrees: 0 | 90 | 180 | 270;
-  autoStraighten: boolean;
-  crop: { left: number; top: number; right: number; bottom: number }; // normalized 0-1
+  pageSize: 'a3' | 'a4' | 'a5' | 'a6' | null; // null = no page fitting
 }
 ```
 
-Default (`filter: 'original', rotationDegrees: 0, autoStraighten: false, crop: full`)
-is the un-edited state.
+Default (`crop: full`, `rotationDegrees: 0`, `pageSize: null`) is the
+un-edited state.
+
+Earlier drafts of this schema carried `filter` (6 presets) and
+`autoStraighten` fields inherited from the prior SQLite schema — both were
+dropped rather than deferred; neither is implemented anywhere in the app.
+
+Pipeline order is **crop -> rotate -> fit-into-page**, and that order is
+deliberate: `crop` is always expressed in the *original* image's coordinate
+space, so a crop survives a later rotation change unaffected (the crop editor
+maps it through `rotateCropRect`/`unrotateCropRect` to match what's actually
+displayed). `pageSize` is declarative rather than an accumulated transform,
+so switching A4 -> A5 -> A4 re-derives from the original both times instead
+of compounding.
+
+`pageSize` fits the cropped-and-rotated image into a fixed portrait pixel
+box, aspect preserved, with white padding filling the remainder — a printed
+page is white in both light and dark mode, so the fill is hardcoded rather
+than themed. Presets are fixed-orientation; a landscape image inside a
+portrait preset gets heavy padding top and bottom — rotating first, if
+needed, is on the person capturing, not something the pipeline infers.
+
+```
+ISO_PAGE_PX (150dpi, portrait) — src/lib/renderGeometry.ts
+  a3: 1754x2480    a4: 1240x1754    a5: 874x1240    a6: 620x874
+```
+
+These are sized so a 2400px-long-edge import (see the import-normalization
+note below) is never upscaled by any preset.
+
+### 5.1 Import normalization
+
+A freshly-picked file is never stored as-is: `src/features/capture/importImages.ts`
+decodes it, downscales so its longest edge is at most 2400px (never
+upscales), and re-encodes as JPEG at quality 0.85, before it ever enters the
+capture draft. A phone camera's 10-20MB original becomes roughly a few
+hundred KB per page. This happens once, at import — it is separate from the
+`RenderParams` pipeline, which never touches the stored blob.
