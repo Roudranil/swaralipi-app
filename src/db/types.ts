@@ -1,5 +1,7 @@
 /** Entity types for the Dexie schema. See docs/data-model.md. */
 
+import type { CatppuccinSwatchName } from '../lib/catppuccin';
+
 export type NotationFilter = 'original' | 'bw' | 'grayscale' | 'enhanced' | 'warm' | 'cool';
 export type RotationDegrees = 0 | 90 | 180 | 270;
 
@@ -104,6 +106,12 @@ export interface StoredBlob {
 }
 
 export type ThemeMode = 'light' | 'dark' | 'system';
+/**
+ * `'catppuccin'` — seed color picked from the Catppuccin Latte/Mocha
+ * palette (see `swatchSeeds()` in `src/lib/catppuccin.ts`). `'monet'` is
+ * reserved for Android dynamic color from wallpaper; no plugin implements
+ * it yet, so this value is currently unreachable.
+ */
 export type ColorSchemeMode = 'catppuccin' | 'monet';
 export type DefaultSort =
   | 'createdAtDesc'
@@ -120,7 +128,7 @@ export interface UserPreferences {
   userName: string;
   themeMode: ThemeMode;
   colorSchemeMode: ColorSchemeMode;
-  seedColor: string | null;
+  seedColor: CatppuccinSwatchName;
   defaultSort: DefaultSort;
   defaultView: 'list';
 }

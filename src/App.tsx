@@ -13,6 +13,7 @@ import type { MaterialSymbol } from 'material-symbols';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 
 import { Icon } from './components/Icon';
+import { useAppliedTheme } from './hooks/useAppliedTheme';
 import { useBreakpoint } from './hooks/useBreakpoint';
 import { useCustomEvent } from './hooks/useCustomEvent';
 
@@ -23,6 +24,7 @@ const NAV_ITEMS: ReadonlyArray<{ value: string; label: string; icon: MaterialSym
 
 /** Adaptive app shell. Nav swaps bar -> rail -> drawer at the M3 breakpoints. */
 export default function App(): ReactElement {
+  useAppliedTheme();
   const layout = useBreakpoint();
   const navigate = useNavigate();
   const location = useLocation();
