@@ -3,14 +3,17 @@ import type { ReactElement } from 'react';
 
 import { AppBar } from '../../components/AppBar';
 import { activeNotations } from '../../db/repositories/notations';
+import { greeting } from '../../lib/greeting';
+import { usePreferences } from '../../hooks/usePreferences';
 
 export function LibraryScreen(): ReactElement {
   const notations = useLiveQuery(activeNotations, [], []);
+  const preferences = usePreferences();
 
   return (
     <>
       <AppBar>
-        <mdui-top-app-bar-title>Hi, Musician</mdui-top-app-bar-title>
+        <mdui-top-app-bar-title>{greeting(preferences.userName)}</mdui-top-app-bar-title>
       </AppBar>
       <div className="p-6">
         {notations.length === 0 ? (
