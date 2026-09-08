@@ -9,14 +9,16 @@ import 'mdui/components/top-app-bar.js';
 import 'mdui/components/top-app-bar-title.js';
 
 import { useRef, type ReactElement } from 'react';
+import type { MaterialSymbol } from 'material-symbols';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 
+import { Icon } from './components/Icon';
 import { useBreakpoint } from './hooks/useBreakpoint';
 import { useCustomEvent } from './hooks/useCustomEvent';
 
-const NAV_ITEMS = [
-  { value: '/', label: 'Library', icon: 'library_music_outlined' },
-  { value: '/settings', label: 'Settings', icon: 'settings_outlined' },
+const NAV_ITEMS: ReadonlyArray<{ value: string; label: string; icon: MaterialSymbol }> = [
+  { value: '/', label: 'Library', icon: 'library_music' },
+  { value: '/settings', label: 'Settings', icon: 'settings' },
 ];
 
 /** Adaptive app shell. Nav swaps bar -> rail -> drawer at the M3 breakpoints. */
@@ -45,7 +47,9 @@ export default function App(): ReactElement {
           className="fixed bottom-0 left-0 right-0"
         >
           {NAV_ITEMS.map((item) => (
-            <mdui-navigation-bar-item key={item.value} value={item.value} icon={item.icon}>
+            <mdui-navigation-bar-item key={item.value} value={item.value}>
+              <Icon slot="icon" name={item.icon} />
+              <Icon slot="active-icon" name={item.icon} filled />
               {item.label}
             </mdui-navigation-bar-item>
           ))}
@@ -59,7 +63,9 @@ export default function App(): ReactElement {
       <div className="flex min-h-svh">
         <mdui-navigation-rail ref={navRef as never} value={activeValue}>
           {NAV_ITEMS.map((item) => (
-            <mdui-navigation-rail-item key={item.value} value={item.value} icon={item.icon}>
+            <mdui-navigation-rail-item key={item.value} value={item.value}>
+              <Icon slot="icon" name={item.icon} />
+              <Icon slot="active-icon" name={item.icon} filled />
               {item.label}
             </mdui-navigation-rail-item>
           ))}
@@ -78,10 +84,10 @@ export default function App(): ReactElement {
           {NAV_ITEMS.map((item) => (
             <mdui-list-item
               key={item.value}
-              icon={item.icon}
               active={item.value === activeValue}
               onClick={() => navigate(item.value)}
             >
+              <Icon slot="icon" name={item.icon} filled={item.value === activeValue} />
               {item.label}
             </mdui-list-item>
           ))}
