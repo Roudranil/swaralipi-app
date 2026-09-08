@@ -27,7 +27,7 @@ export function MetadataHeader({ title, onTitleChange, children }: MetadataHeade
   });
 
   return (
-    <div className="relative mx-auto flex w-full max-w-md flex-col gap-2 px-4 pt-4">
+    <div className="relative z-20 mx-auto flex w-full shrink-0 max-w-md flex-col gap-2 px-4 pt-4">
       <div className="flex items-center gap-2">
         <mdui-text-field
           ref={inputRef}
@@ -47,9 +47,12 @@ export function MetadataHeader({ title, onTitleChange, children }: MetadataHeade
       </div>
 
       {/* floats over PagePreview instead of pushing it down — always
-          mounted so the max-height transition can animate both ways. */}
+          mounted so the max-height transition can animate both ways.
+          inset-x-6 (rather than 0) leaves visible margin either side on a
+          phone-width screen, where the header row above is already at
+          max-w-md's own w-full. */}
       <div
-        className={`absolute inset-x-0 top-full z-20 origin-top overflow-hidden rounded-2xl bg-[rgb(var(--mdui-color-surface-container-high))] shadow-lg transition-[max-height,opacity,transform] duration-200 ease-out ${
+        className={`absolute inset-x-6 top-full origin-top overflow-hidden rounded-2xl bg-[rgb(var(--mdui-color-surface-container-high))] shadow-lg transition-[max-height,opacity,transform] duration-200 ease-out ${
           panelOpen
             ? 'max-h-96 translate-y-0 scale-y-100 opacity-100'
             : 'pointer-events-none max-h-0 -translate-y-1 scale-y-95 opacity-0'

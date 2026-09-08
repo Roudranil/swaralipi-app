@@ -1,8 +1,10 @@
 import 'mdui/components/text-field.js';
 import 'mdui/components/chip.js';
+import 'mdui/components/button-icon.js';
 
-import { useRef, type KeyboardEvent, type ReactElement } from 'react';
+import { useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
 
+import { Icon } from '../../../components/Icon';
 import { useCustomEvent } from '../../../hooks/useCustomEvent';
 
 type MetadataPanelProps = {
@@ -38,6 +40,8 @@ export function MetadataPanel({
   const chipListRef = useRef<HTMLDivElement>(null);
   const timeSigRef = useRef<HTMLElement & { value: string }>(null);
   const keySigRef = useRef<HTMLElement & { value: string }>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // `input` is a CustomEvent on mdui-text-field — see docs/design-system.md §10 item 1.
   useCustomEvent(timeSigRef, 'input', () => {
@@ -69,6 +73,21 @@ export function MetadataPanel({
     commitArtist();
   };
 
+  // the native calendar icon inside `<input type="date">` is a poor mobile
+  // tap target and doesn't reliably toggle across browsers, so the visible
+  // button drives `showPicker()`/`blur()` ourselves instead of relying on it.
+  const toggleDatePicker = (): void => {
+    const input = dateInputRef.current;
+    if (!input) return;
+    if (datePickerOpen) {
+      input.blur();
+      setDatePickerOpen(false);
+    } else {
+      input.showPicker();
+      setDatePickerOpen(true);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-3 pb-2">
       <div>
@@ -88,13 +107,20 @@ export function MetadataPanel({
         />
       </div>
 
-      <input
-        type="date"
-        aria-label="Date written"
-        value={dateWritten ?? ''}
-        onChange={(event) => onDateWrittenChange(event.target.value || null)}
-        className="rounded-md border border-[rgb(var(--mdui-color-outline-variant))] bg-transparent px-3 py-2 text-[rgb(var(--mdui-color-on-surface))]"
-      />
+      <div className="flex items-center gap-2 rounded-md border border-[rgb(var(--mdui-color-outline-variant))] px-3 py-1">
+        <input
+          ref={dateInputRef}
+          type="date"
+          aria-label="Date written"
+          value={dateWritten ?? ''}
+          onChange={(event) => onDateWrittenChange(event.target.value || null)}
+          onBlur={() => setDatePickerOpen(false)}
+          className="flex-1 bg-transparent py-1 text-[rgb(var(--mdui-color-on-surface))] [&::-webkit-calendar-picker-indicator]:hidden"
+        />
+        <mdui-button-icon aria-label={datePickerOpen ? 'Close calendar' : 'Open calendar'} onClick={toggleDatePicker}>
+          <Icon name="calendar_month" />
+        </mdui-button-icon>
+      </div>
 
       <mdui-text-field
         ref={timeSigRef}

@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 
+import { useCatppuccinPalette } from '../../../hooks/useCatppuccinPalette';
 import type { IsoPageSize } from '../../../db/types';
 import type { ToolMode } from '../toolMode';
 
@@ -46,6 +47,8 @@ export function ToolActionRow({
   onKeep,
   onDelete,
 }: ToolActionRowProps): ReactElement | null {
+  const { colors, onColorClassName } = useCatppuccinPalette();
+
   // `justifyContent: 'safe center'` centers the row when it fits and falls
   // back to start-aligned (so the first button is reachable by scrolling
   // from position 0) when it overflows — plain `justify-center` on an
@@ -104,7 +107,8 @@ export function ToolActionRow({
         </button>
         <button
           type="button"
-          className="rounded-full bg-[rgb(var(--mdui-color-error))] px-4 py-2 text-sm font-medium text-[rgb(var(--mdui-color-on-error))]"
+          className={`rounded-full px-4 py-2 text-sm font-medium ${onColorClassName}`}
+          style={{ backgroundColor: colors.red }}
           onClick={onDelete}
         >
           Delete this image
