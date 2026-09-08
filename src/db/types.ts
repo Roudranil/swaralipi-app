@@ -2,8 +2,9 @@
 
 import type { CatppuccinSwatchName } from '../lib/catppuccin';
 
-export type NotationFilter = 'original' | 'bw' | 'grayscale' | 'enhanced' | 'warm' | 'cool';
 export type RotationDegrees = 0 | 90 | 180 | 270;
+/** ISO A-series page presets a page can be fit into. `null` (on `RenderParams`) means no fitting. */
+export type IsoPageSize = 'a3' | 'a4' | 'a5' | 'a6';
 
 export interface CropRect {
   left: number;
@@ -12,19 +13,24 @@ export interface CropRect {
   bottom: number;
 }
 
-/** Non-destructive render pipeline applied at display time. Original blob is never mutated. */
+/**
+ * Non-destructive render pipeline applied at display time. Original blob is
+ * never mutated. Pipeline order is crop -> rotate -> fit-into-page: `crop` is
+ * always in the *original* image's coordinate space, so it survives later
+ * rotation changes, and `pageSize` is declarative rather than an accumulated
+ * transform, so switching presets re-derives from the original instead of
+ * compounding. See docs/data-model.md §5.
+ */
 export interface RenderParams {
-  filter: NotationFilter;
   rotationDegrees: RotationDegrees;
-  autoStraighten: boolean;
   crop: CropRect;
+  pageSize: IsoPageSize | null;
 }
 
 export const DEFAULT_RENDER_PARAMS: RenderParams = {
-  filter: 'original',
   rotationDegrees: 0,
-  autoStraighten: false,
   crop: { left: 0, top: 0, right: 1, bottom: 1 },
+  pageSize: null,
 };
 
 export type CustomFieldType = 'text' | 'number' | 'date' | 'boolean';
