@@ -14,8 +14,7 @@ export type CatppuccinSwatchName =
   | 'sky'
   | 'sapphire'
   | 'blue'
-  | 'lavender'
-  | 'text';
+  | 'lavender';
 
 /** Display order for the seed-color swatch grid. */
 export const SWATCH_NAMES: readonly CatppuccinSwatchName[] = [
@@ -33,7 +32,6 @@ export const SWATCH_NAMES: readonly CatppuccinSwatchName[] = [
   'sapphire',
   'blue',
   'lavender',
-  'text',
 ];
 
 export const SWATCH_LABELS: Record<CatppuccinSwatchName, string> = {
@@ -51,7 +49,6 @@ export const SWATCH_LABELS: Record<CatppuccinSwatchName, string> = {
   sapphire: 'Sapphire',
   blue: 'Blue',
   lavender: 'Lavender',
-  text: 'Text',
 };
 
 export const CATPPUCCIN_MOCHA: Record<CatppuccinSwatchName, string> = {
@@ -69,7 +66,6 @@ export const CATPPUCCIN_MOCHA: Record<CatppuccinSwatchName, string> = {
   sapphire: '#74C7EC',
   blue: '#89B4FA',
   lavender: '#B4BEFE',
-  text: '#CDD6F4',
 };
 
 export const CATPPUCCIN_LATTE: Record<CatppuccinSwatchName, string> = {
@@ -87,7 +83,6 @@ export const CATPPUCCIN_LATTE: Record<CatppuccinSwatchName, string> = {
   sapphire: '#209FB5',
   blue: '#1E66F5',
   lavender: '#7287FD',
-  text: '#4C4F69',
 };
 
 export const DEFAULT_SEED_SWATCH: CatppuccinSwatchName = 'mauve';
