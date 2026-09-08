@@ -37,6 +37,12 @@ export function CaptureScreen(): ReactElement {
   const [draft, dispatch] = useReducer(draftReducer, todayIsoDate(), initialDraft);
   const [toolMode, setToolMode] = useState<ToolMode>('none');
   const [reorderOpen, setReorderOpen] = useState(false);
+  // a one-shot pulse so PagePreview can spin the canvas into its new
+  // orientation — see docs/modules/capture.md §5. `token` forces a new
+  // effect run even if `delta` repeats (e.g. two "rotate left" in a row).
+  const [rotationPulse, setRotationPulse] = useState<{ readonly delta: -90 | 90; readonly token: number } | null>(
+    null,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const openedPickerRef = useRef(false);
 
@@ -64,6 +70,11 @@ export function CaptureScreen(): ReactElement {
 
   const activePage = draft.pages[draft.activeIndex];
   const canSave = draft.title.trim().length > 0 && draft.pages.length > 0;
+
+  const handleRotate = (delta: -90 | 90): void => {
+    dispatch({ type: 'rotateActive', delta });
+    setRotationPulse({ delta, token: Date.now() });
+  };
 
   const handleSave = (): void => {
     if (!canSave) return;
@@ -96,7 +107,7 @@ export function CaptureScreen(): ReactElement {
         </mdui-button>
       </header>
 
-      <div className="flex-1 overflow-y-auto pb-6">
+      <div className="relative flex-1 overflow-y-auto pb-4">
         <MetadataHeader title={draft.title} onTitleChange={(value) => dispatch({ type: 'setField', field: 'title', value })}>
           <MetadataPanel
             artists={draft.artists}
@@ -116,6 +127,7 @@ export function CaptureScreen(): ReactElement {
           canStepForward={draft.activeIndex < draft.pages.length - 1}
           onStepBack={() => dispatch({ type: 'stepActive', delta: -1 })}
           onStepForward={() => dispatch({ type: 'stepActive', delta: 1 })}
+          rotationPulse={rotationPulse}
           renderOverride={
             toolMode === 'crop' && activePage
               ? { ...activePage.renderParams, crop: FULL_CROP, pageSize: null }
@@ -151,8 +163,8 @@ export function CaptureScreen(): ReactElement {
               setToolMode('none');
             }}
             onCropSave={() => setToolMode('none')}
-            onRotateLeft={() => dispatch({ type: 'rotateActive', delta: -90 })}
-            onRotateRight={() => dispatch({ type: 'rotateActive', delta: 90 })}
+            onRotateLeft={() => handleRotate(-90)}
+            onRotateRight={() => handleRotate(90)}
             onSetPageSize={(pageSize) => dispatch({ type: 'setPageSize', pageSize })}
             onKeep={() => setToolMode('none')}
             onDelete={() => {
@@ -161,15 +173,15 @@ export function CaptureScreen(): ReactElement {
             }}
           />
         )}
-
-        <ToolRow
-          activeMode={toolMode}
-          disabled={activePage === undefined}
-          onSelect={setToolMode}
-          onReorder={() => setReorderOpen(true)}
-          onAddPages={() => fileInputRef.current?.click()}
-        />
       </div>
+
+      <ToolRow
+        activeMode={toolMode}
+        disabled={activePage === undefined}
+        onSelect={setToolMode}
+        onReorder={() => setReorderOpen(true)}
+        onAddPages={() => fileInputRef.current?.click()}
+      />
 
       {reorderOpen && (
         <ReorderSheet

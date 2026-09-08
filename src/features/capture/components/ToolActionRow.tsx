@@ -46,9 +46,15 @@ export function ToolActionRow({
   onKeep,
   onDelete,
 }: ToolActionRowProps): ReactElement | null {
+  // `justifyContent: 'safe center'` centers the row when it fits and falls
+  // back to start-aligned (so the first button is reachable by scrolling
+  // from position 0) when it overflows — plain `justify-center` on an
+  // overflowing flex row scrolls symmetrically off both edges instead.
+  const rowStyle = { justifyContent: 'safe center' } as const;
+
   if (mode === 'crop') {
     return (
-      <div className="flex justify-center gap-2 px-4 py-2">
+      <div className="flex gap-2 overflow-x-auto px-4 py-2" style={rowStyle}>
         <button type="button" className={BUTTON_CLASS} onClick={onCropClear}>
           No crop
         </button>
@@ -61,12 +67,12 @@ export function ToolActionRow({
 
   if (mode === 'rotate') {
     return (
-      <div className="flex justify-center gap-2 px-4 py-2">
+      <div className="flex gap-2 overflow-x-auto px-4 py-2" style={rowStyle}>
         <button type="button" className={BUTTON_CLASS} onClick={onRotateLeft} aria-label="Rotate left 90 degrees">
-          Rotate left
+          Rotate left 90°
         </button>
         <button type="button" className={BUTTON_CLASS} onClick={onRotateRight} aria-label="Rotate right 90 degrees">
-          Rotate right
+          Rotate right 90°
         </button>
       </div>
     );
@@ -74,7 +80,7 @@ export function ToolActionRow({
 
   if (mode === 'resize') {
     return (
-      <div className="flex gap-2 overflow-x-auto px-4 py-2">
+      <div className="flex gap-2 overflow-x-auto px-4 py-2" style={rowStyle}>
         {PAGE_SIZE_OPTIONS.map((option) => (
           <button
             key={option.label}
@@ -92,7 +98,7 @@ export function ToolActionRow({
 
   if (mode === 'delete') {
     return (
-      <div className="flex justify-center gap-2 px-4 py-2">
+      <div className="flex gap-2 overflow-x-auto px-4 py-2" style={rowStyle}>
         <button type="button" className={BUTTON_CLASS} onClick={onKeep}>
           Keep this image
         </button>

@@ -35,6 +35,11 @@ export function PageCarousel({ pages, activeIndex, onSelect }: PageCarouselProps
       role="listbox"
       aria-label="Pages"
       className="flex gap-2 overflow-x-auto px-4 py-3"
+      // centers when every thumbnail fits; falls back to start-aligned,
+      // scrollable-from-position-0 once the strip overflows — see
+      // ToolActionRow's `rowStyle` comment for why plain justify-center
+      // doesn't work here.
+      style={{ justifyContent: 'safe center' }}
     >
       {pages.map((page, index) => {
         const selected = index === activeIndex;

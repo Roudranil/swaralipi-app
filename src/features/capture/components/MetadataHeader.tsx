@@ -27,7 +27,7 @@ export function MetadataHeader({ title, onTitleChange, children }: MetadataHeade
   });
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-2 px-4 pt-4">
+    <div className="relative mx-auto flex w-full max-w-md flex-col gap-2 px-4 pt-4">
       <div className="flex items-center gap-2">
         <mdui-text-field
           ref={inputRef}
@@ -39,12 +39,24 @@ export function MetadataHeader({ title, onTitleChange, children }: MetadataHeade
         />
         <mdui-button-icon
           aria-label={panelOpen ? 'Hide details' : 'Show details'}
+          aria-expanded={panelOpen}
           onClick={() => setPanelOpen((open) => !open)}
         >
           <Icon name={panelOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'} />
         </mdui-button-icon>
       </div>
-      {panelOpen && children}
+
+      {/* floats over PagePreview instead of pushing it down — always
+          mounted so the max-height transition can animate both ways. */}
+      <div
+        className={`absolute inset-x-0 top-full z-20 origin-top overflow-hidden rounded-2xl bg-[rgb(var(--mdui-color-surface-container-high))] shadow-lg transition-[max-height,opacity,transform] duration-200 ease-out ${
+          panelOpen
+            ? 'max-h-96 translate-y-0 scale-y-100 opacity-100'
+            : 'pointer-events-none max-h-0 -translate-y-1 scale-y-95 opacity-0'
+        }`}
+      >
+        <div className="p-4">{children}</div>
+      </div>
     </div>
   );
 }

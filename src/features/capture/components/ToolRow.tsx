@@ -33,7 +33,16 @@ type ToolRowProps = {
  */
 export function ToolRow({ activeMode, disabled, onSelect, onReorder, onAddPages }: ToolRowProps): ReactElement {
   return (
-    <div role="toolbar" aria-label="Page tools" className="flex gap-2 overflow-x-auto px-4 py-2">
+    <div
+      role="toolbar"
+      aria-label="Page tools"
+      // pinned to the bottom of the screen's flex column, same surface and
+      // safe-area treatment as `NavBar` (docs/design-system.md §14) — but
+      // shrink-0 rather than a fixed height, since this row's content wraps
+      // to its own natural height instead of NavBar's fixed icon+label size.
+      className="flex shrink-0 gap-2 overflow-x-auto border-t border-[rgb(var(--mdui-color-outline-variant))] bg-[rgb(var(--mdui-color-surface-container))] px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
+      style={{ justifyContent: 'safe center' }}
+    >
       {TOOLS.map((tool) => {
         const selected = activeMode === tool.mode;
         return (
