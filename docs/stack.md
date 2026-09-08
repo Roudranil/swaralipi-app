@@ -16,6 +16,7 @@
 | Routing | `react-router` | 8.3 |
 | Search | `fuse.js` | 7.5 |
 | Native wrap | `@capacitor/core`, `@capacitor/android`, `@capacitor/cli` | 8.5 |
+| Reorder | `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` | 6.3 / 10.0 / 3.2 |
 | Tests | `vitest`, `fake-indexeddb` | 5.0 / 6.2 |
 | Lint | `oxlint` (bundled with the Vite `react-ts` template) | 1.79 |
 
@@ -40,7 +41,7 @@
 | `androidScheme: 'https'` in `capacitor.config.ts` | Required for a secure context — service workers need it |
 | `cap run android --live-reload` defaults to port 3000 | Pass `--port 5173` to match Vite |
 | `mdui.css` sets `:root { font-size: 16px }` | Overridden to `100%` in `src/styles/index.css` — otherwise browser text zoom breaks |
-| React 19 does not bind synthetic events to custom elements' `CustomEvent`s | `onChange` on an `mdui-*` element typechecks and silently does nothing. Use `useCustomEvent`. See `docs/design-system.md` §2.6 |
+| React 19 does not bind synthetic events to custom elements' `CustomEvent`s | `onChange` on an `mdui-*` element typechecks and silently does nothing. Use `useCustomEvent`. See `docs/design-system.md` §10 |
 | `@capacitor/cli`'s `xcode` dependency pulls a moderate-severity `uuid` advisory | Dev-only, iOS tooling unused on this Android-only project. Not fixed |
 | `mdui-icon`'s shadow style hardcodes `font-family:'Material Icons'` | Can't be repointed from outside its shadow root. Use `src/components/Icon.tsx` in an `icon`/`active-icon` slot instead — see `docs/design-system.md` §12 |
 
