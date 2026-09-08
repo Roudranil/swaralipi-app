@@ -11,6 +11,24 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: { enabled: true },
+      workbox: {
+        // default glob omits woff2; only Rounded (the default variant) is
+        // precached eagerly so SW install stays ~5MB, not ~13MB. Outlined
+        // and Sharp are cached on first use via runtimeCaching below.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}', '**/*rounded*.woff2'],
+        // the rounded font is ~5.4MB, above workbox's 2MB precache default.
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            urlPattern: /\.woff2$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'material-symbols-fonts',
+              expiration: { maxEntries: 3, maxAgeSeconds: 60 * 60 * 24 * 365 },
+            },
+          },
+        ],
+      },
       manifest: {
         name: 'Swaralipi',
         short_name: 'Swaralipi',

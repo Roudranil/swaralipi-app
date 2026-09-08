@@ -1,6 +1,9 @@
 /* mdui.css first so Tailwind utilities win on source order (§2.6). */
 @import 'mdui/mdui.css';
 @import 'tailwindcss';
+@import 'material-symbols/outlined.css';
+@import 'material-symbols/rounded.css';
+@import 'material-symbols/sharp.css';
 
 /* mdui.css sets :root { font-size: 16px }, which defeats browser text zoom. */
 :root {
