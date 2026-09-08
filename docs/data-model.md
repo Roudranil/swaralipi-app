@@ -47,7 +47,7 @@ export class SwaralipiDB extends Dexie {
 | `instrumentInstances` | `id`, `classId`, `brand`, `model`, `colorHex`, `priceInr`, `photoBlobPath`, `notes`, timestamps, `deletedAt` (archive) |
 | `customFieldDefs` | `id`, `keyName` (unique), `fieldType` (`text` \| `number` \| `date` \| `boolean`), timestamps |
 | `blobs` | `path` (key), `blob` |
-| `preferences` | singleton row, `userName`, `themeMode`, `colorSchemeMode`, `seedColor`, `defaultSort`, `defaultView` |
+| `preferences` | singleton row, `userName`, `themeMode`, `colorSchemeMode`, `seedColor` (Catppuccin swatch name, resolved to a light/dark hex pair by `swatchSeeds()`), `defaultSort`, `defaultView` |
 
 ## 3. Changes from the SQLite schema
 

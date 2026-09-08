@@ -32,7 +32,10 @@ overriding MDUI's generator. One source of truth.
 
 Theme switching uses MDUI's `mdui-theme-light` / `mdui-theme-dark` /
 `mdui-theme-auto` classes on `<html>`; our generated stylesheet defines both
-variable sets and the classes flip between them.
+variable sets and the classes flip between them. `applyThemeMode()` in
+`src/lib/theme.ts` is what sets that class (and mirrors it to
+`documentElement.style.colorScheme`) — never call MDUI's own theming
+function for this.
 
 ## 3. Color role assignments
 
@@ -76,8 +79,15 @@ All values consumed as `rgb(var(--mdui-color-<token>))`.
   (dark) palettes
 - **No free-form color pickers anywhere in the app**
 
-Default seeds: Mocha Mauve `#CBA6F7` (dark), Latte Mauve `#8839EF` (light).
-Both palettes live in `src/lib/catppuccin.ts`, ported verbatim.
+The seed is persisted as a Catppuccin **swatch name** (`preferences.seedColor`,
+e.g. `'mauve'`), not a hex — Latte and Mocha use different hexes for the same
+swatch, so a stored hex can't survive a mode switch. `swatchSeeds(name)` in
+`src/lib/catppuccin.ts` resolves one name to both hexes; `applyTheme()` in
+`src/lib/theme.ts` always generates both the `-light` (Latte) and `-dark`
+(Mocha) token sets from that pair, and the `mdui-theme-*` class picks the
+active one in pure CSS. Default seed: Mauve (`#8839EF` Latte /
+`#CBA6F7` Mocha). Both palettes live in `src/lib/catppuccin.ts`, ported
+verbatim.
 
 ## 5. Typography
 

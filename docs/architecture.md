@@ -50,14 +50,17 @@ src/
     customFields/
     settings/
   lib/
-    theme.ts              # seed color -> M3 tokens, light/dark
-    catppuccin.ts          # Latte + Mocha palettes
+    theme.ts              # per-mode seeds -> M3 tokens; mdui-theme-* class
+    catppuccin.ts          # Latte + Mocha palettes, swatch name -> seed hexes
+    themeBoot.ts            # localStorage theme cache for first paint
     render.ts              # canvas RenderParams pipeline
     search.ts              # Fuse.js
     log.ts
   hooks/
     useBreakpoint.ts       # matchMedia against M3 breakpoints
     useCustomEvent.ts       # ref + addEventListener for mdui CustomEvents
+    usePreferences.ts       # useLiveQuery over the preferences table
+    useAppliedTheme.ts       # reconciles DOM theme with preferences
   styles/
     index.css               # mdui.css, tailwind, @theme bridge
 ```

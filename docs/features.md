@@ -17,7 +17,7 @@ Dexie and the repository pattern make most of them near-free to stand up.
 | F07 | Tags | Not built | Create/rename/recolor/delete, Catppuccin palette, 5 pre-seeded defaults |
 | F08 | Edit / Delete / Copy | Not built | CRUD entry points from Library and Detail View |
 | F09 | Trash | Not built | Soft-deleted list, restore/purge, 30-day auto-purge |
-| F10 | Appearance & Theming | Not built | Light/Dark/System toggle, Catppuccin seed color |
+| F10 | Appearance & Theming | Engine + persistence built, UI not built | Light/Dark/System toggle, Catppuccin seed color; dynamic color (Monet) deferred |
 | F11 | Settings | Not built | Shell aggregating Tags, Instruments, Trash, Appearance, Custom Fields |
 | F12 | Custom Fields | Not built | CRUD for user-defined field definitions (name + type) |
 

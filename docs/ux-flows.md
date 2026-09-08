@@ -294,17 +294,22 @@ sort), Custom Fields, Your Name, Trash, About.
 
 ## 16. Appearance & Theming
 
-Route: `/settings/appearance`.
+Route: `/settings/appearance`. Two steps, in order:
 
-**Theme mode** — Light / Dark / System toggle, applies immediately, persists
+**1. Color mode** — Light / Dark / System toggle, applies immediately, persists
 to `preferences.themeMode`.
 
-**Color scheme** — two modes: Dynamic (Monet, Android wallpaper — not
-available on the web; hidden or disabled outside the Capacitor wrap) and Seed
-Color (tap a Catppuccin Latte/Mocha swatch depending on theme mode; the app
-re-themes instantly via `applyTheme()` in `src/lib/theme.ts`). All other
-color pickers in-app (tags, instrument color) use the Catppuccin palette
-only. No free-form color pickers anywhere.
+**2. Seed color** — a swatch grid from the Catppuccin palette of the *active*
+mode (Latte in light, Mocha in dark); persists as the swatch **name**, not a
+hex, to `preferences.seedColor`, so the choice survives a mode switch (or a
+live OS dark-mode flip under System). The app re-themes instantly via
+`applyTheme()`/`applyThemeMode()` in `src/lib/theme.ts`. On Android only, a
+third option sits alongside the grid — Dynamic color from wallpaper (Monet);
+hidden on the web/desktop. **Not yet implemented** — no native plugin exists
+yet, this is a placeholder in the flow.
+
+All other color pickers in-app (tags, instrument color) use the Catppuccin
+palette only. No free-form color pickers anywhere.
 
 ## 17. Custom Fields
 
