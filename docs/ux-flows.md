@@ -289,24 +289,57 @@ notation row). Auto-purge runs on app start for anything past 30 days.
 
 ## 15. Settings
 
-Route: `/settings`. Rows: Appearance, Tags, Instruments, Library (default
-sort), Custom Fields, Your Name, Trash, About.
+Route: `/settings`. A declarative, section-divided list — see
+`docs/modules/settings.md` for the full registry contract. Sections, in
+order:
+
+| Section | Rows | Status |
+| --- | --- | --- |
+| Personal | Personalisation, Appearance | Built |
+| Library | Tags, Instruments, Library (default sort), Custom Fields | Registered, not built |
+| Housekeeping | Trash (more expected here) | Registered, not built |
+| Miscellaneous | About, Open source licences, Backup and sync | About built; rest registered, not built |
+
+"Registered, not built" rows render dimmed and inert (§11.7 in
+docs/design-system.md) rather than being omitted, so the settings list
+already shows its intended final shape.
+
+At laptop widths (`>= 840px`) the nav rail keeps the left edge; a settings
+subscreen does not open a second nav column beside it. Content is capped at
+640px and centred in the remaining space, identically to phone — see
+docs/modules/settings.md §6 for why a rail-plus-list-detail three-column
+layout was rejected.
+
+### 15.1 Personalisation
+
+Route: `/settings/personalisation`. One field, "Your name" — one word,
+letters only (any script), empty allowed. Feeds the Library greeting
+(`"Hi, <Name>"`, or a plain `"Hi"` when empty — §3.1). Unlike Appearance,
+this commits via an explicit **Save** button rather than instantly: a name
+is free text that needs validation before it is worth persisting. A live
+preview of the exact greeting string sits between the field and the Save
+button. Title-casing is applied on blur, not per keystroke, so it doesn't
+fight the cursor mid-word.
 
 ## 16. Appearance & Theming
 
-Route: `/settings/appearance`. Two steps, in order:
+Route: `/settings/appearance`. Two groups, in order:
 
-**1. Color mode** — Light / Dark / System toggle, applies immediately, persists
-to `preferences.themeMode`.
+**1. Theme** — a single-select M3 segmented button (Light / Dark / System),
+applies immediately, persists to `preferences.themeMode`.
 
-**2. Seed color** — a swatch grid from the Catppuccin palette of the *active*
-mode (Latte in light, Mocha in dark); persists as the swatch **name**, not a
-hex, to `preferences.seedColor`, so the choice survives a mode switch (or a
-live OS dark-mode flip under System). The app re-themes instantly via
-`applyTheme()`/`applyThemeMode()` in `src/lib/theme.ts`. On Android only, a
-third option sits alongside the grid — Dynamic color from wallpaper (Monet);
-hidden on the web/desktop. **Not yet implemented** — no native plugin exists
-yet, this is a placeholder in the flow.
+**2. Accent colour** — a swatch grid from the Catppuccin palette of the
+*active* mode (Latte in light, Mocha in dark); persists as the swatch
+**name**, not a hex, to `preferences.seedColor`, so the choice survives a
+mode switch (or a live OS dark-mode flip under System). The app re-themes
+instantly via `applyTheme()`/`applyThemeMode()` in `src/lib/theme.ts`. On
+Android only, a third option is meant to sit alongside the grid — Dynamic
+color from wallpaper (Monet); hidden on the web/desktop. **Not yet
+implemented** — no native plugin exists yet, and it does not appear in the
+shipped screen at all, not even as a hidden stub.
+
+A "Reset appearance" text button opens the §11.3 confirm dialog and restores
+`themeMode: 'system'` and `seedColor: 'mauve'` (the defaults).
 
 All other color pickers in-app (tags, instrument color) use the Catppuccin
 palette only. No free-form color pickers anywhere.

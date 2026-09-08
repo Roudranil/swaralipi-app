@@ -49,6 +49,12 @@ export class SwaralipiDB extends Dexie {
 | `blobs` | `path` (key), `blob` |
 | `preferences` | singleton row, `userName`, `themeMode`, `colorSchemeMode`, `seedColor` (Catppuccin swatch name, resolved to a light/dark hex pair by `swatchSeeds()`), `defaultSort`, `defaultView` |
 
+`userName` carries no schema-level constraint — it is validated at the UI
+boundary by `src/features/settings/nameField.ts` (one word, letters only in
+any script, empty allowed) before `updatePreferences()` is ever called. An
+empty string is a valid, intentional value: the Library greeting
+(`src/lib/greeting.ts`) renders it as a plain `"Hi"` rather than `"Hi, "`.
+
 ## 3. Changes from the SQLite schema
 
 | Prior | Now | Why |

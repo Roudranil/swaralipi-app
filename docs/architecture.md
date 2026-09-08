@@ -48,54 +48,78 @@ src/
     instruments/
     trash/
     customFields/
-    settings/
+    settings/             # registry-driven settings module — see docs/modules/settings.md
+      registry.ts          # SETTINGS_SECTIONS — routes/rows/summaries derive from this
+      settingsRoutes.tsx     # walks the registry into react-router RouteObjects
+      nameField.ts          # personalisation name validation/formatting
+      components/            # SettingsPage, SettingsRow, SettingsSection, SettingsGroup, SwatchGrid
+      screens/                # SettingsIndexScreen, SettingsGroupScreen, AppearanceScreen,
+                              # PersonalisationScreen, AboutScreen
   lib/
     theme.ts              # per-mode seeds -> M3 tokens; mdui-theme-* class
     catppuccin.ts          # Latte + Mocha palettes, swatch name -> seed hexes
     themeBoot.ts            # localStorage theme cache for first paint
+    greeting.ts             # Library hero greeting, shared with the Personalisation preview
     render.ts              # canvas RenderParams pipeline
     search.ts              # Fuse.js
     log.ts
   hooks/
-    useBreakpoint.ts       # matchMedia against M3 breakpoints
     useCustomEvent.ts       # ref + addEventListener for mdui CustomEvents
     usePreferences.ts       # useLiveQuery over the preferences table
     useAppliedTheme.ts       # reconciles DOM theme with preferences
+    useResolvedThemeMode.ts  # resolves 'system' to the OS's live light/dark preference
   styles/
     index.css               # mdui.css, tailwind, @theme bridge
 ```
 
-Only `features/library` and the shell exist so far. The rest are placeholders
-in the route table until built.
+Only `features/library` and `features/settings` exist so far. The rest are
+placeholders in the route table until built.
 
 ## 4. Adaptive navigation
 
 The prior app had a fixed bottom navigation bar. A PWA also runs at laptop
-width, so navigation adapts by width using the M3 breakpoints
-(0 / 600 / 840 / 1080 / 1440 / 1920):
+width, so navigation adapts by width. The implementation is a two-tier,
+CSS-only switch at the single `md:` (840px) breakpoint — not the three-tier,
+`matchMedia`-driven switch an earlier draft of this doc described:
 
 | Width | Navigation |
 | --- | --- |
-| `< 840px` | Bottom navigation bar (`mdui-navigation-bar`) |
-| `840px – 1079px` | Navigation rail (`mdui-navigation-rail`) |
-| `>= 1080px` | Navigation drawer (`mdui-navigation-drawer`, non-modal) |
+| `< 840px` | Bottom navigation bar — `src/components/shell/NavBar.tsx` |
+| `>= 840px` | Collapsible navigation rail — `src/components/shell/NavRail.tsx` |
 
-`src/hooks/useBreakpoint.ts` drives the switch via `matchMedia`. This is the
-mechanism that makes both laptop and phone render correctly — no dev-only
-preview harness is needed. See `docs/design-system.md` for the design-system
-rationale behind the split between MDUI and the color token layer.
+Both `NavBar` and `NavRail` always render; Tailwind's `md:hidden` /
+`hidden md:flex` toggle visibility, so `<main>` never remounts and routed
+screen state survives a resize across the breakpoint (`src/App.tsx`). There is
+no navigation drawer tier and no `src/hooks/useBreakpoint.ts` — both are
+planned-but-unbuilt, not currently in the codebase. `src/components/shell/navItems.ts`
+is the single list of destinations shared by both navs; `activeNavValue()`
+there prefix-matches, so a nested route like `/settings/appearance` still
+highlights the `Settings` tab.
+
+See `docs/design-system.md` for the design-system rationale behind the split
+between MDUI and the color token layer.
 
 ## 5. Routes
 
 | Path | Screen | Status |
 | --- | --- | --- |
 | `/` | Library | Built (empty state + list) |
-| `/settings` | Settings | Placeholder |
+| `/settings` | `SettingsIndexScreen` | Built |
+| `/settings/personalisation` | Personalisation | Built |
+| `/settings/appearance` | Appearance | Built |
+| `/settings/about` | About | Built |
+| `/settings/tags` | Tags | Registered, not built |
+| `/settings/instruments` | Instruments | Registered, not built |
+| `/settings/library` | Library defaults | Registered, not built |
+| `/settings/custom-fields` | Custom fields | Registered, not built |
+| `/settings/trash` | Trash | Registered, not built |
+| `/settings/licenses` | Open source licences | Registered, not built |
+| `/settings/backup` | Backup and sync | Registered, not built |
 | `/notation/:id` | Notation detail | Not built |
 | `/notation/:id/play` | Player | Not built |
 | `/capture` | Capture / page editor | Not built |
-| `/tags` | Tags | Not built |
-| `/instruments` | Instruments | Not built |
-| `/trash` | Trash | Not built |
-| `/custom-fields` | Custom fields | Not built |
-| `/settings/appearance` | Appearance | Not built |
+
+"Registered, not built" entries exist in `src/features/settings/registry.ts`
+with `status: 'planned'` — they render as a dimmed, inert row on the settings
+list but have no route at all until their status flips to `'built'`. See
+`docs/modules/settings.md` §3.

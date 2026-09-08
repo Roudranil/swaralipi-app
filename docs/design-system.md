@@ -233,6 +233,7 @@ CSS class and `FILL` axis, not part of the name, so no `_outlined` suffix.
 | Trash emptied | "Trash emptied" | — |
 | Save failed | "Couldn't save. Try again." | Retry |
 | Offline | "You're offline. Changes saved locally." | — |
+| Name saved | "Saved" | — |
 
 ### 11.3 Dialog patterns
 
@@ -247,8 +248,25 @@ CSS class and `FILL` axis, not part of the name, so no `_outlined` suffix.
 
 ### 11.4 Catppuccin color picker
 
-36px tappable circles (48px hit target), check indicator on the selected
-swatch, `aria-label="<color name>, <selected/not selected>"`.
+36px tappable circles inside a 48px hit target, check indicator on the
+selected swatch, `aria-label="<color name>, <selected/not selected>"`.
+Implemented once, in `src/features/settings/components/SwatchGrid.tsx`
+(the Appearance accent-colour picker — docs/modules/settings.md §8), for
+reuse by any future free-standing Catppuccin picker (tags, instrument
+colour):
+
+- The circle grid is `role="radiogroup"`; each circle is `role="radio"
+  aria-checked`, not a native `<input type="radio">`, since the visual is a
+  custom-painted circle. This is what makes it announce as a single-choice
+  set rather than a row of unrelated buttons.
+- Circle fill is read from whichever palette (Latte/Mocha) is actually
+  painted right now, not from the stored theme mode directly — under
+  `system` mode this can differ from the mode last written to
+  `preferences.themeMode` if the OS preference has since changed live.
+- The check mark's colour is chosen per resolved mode (light check on
+  Latte's dark hexes, dark check on Mocha's light hexes), not per-swatch
+  luminance — every hex in each palette clears the same contrast threshold,
+  so the cheaper mode-level rule is sufficient.
 
 ### 11.5 Chip input field
 
@@ -260,6 +278,35 @@ Error outline on invalid input.
 Screen-level (full-screen error + retry), inline (form field error text),
 and snackbar (transient, non-blocking) — pick the narrowest scope that fits
 the failure.
+
+### 11.7 Settings list rows
+
+Every settings screen — the top-level list and any nested group screen —
+renders through the same three components in
+`src/features/settings/components/`, so the rhythm is identical everywhere:
+
+- **`SettingsSection`**: one `mdui-divider` (omitted for the first section on
+  a screen) followed by an `mdui-list`, with an optional `mdui-list-subheader`
+  when the section has a `label`. A section can still omit `label` and rely
+  on the divider alone — every current top-level section happens to have
+  one ("Housekeeping", "Miscellaneous", etc.), but a single-entry section
+  that doesn't warrant a subheader is free to skip it.
+- **`SettingsRow`**: one `mdui-list-item`, `rounded`, with an `<Icon>` in the
+  `icon` slot, `headline`/`description` for the two typography rows (§5
+  "Settings row title" / "Settings row subtitle"), and a `chevron_right`
+  `<Icon>` in the `end-icon` slot. Tapping calls `useNavigate()` — never
+  `href`, which would render a real `<a>` and force a full page load out of
+  the SPA.
+- **`status: 'planned'` rows** render with `disabled` set on the
+  `mdui-list-item`, which both dims the row (M3's standard disabled
+  treatment) and disables its own click handling; the row's `onClick` is
+  additionally never wired to `navigate()` in this state, so a planned
+  entry is inert two ways over, not just visually.
+- **`SettingsGroup`** is the one exception: a labelled group of controls
+  *inside* a screen (Appearance's "Theme" / "Accent colour"), not a list of
+  navigable rows, so it renders as plain layout rather than an `mdui-list`.
+
+See `docs/modules/settings.md` for the full registry contract these compose.
 
 ## 12. Icons
 

@@ -10,15 +10,15 @@ Dexie and the repository pattern make most of them near-free to stand up.
 | --- | --- | --- | --- |
 | F01 | Notation Capture | Not built | Gallery/camera ingestion, per-page editor, filter/crop/rotate, metadata form |
 | F02 | Metadata | Not built | Title, artists, timing, language, tags, instruments, custom fields |
-| F03 | Library | Partial (empty-state shell built) | Home screen — recently played carousel, list, fuzzy search, sort, tag filter |
+| F03 | Library | Partial (empty-state shell + dynamic greeting built) | Home screen — recently played carousel, list, fuzzy search, sort, tag filter |
 | F04 | Notation Detail View | Not built | Read view with metadata block, play entry, edit/delete actions |
 | F05 | Notation Player | Not built | Full-screen viewer, swipe pages, pinch-zoom, orientation lock, fade chrome, **auto-scroll** |
 | F06 | Instrument Tracker | Not built | Two-level CRUD (class + instance), photo, soft-delete archive |
 | F07 | Tags | Not built | Create/rename/recolor/delete, Catppuccin palette, 5 pre-seeded defaults |
 | F08 | Edit / Delete / Copy | Not built | CRUD entry points from Library and Detail View |
 | F09 | Trash | Not built | Soft-deleted list, restore/purge, 30-day auto-purge |
-| F10 | Appearance & Theming | Engine + persistence built, UI not built | Light/Dark/System toggle, Catppuccin seed color; dynamic color (Monet) deferred |
-| F11 | Settings | Not built | Shell aggregating Tags, Instruments, Trash, Appearance, Custom Fields |
+| F10 | Appearance & Theming | Built | Light/Dark/System segmented toggle, Catppuccin seed color, reset; dynamic color (Monet) deferred |
+| F11 | Settings | Built (shell + registry) | Registry-driven list aggregating Personalisation, Appearance, About now; Tags, Instruments, Trash, Custom Fields, Library defaults, licences, backup registered but not built |
 | F12 | Custom Fields | Not built | CRUD for user-defined field definitions (name + type) |
 
 F05 gained auto-scroll in this pass (see `docs/ux-flows.md` §8.3) — the prior
