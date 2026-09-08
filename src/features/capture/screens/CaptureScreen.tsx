@@ -1,7 +1,7 @@
 import 'mdui/components/button.js';
 import 'mdui/components/button-icon.js';
 
-import { useEffect, useReducer, useRef, type ChangeEvent, type ReactElement } from 'react';
+import { useEffect, useReducer, useRef, useState, type ChangeEvent, type ReactElement } from 'react';
 import { useNavigate } from 'react-router';
 
 import { Icon } from '../../../components/Icon';
@@ -13,6 +13,9 @@ import { MetadataHeader } from '../components/MetadataHeader';
 import { MetadataPanel } from '../components/MetadataPanel';
 import { PageCarousel } from '../components/PageCarousel';
 import { PagePreview } from '../components/PagePreview';
+import { ToolActionRow } from '../components/ToolActionRow';
+import { ToolRow } from '../components/ToolRow';
+import type { ToolMode } from '../toolMode';
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -27,6 +30,7 @@ function todayIsoDate(): string {
 export function CaptureScreen(): ReactElement {
   const navigate = useNavigate();
   const [draft, dispatch] = useReducer(draftReducer, todayIsoDate(), initialDraft);
+  const [toolMode, setToolMode] = useState<ToolMode>('none');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const openedPickerRef = useRef(false);
 
@@ -106,19 +110,42 @@ export function CaptureScreen(): ReactElement {
           onStepForward={() => dispatch({ type: 'stepActive', delta: 1 })}
         />
 
-        <PageCarousel
-          pages={draft.pages}
-          activeIndex={draft.activeIndex}
-          onSelect={(index) => dispatch({ type: 'setActiveIndex', index })}
-        />
+        {toolMode === 'none' ? (
+          <PageCarousel
+            pages={draft.pages}
+            activeIndex={draft.activeIndex}
+            onSelect={(index) => dispatch({ type: 'setActiveIndex', index })}
+          />
+        ) : (
+          <ToolActionRow
+            mode={toolMode}
+            currentPageSize={activePage?.renderParams.pageSize ?? null}
+            onCropClear={() => {
+              dispatch({ type: 'setCrop', crop: { left: 0, top: 0, right: 1, bottom: 1 } });
+              setToolMode('none');
+            }}
+            onCropSave={() => setToolMode('none')}
+            onRotateLeft={() => dispatch({ type: 'rotateActive', delta: -90 })}
+            onRotateRight={() => dispatch({ type: 'rotateActive', delta: 90 })}
+            onSetPageSize={(pageSize) => dispatch({ type: 'setPageSize', pageSize })}
+            onKeep={() => setToolMode('none')}
+            onDelete={() => {
+              dispatch({ type: 'deleteActivePage' });
+              setToolMode('none');
+            }}
+          />
+        )}
 
-        {/* crop/rotate/resize/reorder/delete tool row lands in the next commit */}
-        <div className="px-4">
-          <mdui-button variant="tonal" onClick={() => fileInputRef.current?.click()}>
-            <Icon slot="icon" name="add_photo_alternate" />
-            Add more pages
-          </mdui-button>
-        </div>
+        {/* reorder + crop overlay land in later commits */}
+        <ToolRow
+          activeMode={toolMode}
+          disabled={activePage === undefined}
+          onSelect={setToolMode}
+          onReorder={() => {
+            /* wired once ReorderSheet exists */
+          }}
+          onAddPages={() => fileInputRef.current?.click()}
+        />
       </div>
     </div>
   );
