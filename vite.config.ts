@@ -47,6 +47,11 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
           },
+          {
+            src: 'logov1.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+          },
         ],
       },
     }),
