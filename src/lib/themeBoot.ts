@@ -25,7 +25,8 @@ const DEFAULT_BOOT_THEME: BootTheme = {
   seed: DEFAULT_SEED_SWATCH,
 };
 
-const isThemeMode = (value: unknown): value is ThemeMode =>
+/** Also used by `AppearanceScreen` to narrow the segmented button's `change` event value. */
+export const isThemeMode = (value: unknown): value is ThemeMode =>
   typeof value === 'string' && THEME_MODES.includes(value as ThemeMode);
 
 const isSwatchName = (value: unknown): value is CatppuccinSwatchName =>
