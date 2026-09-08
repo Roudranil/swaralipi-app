@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router';
 
 import App from './App';
 import { LibraryScreen } from './features/library/LibraryScreen';
+import { SettingsScreen } from './features/settings/SettingsScreen';
 
 const router = createBrowserRouter([
   {
@@ -10,7 +11,7 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <LibraryScreen /> },
-      { path: 'settings', element: <div>Settings — not built yet</div> },
+      { path: 'settings', element: <SettingsScreen /> },
     ],
   },
 ]);
