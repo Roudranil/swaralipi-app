@@ -1,5 +1,10 @@
 import { db } from './db';
 
+/** Blob path convention for a notation page scan. */
+export function notationPagePath(notationId: string, pageId: string): string {
+  return `notations/${notationId}/pages/${pageId}.jpg`;
+}
+
 /** Stores a blob under `path`, overwriting any existing blob at that path. */
 export async function putBlob(path: string, blob: Blob): Promise<void> {
   await db.blobs.put({ path, blob });
