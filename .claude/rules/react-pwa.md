@@ -29,6 +29,10 @@ reference.
   written by `src/lib/theme.ts` with MDUI's own 2021-spec generator.
 - Cherry-pick component imports (`mdui/components/button.js`), not
   `import 'mdui'`.
+- Never use `icon=`/`active-icon=` attributes — `mdui-icon`'s shadow style
+  hardcodes `font-family:'Material Icons'`, which isn't loaded. Use
+  `src/components/Icon.tsx` in the `icon`/`active-icon` slot instead. See
+  docs/design-system.md §12.
 
 ## Data layer
 

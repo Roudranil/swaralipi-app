@@ -178,6 +178,7 @@ The spring is approximated as a CSS `linear()` easing curve,
 | Bottom sheet | `mdui-navigation-drawer placement="bottom"`, or a Tailwind sheet |
 | Search bar | `mdui-text-field` + `mdui-menu` |
 | Safe-area insets | Add `env(safe-area-inset-*)` padding ourselves |
+| Icon font | MDUI's `icon=`/`active-icon=` attributes resolve against the legacy `'Material Icons'` font, which we don't ship — see §12. Use `<Icon>` in the `icon`/`active-icon` slot instead |
 
 ## 10. React integration rules
 
@@ -203,10 +204,13 @@ source order. Cherry-pick component imports
 
 | Screen | Icon | Headline | CTA |
 | --- | --- | --- | --- |
-| Library (no notations) | `library_music_outlined` | "No notations yet" | "Capture" |
+| Library (no notations) | `library_music` | "No notations yet" | "Capture" |
 | Search (no results) | `search_off` | "No matches" | Clear filters |
-| Tags (none created) | `sell_outlined` | "No tags yet" | "+ Create" |
-| Trash (empty) | `delete_outline` | "Trash is empty" | — |
+| Tags (none created) | `sell` | "No tags yet" | "+ Create" |
+| Trash (empty) | `delete` | "Trash is empty" | — |
+
+Names are Material Symbols (§12) — the outline/rounded/sharp silhouette is a
+CSS class and `FILL` axis, not part of the name, so no `_outlined` suffix.
 
 ### 11.2 Snackbar triggers
 
@@ -246,3 +250,41 @@ Error outline on invalid input.
 Screen-level (full-screen error + retry), inline (form field error text),
 and snackbar (transient, non-blocking) — pick the narrowest scope that fits
 the failure.
+
+## 12. Icons
+
+`material-symbols` (npm), self-hosted, all three silhouettes (Outlined,
+Rounded, Sharp) as variable fonts — full Material Symbols set, no Google
+Fonts CDN, works fully offline.
+
+- **Always go through `src/components/Icon.tsx`.** Never use MDUI's
+  `icon=`/`active-icon=` attributes (see §9) — they resolve against the
+  legacy `'Material Icons'` font, which isn't loaded, and a document-level
+  style can't repoint the font MDUI's `mdui-icon` uses inside its own shadow
+  root anyway. `<Icon>` renders a plain `<span>` in light DOM instead, passed
+  into an `icon` / `active-icon` slot:
+
+  ```tsx
+  <mdui-navigation-bar-item value="/">
+    <Icon slot="icon" name="library_music" />
+    <Icon slot="active-icon" name="library_music" filled />
+    Library
+  </mdui-navigation-bar-item>
+  ```
+
+- **Rounded is the default** variant, matching the Expressive direction in
+  §1. Pass `variant="outlined" | "sharp"` to override per-icon.
+- **Four runtime axes**, all props on `<Icon>`: `filled` (`FILL` 0/1),
+  `weight` (`wght` 100–700), `grade` (`GRAD` -25–200), `size` (drives
+  `opsz` 20–48 and `font-size`). Active nav/list items should set `filled` —
+  see §11.1 CTA icons and the empty-state table above for outline defaults.
+- **No `color` prop.** Icons render in `currentColor` — set color via a
+  Tailwind class or MDUI color token on an ancestor, per §3.
+- **Omit `size` inside MDUI slots** so the host component's own sizing
+  (`font-size: inherit` for nav items, `1.5rem` for list items) wins.
+- Icon names are typo-checked against the `MaterialSymbol` union the
+  `material-symbols` package ships — no `_outlined`/`_rounded` suffix on the
+  name itself, that's the `variant` prop and `FILL` axis.
+- Only the Rounded font is precached by the service worker (`vite.config.ts`
+  `workbox.globPatterns`); Outlined and Sharp cache on first use via a
+  `CacheFirst` runtime rule, so all three still work offline once touched.

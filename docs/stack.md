@@ -8,6 +8,7 @@
 | Build | `vite` | 8.2 |
 | Language | `typescript` | 6.0 |
 | Components | `mdui` | 2.1.5 |
+| Icons | `material-symbols` | 0.47.1 |
 | Color tokens | `@material/material-color-utilities` | 0.4.0 |
 | Utility styling | `tailwindcss`, `@tailwindcss/vite` | 4.3 |
 | Offline | `vite-plugin-pwa` | 1.3 |
@@ -41,6 +42,7 @@
 | `mdui.css` sets `:root { font-size: 16px }` | Overridden to `100%` in `src/styles/index.css` — otherwise browser text zoom breaks |
 | React 19 does not bind synthetic events to custom elements' `CustomEvent`s | `onChange` on an `mdui-*` element typechecks and silently does nothing. Use `useCustomEvent`. See `docs/design-system.md` §2.6 |
 | `@capacitor/cli`'s `xcode` dependency pulls a moderate-severity `uuid` advisory | Dev-only, iOS tooling unused on this Android-only project. Not fixed |
+| `mdui-icon`'s shadow style hardcodes `font-family:'Material Icons'` | Can't be repointed from outside its shadow root. Use `src/components/Icon.tsx` in an `icon`/`active-icon` slot instead — see `docs/design-system.md` §12 |
 
 ## 4. Not done in this pass
 
