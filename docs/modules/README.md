@@ -9,8 +9,9 @@ contract that future work needs to follow (a registry, a plugin shape, a
 generated-screen pattern) — the kind of thing that's easy to drift from if
 it only lives in code comments.
 
-`docs/modules/settings.md` is the first and, for now, the only one — read it
-as the template for the next.
+`docs/modules/settings.md` was the first; `docs/modules/capture.md` is the
+second, covering the notation-capture render pipeline, draft reducer, and
+tool-mode contract. Either is a fine template for the next.
 
 ## Conventions
 

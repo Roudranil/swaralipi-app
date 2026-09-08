@@ -19,13 +19,13 @@ reactive read that re-runs when IndexedDB changes — that was the only job
 | --- | --- |
 | `AppDatabase` (Drift) | `src/db/db.ts` (Dexie) |
 | `FileStorageService` | `src/db/blobStore.ts` |
-| `ImageProcessingService` | `src/lib/render.ts` — Canvas 2D applies `RenderParams` |
+| `ImageProcessingService` | `src/lib/render.ts` (canvas I/O) + `src/lib/renderGeometry.ts` (pure crop/rotate/fit math) — Canvas 2D applies `RenderParams` |
 | `SearchService` (SQLite FTS5) | `src/lib/search.ts` — Fuse.js over the loaded list |
 | `AppLogger` | `src/lib/log.ts` — `console` behind a dev guard |
 
 Non-destructive image editing is preserved: the stored blob is never mutated.
-`RenderParams` (filter, rotation, auto-straighten, normalized crop rect) applies
-at display time. See `docs/data-model.md` §4.
+`RenderParams` (normalized crop rect, rotation, ISO page-size fit) applies at
+display time. See `docs/data-model.md` §5 and `docs/modules/capture.md`.
 
 ## 3. Directory structure
 
@@ -37,11 +37,17 @@ src/
   db/
     db.ts               # Dexie subclass + schema
     types.ts            # entity interfaces + RenderParams
-    blobStore.ts         # blob put/get/delete, object URL lifecycle
-    repositories/        # notations, tags, instruments, customFields, trash, prefs
+    blobStore.ts         # blob put/get/delete, path convention, object URL lifecycle
+    repositories/        # notations, notationPages, tags, instruments, customFields, trash, prefs
   features/
     library/             # home: greeting, list, search, sort, filter
-    capture/              # file input, page editor, metadata form
+    capture/              # extended-FAB entry point + the one-screen page editor
+      draft.ts             # useReducer draft: title/musical-basics + pages, pure
+      importImages.ts       # per-file downscale + re-encode on import
+      toolMode.ts            # ToolMode union shared by ToolRow/ToolActionRow/the screen
+      components/             # MetadataHeader/Panel, PagePreview, CropOverlay, PageCarousel,
+                              # ToolRow, ToolActionRow, ReorderSheet
+      screens/                 # CaptureScreen
     detail/               # notation detail view
     player/               # full-screen viewer, auto-scroll
     tags/
@@ -60,7 +66,8 @@ src/
     catppuccin.ts          # Latte + Mocha palettes, swatch name -> seed hexes
     themeBoot.ts            # localStorage theme cache for first paint
     greeting.ts             # Library hero greeting, shared with the Personalisation preview
-    render.ts              # canvas RenderParams pipeline
+    render.ts              # canvas RenderParams pipeline (decode, draw, encode)
+    renderGeometry.ts       # pure crop/rotate/fit math behind render.ts — no DOM
     search.ts              # Fuse.js
     log.ts
   hooks/
@@ -70,10 +77,12 @@ src/
     useResolvedThemeMode.ts  # resolves 'system' to the OS's live light/dark preference
   styles/
     index.css               # mdui.css, tailwind, @theme bridge
+  components/
+    Fab.tsx                  # shared extended/collapsed FAB — Library (phone) and NavRail (laptop)
 ```
 
-Only `features/library` and `features/settings` exist so far. The rest are
-placeholders in the route table until built.
+`features/library`, `features/settings`, and `features/capture` exist so far.
+The rest are placeholders in the route table until built.
 
 ## 4. Adaptive navigation
 
@@ -117,9 +126,18 @@ between MDUI and the color token layer.
 | `/settings/backup` | Backup and sync | Registered, not built |
 | `/notation/:id` | Notation detail | Not built |
 | `/notation/:id/play` | Player | Not built |
-| `/capture` | Capture / page editor | Not built |
+| `/capture` | Capture screen | Built |
 
 "Registered, not built" entries exist in `src/features/settings/registry.ts`
 with `status: 'planned'` — they render as a dimmed, inert row on the settings
 list but have no route at all until their status flips to `'built'`. See
 `docs/modules/settings.md` §3.
+
+`/capture` is a **sibling top-level route**, not a child of `<App/>` — it has
+no nav rail/bar and no screen-owned `AppBar`, matching "out-of-shell" per
+`docs/ux-flows.md` §2. This settles what was previously a live conflict
+between this table (which named one `/capture` route) and `docs/ux-flows.md`
+§4-§6 (which specified two, `/capture/editor` and `/capture/metadata`): one
+screen, one route.
+
+Layering (z-index) is documented in `docs/design-system.md` §13.

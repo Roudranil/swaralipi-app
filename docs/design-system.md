@@ -345,3 +345,55 @@ Fonts CDN, works fully offline.
 - Only the Rounded font is precached by the service worker (`vite.config.ts`
   `workbox.globPatterns`); Outlined and Sharp cache on first use via a
   `CacheFirst` runtime rule, so all three still work offline once touched.
+
+## 13. Layering (z-index)
+
+The first component to need a documented stacking order beyond the screen-
+owned `AppBar` was the capture flow's full-screen reorder overlay.
+
+| Layer | z-index | Where |
+| --- | --- | --- |
+| Screen-owned `AppBar` | `z-10` | `src/components/AppBar.tsx` |
+| FAB | `z-20` | `src/components/Fab.tsx` call sites (`LibraryScreen`, `NavRail`) |
+| Full-screen overlays (`ReorderSheet`) | `z-30` | `src/features/capture/components/ReorderSheet.tsx` |
+
+mdui's own dialogs, snackbars, and menus manage their own stacking context
+and sit outside this table.
+
+## 14. The FAB
+
+Single shared component, `src/components/Fab.tsx`, wrapping `mdui-fab`
+(`variant="primary"`). Two call sites mount it with a different `extended`
+source, because its placement genuinely differs by tier — see
+`docs/modules/capture.md` §3 for the full rationale:
+
+- **Phone (`< 840px`):** `LibraryScreen`, `fixed right-4` at
+  `bottom-[calc(5rem+env(safe-area-inset-bottom)+1rem)]` — that offset
+  clears `NavBar`'s own `calc(5rem + env(safe-area-inset-bottom))` height —
+  `z-20 md:hidden`. Always `extended`.
+- **Laptop (`>= 840px`):** inside `NavRail`, between the rail's own
+  expand/collapse toggle row and its nav items (the Gmail placement).
+  `extended` is tied directly to the rail's own `expanded` prop, so the FAB
+  collapses to a circle in lockstep with the rail using mdui's native
+  `extended` transition — no hand-rolled morph animation.
+
+Never the `icon=` attribute (§9, §12) — the icon goes in the `icon` slot via
+`<Icon>`.
+
+## 15. Crop overlay
+
+`src/features/capture/components/CropOverlay.tsx` — a drag box (4 corner + 4
+edge handles, plus whole-box move) over the page preview, built with Pointer
+Events (`setPointerCapture`) for one code path across touch, mouse, and
+stylus rather than separate mouse/touch handlers. v1 is rectangle-only, free
+aspect ratio — no shape lock. A `MIN_CROP_FRACTION` floor keeps the box from
+collapsing to nothing. See `docs/modules/capture.md` §5 for why the box is
+drawn over the rotated-but-uncropped image rather than the original.
+
+## 16. Page carousel selection ring
+
+`PageCarousel`'s active thumbnail gets `ring-2 ring-[rgb(var(--mdui-color-primary))]`
+— the same accent-colour indicator used for the swatch grid's selected state
+(§11.4) and the settings list's active nav item, so "this is the selected
+one" reads consistently across the app rather than each screen inventing its
+own highlight treatment.
