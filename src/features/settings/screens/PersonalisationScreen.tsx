@@ -2,7 +2,7 @@ import 'mdui/components/button.js';
 import 'mdui/components/snackbar.js';
 import 'mdui/components/text-field.js';
 
-import { useRef, useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useNavigate } from 'react-router';
 
 import { SettingsGroup } from '../components/SettingsGroup';
@@ -28,6 +28,18 @@ export function PersonalisationScreen(): ReactElement {
   const inputRef = useRef<HTMLElement & { value: string }>(null);
   const snackbarRef = useRef<HTMLElement>(null);
 
+  // `usePreferences()` returns `DEFAULT_PREFERENCES` (empty name) on the
+  // first render, before Dexie resolves — `draft`'s initial state was
+  // already captured by then. This effect is the one legitimate case for
+  // `set-state-in-effect`: it synchronizes `draft` with an external system
+  // (Dexie resolving) rather than deriving from a prop, so it can't be
+  // done during render.
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
+    setDraft(preferences.userName);
+    if (inputRef.current) inputRef.current.value = preferences.userName;
+  }, [preferences.userName]);
+
   // `input` is a CustomEvent on mdui-text-field — React's onChange/onInput
   // props typecheck but never fire (docs/design-system.md §10 rule 1).
   useCustomEvent(inputRef, 'input', () => {
@@ -49,6 +61,7 @@ export function PersonalisationScreen(): ReactElement {
   };
 
   const handleSave = (): void => {
+    if (!canSave) return;
     updatePreferences({ userName: canonical })
       .then(() => setSaved(true))
       .catch((error: unknown) => {
