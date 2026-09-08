@@ -50,10 +50,12 @@ export function CaptureScreen(): ReactElement {
   }, [draft.pages.length]);
 
   const handleFilesPicked = (event: ChangeEvent<HTMLInputElement>): void => {
-    const files = event.target.files;
+    // snapshot to a plain array before resetting `.value` — `event.target.files`
+    // is a live FileList, so resetting the input's value clears it in place too.
+    const files = Array.from(event.target.files ?? []);
     event.target.value = '';
-    if (!files || files.length === 0) return;
-    normalizeImports(Array.from(files))
+    if (files.length === 0) return;
+    normalizeImports(files)
       .then((imports) => dispatch({ type: 'addPages', imports }))
       .catch((error: unknown) => {
         logError('failed to import images', error);
