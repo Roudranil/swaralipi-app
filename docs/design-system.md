@@ -1,0 +1,248 @@
+# Design System
+
+## 1. Overview
+
+Material 3 (M3), split into two independent layers. Either can be replaced
+without touching the other.
+
+- **Components** — `mdui@2.1.5`. Classic M3 (2021 spec), complete adaptive
+  navigation set, Lit-based custom elements.
+- **Color** — `@material/material-color-utilities@0.4.0`. 2025 Expressive
+  color spec, official Google, 175k downloads/week.
+
+Google's official `@material/web` was rejected: it is in maintenance mode
+since 2024-06 and ships **no navigation bar, rail, drawer, top app bar, card,
+or snackbar**. There is no official M3 Expressive implementation for the web
+anywhere — Expressive shipped Android/Compose first.
+
+## 2. Why the split
+
+MDUI reads its own `--mdui-color-*` CSS variables (RGB channel triplets,
+e.g. `103, 80, 164`), generated internally from `material-color-utilities`
+0.3.0 at the 2021 spec — missing every `surfaceContainer*`, `surfaceDim`,
+`surfaceBright`, `surfaceTint`, and `*Fixed` token.
+
+`src/lib/theme.ts` generates the same variable names ourselves at the 2025
+spec (`SchemeTonalSpot` + `MaterialDynamicColors`, **not** the legacy
+`themeFromSourceColor` / `applyTheme` path) and writes them to `:root`,
+overriding MDUI's generator. One source of truth.
+
+**Never call MDUI's `setColorScheme()`.** It overwrites our tokens with
+2021-spec values.
+
+Theme switching uses MDUI's `mdui-theme-light` / `mdui-theme-dark` /
+`mdui-theme-auto` classes on `<html>`; our generated stylesheet defines both
+variable sets and the classes flip between them.
+
+## 3. Color role assignments
+
+All values consumed as `rgb(var(--mdui-color-<token>))`.
+
+| UI purpose | Token |
+| --- | --- |
+| Screen background | `surface` |
+| App bar background | `surface-container` |
+| Bottom navigation background | `surface-container` |
+| FAB background | `primary-container` |
+| FAB icon | `on-primary-container` |
+| Card fill (default) | `surface-container-low` |
+| Card border (outlined variant) | `outline-variant` |
+| Primary action button fill | `primary` |
+| Primary action button text | `on-primary` |
+| Tonal button fill | `secondary-container` |
+| Tonal button text | `on-secondary-container` |
+| Swipe-left Edit badge | `secondary-container` |
+| Swipe-left Delete badge | `error-container` |
+| Search bar fill | `surface-container-high` |
+| Active filter chip fill | `secondary-container` |
+| Active filter chip text | `on-secondary-container` |
+| Inactive chip fill | `surface` |
+| Inactive chip border | `outline` |
+| Snackbar background | `inverse-surface` |
+| Snackbar text | `on-inverse-surface` |
+| Divider | `outline-variant` |
+| Secondary / caption text | `on-surface-variant` |
+| Active filter banner | `tertiary-container` |
+| Archived instrument badge | `error-container` |
+| Destructive action text | `error` |
+
+## 4. Catppuccin palette
+
+- **Tags** — color picked from Catppuccin; chip background = Catppuccin color
+  at 20% opacity (inactive), 15% opacity + outline (active)
+- **Instrument instance** — Catppuccin color -> 4px left-border accent on the
+  list row
+- **Appearance seed swatches** — full Catppuccin Latte (light) and Mocha
+  (dark) palettes
+- **No free-form color pickers anywhere in the app**
+
+Default seeds: Mocha Mauve `#CBA6F7` (dark), Latte Mauve `#8839EF` (light).
+Both palettes live in `src/lib/catppuccin.ts`, ported verbatim.
+
+## 5. Typography
+
+| UI element | Type scale | Weight | Notes |
+| --- | --- | --- | --- |
+| Library greeting "Hi, \<name\>" | `display-small` | Bold | Hero text |
+| App bar titles | `title-large` | Regular | |
+| Notation title (Detail) | `headline-medium` | SemiBold | |
+| Notation title (List row) | `title-medium` | Medium | |
+| Artist name | `body-medium` | Regular | `on-surface-variant` |
+| Metadata labels | `label-large` | Medium | |
+| Metadata values | `body-small` | Regular | |
+| Chip text | `label-medium` | Medium | |
+| Button text | `label-large` | Medium | |
+| Snackbar text | `body-medium` | Regular | on `inverse-surface` |
+| Caption / secondary info | `body-small` | Regular | `on-surface-variant` |
+| Settings row title | `body-large` | Regular | |
+| Settings row subtitle | `body-small` | Regular | `on-surface-variant` |
+| Recently Played section label | `label-large` | Medium | `on-surface-variant` |
+| Filter / sort sheet title | `title-medium` | Medium | |
+| Empty state headline | `headline-small` | Regular | |
+| Empty state body | `body-medium` | Regular | `on-surface-variant` |
+
+Mapped to MDUI's `--mdui-typescale-<token>-*` variables.
+
+## 6. Shape
+
+| Component | Corner radius | Tailwind token |
+| --- | --- | --- |
+| Cards | 12px | `--radius-md` |
+| Notation row thumbnail | 8px | `--radius-sm` |
+| Page editor image preview | 12px | `--radius-md` |
+| Recently Played carousel card | 12px | `--radius-md` |
+| FAB | 16px | `--radius-lg` |
+| Buttons | full | `--radius-full` |
+| Chips | full | `--radius-full` |
+| Dialogs | 28px | `--radius-xl` |
+| Bottom sheets | 28px top, 0 bottom | `--radius-xl` |
+| Snackbar | 4px | `--radius-xs` |
+| Search bar | full | `--radius-full` |
+| Instrument instance photo | 8px | `--radius-sm` |
+| Catppuccin color picker circle | full | `--radius-full` |
+
+Defined in `src/styles/index.css` `@theme`, overriding MDUI's classic
+2021-spec `--mdui-shape-corner-*` tokens — this is the Expressive gap-closer
+for shape.
+
+## 7. Elevation
+
+| Surface | Level | Tonal offset |
+| --- | --- | --- |
+| Screen background | 0 | None |
+| Cards at rest | 1 | +5% primary |
+| App bar (scrolled) | 2 | +8% primary |
+| Navigation bar | 2 | +8% primary |
+| FAB | 3 | +11% primary |
+| Dialogs | 3 | +11% primary |
+| Bottom sheets (modal) | 3 | +11% primary |
+| Bottom sheets (standard) | 1 | +5% primary |
+| Fanned page stack — bottom layers | 1 | +5% primary |
+
+Mapped to `--mdui-elevation-level*`.
+
+## 8. Motion
+
+### 8.1 Screen transitions
+
+| Transition | Easing | Duration |
+| --- | --- | --- |
+| Push — enter | decelerate emphasized | 400ms |
+| Push — exit | ease-in | 200ms |
+| Pop — enter | ease-out | 250ms |
+| Pop — exit | accelerate emphasized | 200ms |
+
+### 8.2 Component motion
+
+| Component | Behavior | Duration |
+| --- | --- | --- |
+| Bottom sheet slide-up | ease-out-cubic | 300ms |
+| Bottom sheet dismiss | ease-in-cubic | 200ms |
+| Player chrome fade | opacity transition | 300ms |
+| Snackbar entry | ease-out-cubic | 250ms |
+| Snackbar exit | ease-in-cubic | 200ms |
+| Filter chip toggle | spring (mass 1, stiffness 800, damping 80) | ~300ms |
+| Swipe action reveal | linear, follows finger | — |
+| FAB collapse (scroll down) | same spring | ~250ms |
+| FAB expand (scroll up) | same spring | ~250ms |
+| Active filter banner appear | opacity + scale | 200ms |
+
+The spring is approximated as a CSS `linear()` easing curve,
+`--ease-spring` in `src/styles/index.css` `@theme`.
+
+## 9. Known MDUI gaps and their fills
+
+| Missing | Fill |
+| --- | --- |
+| Date picker | `<input type="date">`, styled |
+| Bottom sheet | `mdui-navigation-drawer placement="bottom"`, or a Tailwind sheet |
+| Search bar | `mdui-text-field` + `mdui-menu` |
+| Safe-area insets | Add `env(safe-area-inset-*)` padding ourselves |
+
+## 10. React integration rules
+
+1. **Custom events need refs.** React 19 passes props to custom elements
+   correctly, but its synthetic event system does not bind to a custom
+   element's `CustomEvent`. `onChange` on an `mdui-slider` typechecks and
+   silently does nothing. Native bubbling events (`click`, `focus`, `blur`,
+   `keydown`) work as normal props. Everything else (`change`, `input`,
+   `open`, `opened`, `close`, `closed`, `invalid`, `clear`) needs
+   `ref` + `addEventListener` — use `src/hooks/useCustomEvent.ts`.
+2. **Shadow DOM is a hard wall.** Tailwind classes on an `mdui-*` tag style
+   only the host element. Internals are reachable only via exposed custom
+   properties, `::part()`, and slots.
+
+Typings: `/// <reference types="mdui/jsx.en.d.ts" />` in `src/vite-env.d.ts`.
+Import order: `mdui/mdui.css` before the Tailwind entry, so Tailwind wins on
+source order. Cherry-pick component imports
+(`import 'mdui/components/button.js'`) to keep the PWA payload small.
+
+## 11. Reusable component patterns
+
+### 11.1 Empty states
+
+| Screen | Icon | Headline | CTA |
+| --- | --- | --- | --- |
+| Library (no notations) | `library_music_outlined` | "No notations yet" | "Capture" |
+| Search (no results) | `search_off` | "No matches" | Clear filters |
+| Tags (none created) | `sell_outlined` | "No tags yet" | "+ Create" |
+| Trash (empty) | `delete_outline` | "Trash is empty" | — |
+
+### 11.2 Snackbar triggers
+
+| Trigger | Message | Action |
+| --- | --- | --- |
+| Notation moved to trash | "Moved to trash" | Undo |
+| Notation restored | "Restored" | — |
+| Tag deleted | "Tag deleted" | Undo |
+| Instrument archived | "Archived" | Undo |
+| Trash emptied | "Trash emptied" | — |
+| Save failed | "Couldn't save. Try again." | Retry |
+| Offline | "You're offline. Changes saved locally." | — |
+
+### 11.3 Dialog patterns
+
+| Dialog | Title | Actions |
+| --- | --- | --- |
+| Delete notation (permanent, from Trash) | "Delete forever?" | Cancel / Delete |
+| Delete tag | "Delete tag?" | Cancel / Delete |
+| Delete instrument class (blocked) | "Class in use" | OK |
+| Discard unsaved edits | "Discard changes?" | Cancel / Discard |
+| Empty trash | "Empty trash?" | Cancel / Empty |
+| Reset appearance to default | "Reset appearance?" | Cancel / Reset |
+
+### 11.4 Catppuccin color picker
+
+36px tappable circles (48px hit target), check indicator on the selected
+swatch, `aria-label="<color name>, <selected/not selected>"`.
+
+### 11.5 Chip input field
+
+Comma commits a chip. Fuzzy tag suggestions via Fuse.js as the user types.
+Error outline on invalid input.
+
+### 11.6 Error states
+
+Screen-level (full-screen error + retry), inline (form field error text),
+and snackbar (transient, non-blocking) — pick the narrowest scope that fits
+the failure.
