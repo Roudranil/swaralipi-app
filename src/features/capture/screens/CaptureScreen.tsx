@@ -18,7 +18,7 @@ import { PagePreview } from '../components/PagePreview';
 import { ReorderSheet } from '../components/ReorderSheet';
 import { ToolActionRow } from '../components/ToolActionRow';
 import { ToolRow } from '../components/ToolRow';
-import type { ToolMode } from '../toolMode';
+import { TOOL_LABELS, type ToolMode } from '../toolMode';
 
 const FULL_CROP = { left: 0, top: 0, right: 1, bottom: 1 };
 
@@ -43,8 +43,19 @@ export function CaptureScreen(): ReactElement {
   const [rotationPulse, setRotationPulse] = useState<{ readonly delta: -90 | 90; readonly token: number } | null>(
     null,
   );
+  // same one-shot-pulse shape, for the prev/next slide — see docs/modules/capture.md §5.
+  const [stepPulse, setStepPulse] = useState<{ readonly direction: -1 | 1; readonly token: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const openedPickerRef = useRef(false);
+  // snapshot of page ids taken when ReorderSheet opens, so "discard changes"
+  // can restore it — dragging dispatches `reorderPages` live, it isn't staged.
+  const reorderSnapshotRef = useRef<readonly string[]>([]);
+  // measured height of the carousel/options row, animated on a transition so
+  // switching between the carousel and a tool's action row (different
+  // natural heights) grows/shrinks PagePreview's space smoothly instead of
+  // snapping — see the row wrapper below.
+  const optionsRowRef = useRef<HTMLDivElement>(null);
+  const [optionsRowHeight, setOptionsRowHeight] = useState<number | null>(null);
 
   // opens the device picker immediately when landing here with an empty
   // draft — the FAB's click just navigates, this is what actually imports.
@@ -76,6 +87,35 @@ export function CaptureScreen(): ReactElement {
     setRotationPulse({ delta, token: Date.now() });
   };
 
+  const handleStep = (direction: -1 | 1): void => {
+    dispatch({ type: 'stepActive', delta: direction });
+    setStepPulse({ direction, token: Date.now() });
+  };
+
+  // deferred (not layout) + rAF, so the browser paints one frame at the *old*
+  // height with the *new* content already swapped in (clipped by
+  // overflow-hidden) before we measure and apply the new target height —
+  // without that painted starting frame, the CSS transition below has
+  // nothing to interpolate from and the height just snaps.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setOptionsRowHeight(optionsRowRef.current?.scrollHeight ?? null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [toolMode, draft.pages.length]);
+
+  const openReorder = (): void => {
+    reorderSnapshotRef.current = draft.pages.map((page) => page.id);
+    setReorderOpen(true);
+  };
+
+  const closeReorderKeepingOrder = (): void => setReorderOpen(false);
+
+  const closeReorderDiscardingOrder = (): void => {
+    dispatch({ type: 'setPageOrder', order: reorderSnapshotRef.current });
+    setReorderOpen(false);
+  };
+
   const handleSave = (): void => {
     if (!canSave) return;
     createNotationWithPages(draft)
@@ -86,7 +126,7 @@ export function CaptureScreen(): ReactElement {
   };
 
   return (
-    <div className="mx-auto flex h-svh max-w-3xl flex-col">
+    <div className="mx-auto flex h-svh max-w-3xl flex-col overflow-hidden">
       <input
         ref={fileInputRef}
         type="file"
@@ -107,27 +147,31 @@ export function CaptureScreen(): ReactElement {
         </mdui-button>
       </header>
 
-      <div className="relative flex-1 overflow-y-auto pb-4">
-        <MetadataHeader title={draft.title} onTitleChange={(value) => dispatch({ type: 'setField', field: 'title', value })}>
-          <MetadataPanel
-            artists={draft.artists}
-            onArtistsChange={(artists) => dispatch({ type: 'setArtists', value: artists })}
-            dateWritten={draft.dateWritten}
-            onDateWrittenChange={(value) => dispatch({ type: 'setDateWritten', value })}
-            timeSig={draft.timeSig}
-            onTimeSigChange={(value) => dispatch({ type: 'setField', field: 'timeSig', value: value ?? '' })}
-            keySig={draft.keySig}
-            onKeySigChange={(value) => dispatch({ type: 'setField', field: 'keySig', value: value ?? '' })}
-          />
-        </MetadataHeader>
+      <MetadataHeader title={draft.title} onTitleChange={(value) => dispatch({ type: 'setField', field: 'title', value })}>
+        <MetadataPanel
+          artists={draft.artists}
+          onArtistsChange={(artists) => dispatch({ type: 'setArtists', value: artists })}
+          dateWritten={draft.dateWritten}
+          onDateWrittenChange={(value) => dispatch({ type: 'setDateWritten', value })}
+          timeSig={draft.timeSig}
+          onTimeSigChange={(value) => dispatch({ type: 'setField', field: 'timeSig', value: value ?? '' })}
+          keySig={draft.keySig}
+          onKeySigChange={(value) => dispatch({ type: 'setField', field: 'keySig', value: value ?? '' })}
+        />
+      </MetadataHeader>
 
+      {/* fills the space between the (fixed) header above and the (fixed)
+          carousel/options row below, so PagePreview's own centering lands
+          on the center of this remaining space, not the whole screen. */}
+      <div className="min-h-0 flex-1">
         <PagePreview
           page={activePage}
           canStepBack={draft.activeIndex > 0}
           canStepForward={draft.activeIndex < draft.pages.length - 1}
-          onStepBack={() => dispatch({ type: 'stepActive', delta: -1 })}
-          onStepForward={() => dispatch({ type: 'stepActive', delta: 1 })}
+          onStepBack={() => handleStep(-1)}
+          onStepForward={() => handleStep(1)}
           rotationPulse={rotationPulse}
+          stepPulse={stepPulse}
           renderOverride={
             toolMode === 'crop' && activePage
               ? { ...activePage.renderParams, crop: FULL_CROP, pageSize: null }
@@ -147,7 +191,19 @@ export function CaptureScreen(): ReactElement {
             ) : undefined
           }
         />
+      </div>
 
+      {/* fixed padding above the carousel/options row, per the same gap
+          convention as the hint row below it. */}
+      <div className="h-4 shrink-0" aria-hidden="true" />
+
+      {/* height-animated: see the rAF measurement effect above for why the
+          transition needs a deferred, not layout, measurement. */}
+      <div
+        ref={optionsRowRef}
+        className="shrink-0 overflow-hidden transition-[height] duration-[250ms] ease-out"
+        style={{ height: optionsRowHeight ?? undefined }}
+      >
         {toolMode === 'none' ? (
           <PageCarousel
             pages={draft.pages}
@@ -175,11 +231,18 @@ export function CaptureScreen(): ReactElement {
         )}
       </div>
 
+      {/* fixed padding above the toolbar — doubles as the "tap to close"
+          hint while a tool mode is active, since closing it is just
+          tapping that same tool's button again (ToolRow.tsx's toggle). */}
+      <div className="flex h-8 shrink-0 items-center justify-center px-4 text-center text-xs text-[rgb(var(--mdui-color-on-surface-variant))]">
+        {toolMode !== 'none' && <span>Tap the {TOOL_LABELS[toolMode]} button to close the menu</span>}
+      </div>
+
       <ToolRow
         activeMode={toolMode}
         disabled={activePage === undefined}
         onSelect={setToolMode}
-        onReorder={() => setReorderOpen(true)}
+        onReorder={openReorder}
         onAddPages={() => fileInputRef.current?.click()}
       />
 
@@ -187,7 +250,8 @@ export function CaptureScreen(): ReactElement {
         <ReorderSheet
           pages={draft.pages}
           onReorder={(from, to) => dispatch({ type: 'reorderPages', from, to })}
-          onClose={() => setReorderOpen(false)}
+          onKeep={closeReorderKeepingOrder}
+          onDiscard={closeReorderDiscardingOrder}
         />
       )}
     </div>

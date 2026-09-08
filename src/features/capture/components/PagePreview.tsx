@@ -7,6 +7,24 @@ import { decodeImage, renderToCanvas } from '../../../lib/render';
 import type { RenderParams } from '../../../db/types';
 import type { DraftPage } from '../draft';
 
+/**
+ * Runs `callback` after the browser has painted the *current* frame. A
+ * single `requestAnimationFrame` fires just *before* that paint, so setting
+ * a "jump" style and scheduling the "settle" style in one rAF collapses both
+ * into the same commit with no visible motion — this waits for the second
+ * rAF instead, which only fires after the first one's frame has painted.
+ */
+function afterNextPaint(callback: () => void): () => void {
+  let inner = 0;
+  const outer = requestAnimationFrame(() => {
+    inner = requestAnimationFrame(callback);
+  });
+  return () => {
+    cancelAnimationFrame(outer);
+    cancelAnimationFrame(inner);
+  };
+}
+
 type PagePreviewProps = {
   readonly page: DraftPage | undefined;
   readonly canStepBack: boolean;
@@ -28,6 +46,12 @@ type PagePreviewProps = {
    * hard cut. See docs/modules/capture.md §5.
    */
   readonly rotationPulse?: { readonly delta: -90 | 90; readonly token: number } | null;
+  /**
+   * A new `{ direction, token }` slides the canvas in from that side — `1`
+   * (forward/next) slides in from the right, `-1` (back/previous) from the
+   * left. Same one-shot-pulse shape as `rotationPulse`.
+   */
+  readonly stepPulse?: { readonly direction: -1 | 1; readonly token: number } | null;
 };
 
 /**
@@ -45,14 +69,18 @@ export function PagePreview({
   renderOverride,
   overlay,
   rotationPulse,
+  stepPulse,
 }: PagePreviewProps): ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const params = renderOverride ?? page?.renderParams;
 
-  // spin-into-place: jump to `-delta` with transitions off, then re-enable
-  // them and animate to `0` on the next frame. The canvas underneath has
-  // already redrawn to its correct final orientation by the time this
-  // starts, so the settle always lands on the right image.
+  // spin-into-place: jump to `-delta` with its transition off, then
+  // re-enable it and animate to `0` on the next frame. The canvas underneath
+  // has already redrawn to its correct final orientation by the time this
+  // starts, so the settle always lands on the right image. `rotate` and
+  // `translate` (below) are independent CSS properties, not `transform`
+  // components, so each can jump/animate on its own schedule without the
+  // other's inline style clobbering it.
   const [spin, setSpin] = useState({ deg: 0, animate: false });
   const lastPulseToken = useRef<number | null>(null);
 
@@ -60,9 +88,21 @@ export function PagePreview({
     if (!rotationPulse || rotationPulse.token === lastPulseToken.current) return;
     lastPulseToken.current = rotationPulse.token;
     setSpin({ deg: -rotationPulse.delta, animate: false });
-    const frame = requestAnimationFrame(() => setSpin({ deg: 0, animate: true }));
-    return () => cancelAnimationFrame(frame);
+    return afterNextPaint(() => setSpin({ deg: 0, animate: true }));
   }, [rotationPulse]);
+
+  // slide-into-place: same pulse pattern as rotation, but for the prev/next
+  // arrows — `direction: 1` (next) starts offset to the right and slides
+  // left into place; `-1` (previous) starts offset left and slides right.
+  const [slide, setSlide] = useState({ pct: 0, animate: false });
+  const lastStepToken = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!stepPulse || stepPulse.token === lastStepToken.current) return;
+    lastStepToken.current = stepPulse.token;
+    setSlide({ pct: stepPulse.direction * 100, animate: false });
+    return afterNextPaint(() => setSlide({ pct: 0, animate: true }));
+  }, [stepPulse]);
 
   useEffect(() => {
     if (!page || !params) return;
@@ -89,19 +129,26 @@ export function PagePreview({
   }, [page, params]);
 
   return (
-    <div className="relative flex items-center justify-center gap-2 px-2 py-4">
+    <div className="flex h-full w-full min-h-0 min-w-0 items-center justify-center gap-2 px-2">
       <mdui-button-icon aria-label="Previous page" disabled={!canStepBack} onClick={onStepBack}>
         <Icon name="chevron_left" />
       </mdui-button-icon>
 
-      <div className="relative max-h-[60vh] max-w-full">
+      {/* the center of this box is the center of the space between the
+          metadata header and the carousel/tool-action row, since this whole
+          component fills its parent (`h-full w-full`) and centers within it. */}
+      <div className="relative flex h-full min-h-0 max-w-full items-center justify-center">
         {page ? (
           <canvas
             ref={canvasRef}
-            className="max-h-[60vh] max-w-full rounded-md object-contain"
+            className="max-h-full max-w-full rounded-md object-contain"
             style={{
-              transform: `rotate(${spin.deg}deg)`,
-              transition: spin.animate ? 'transform 300ms ease' : 'none',
+              rotate: `${spin.deg}deg`,
+              translate: `${slide.pct}% 0`,
+              transition: [
+                `rotate ${spin.animate ? '300ms ease' : '0s'}`,
+                `translate ${slide.animate ? '250ms ease' : '0s'}`,
+              ].join(', '),
             }}
           />
         ) : (

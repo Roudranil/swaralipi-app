@@ -2,19 +2,18 @@ import type { ReactElement } from 'react';
 import type { MaterialSymbol } from 'material-symbols';
 
 import { Icon } from '../../../components/Icon';
-import type { ToolMode } from '../toolMode';
+import { TOOL_LABELS, type ToolMode } from '../toolMode';
 
 type Tool = {
-  readonly mode: ToolMode;
+  readonly mode: Exclude<ToolMode, 'none'>;
   readonly icon: MaterialSymbol;
-  readonly label: string;
 };
 
 const TOOLS: readonly Tool[] = [
-  { mode: 'crop', icon: 'crop', label: 'Crop' },
-  { mode: 'rotate', icon: 'rotate_right', label: 'Rotate' },
-  { mode: 'resize', icon: 'aspect_ratio', label: 'Resize' },
-  { mode: 'delete', icon: 'delete', label: 'Delete' },
+  { mode: 'crop', icon: 'crop' },
+  { mode: 'rotate', icon: 'rotate_right' },
+  { mode: 'resize', icon: 'aspect_ratio' },
+  { mode: 'delete', icon: 'delete' },
 ];
 
 type ToolRowProps = {
@@ -59,7 +58,7 @@ export function ToolRow({ activeMode, disabled, onSelect, onReorder, onAddPages 
             }`}
           >
             <Icon name={tool.icon} />
-            {tool.label}
+            {TOOL_LABELS[tool.mode]}
           </button>
         );
       })}
@@ -70,7 +69,7 @@ export function ToolRow({ activeMode, disabled, onSelect, onReorder, onAddPages 
         onClick={onReorder}
         className="flex shrink-0 flex-col items-center gap-1 rounded-md px-3 py-2 text-xs text-[rgb(var(--mdui-color-on-surface-variant))] disabled:opacity-40"
       >
-        <Icon name="reorder" />
+        <Icon name="grid_view" />
         Reorder
       </button>
 

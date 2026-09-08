@@ -46,6 +46,7 @@ export type DraftAction =
   | { readonly type: 'addPages'; readonly imports: readonly NormalizedImport[] }
   | { readonly type: 'deleteActivePage' }
   | { readonly type: 'reorderPages'; readonly from: number; readonly to: number }
+  | { readonly type: 'setPageOrder'; readonly order: readonly string[] }
   | { readonly type: 'setActiveIndex'; readonly index: number }
   | { readonly type: 'stepActive'; readonly delta: -1 | 1 }
   | { readonly type: 'setCrop'; readonly crop: CropRect }
@@ -116,6 +117,19 @@ export function draftReducer(draft: CaptureDraft, action: DraftAction): CaptureD
 
       // follow the moved page if it was the active one; otherwise keep
       // pointing at whichever page was active, wherever it landed.
+      const activePage = draft.pages[draft.activeIndex];
+      const activeIndex = activePage ? pages.indexOf(activePage) : draft.activeIndex;
+      return { ...draft, pages, activeIndex: clampIndex(activeIndex, pages.length) };
+    }
+
+    case 'setPageOrder': {
+      // used to restore the pre-reorder order on "discard changes" — see
+      // docs/modules/capture.md §4.2. `order` always comes from a snapshot
+      // of this same draft's page ids, but the length check keeps a stale
+      // snapshot (e.g. a page deleted mid-reorder) from silently dropping pages.
+      const byId = new Map(draft.pages.map((page) => [page.id, page] as const));
+      const pages = action.order.map((id) => byId.get(id)).filter((page): page is DraftPage => page !== undefined);
+      if (pages.length !== draft.pages.length) return draft;
       const activePage = draft.pages[draft.activeIndex];
       const activeIndex = activePage ? pages.indexOf(activePage) : draft.activeIndex;
       return { ...draft, pages, activeIndex: clampIndex(activeIndex, pages.length) };
