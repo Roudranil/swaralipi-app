@@ -1,7 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { ReactElement } from 'react';
+import { useNavigate } from 'react-router';
 
 import { AppBar } from '../../components/AppBar';
+import { Fab } from '../../components/Fab';
 import { activeNotations } from '../../db/repositories/notations';
 import { greeting } from '../../lib/greeting';
 import { usePreferences } from '../../hooks/usePreferences';
@@ -9,6 +11,7 @@ import { usePreferences } from '../../hooks/usePreferences';
 export function LibraryScreen(): ReactElement {
   const notations = useLiveQuery(activeNotations, [], []);
   const preferences = usePreferences();
+  const navigate = useNavigate();
 
   return (
     <>
@@ -28,6 +31,14 @@ export function LibraryScreen(): ReactElement {
           </ul>
         )}
       </div>
+      {/* laptop width mounts the FAB in NavRail instead — see Fab.tsx. */}
+      <Fab
+        icon="add"
+        label="Add notation"
+        extended
+        onClick={() => navigate('/capture')}
+        className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom)+1rem)] z-20 md:hidden"
+      />
     </>
   );
 }

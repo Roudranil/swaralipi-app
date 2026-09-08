@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import type { MaterialSymbol } from 'material-symbols';
 import { useLocation, useNavigate } from 'react-router';
 
+import { Fab } from '../Fab';
 import { Icon } from '../Icon';
 import { activeNavValue, NAV_ITEMS } from './navItems';
 
@@ -93,6 +94,16 @@ export function NavRail({ expanded, onToggle }: NavRailProps): ReactElement {
         ariaLabel={expanded ? 'Collapse navigation' : 'Expand navigation'}
         onClick={onToggle}
       />
+      {/* Gmail-style placement: below the rail toggle, above the nav items.
+          Tied to the rail's own `expanded` so it collapses/extends in lockstep. */}
+      <div className={`px-2 py-2 ${expanded ? '' : 'flex justify-center'}`}>
+        <Fab
+          icon="add"
+          label="Add notation"
+          extended={expanded}
+          onClick={() => navigate('/capture')}
+        />
+      </div>
       <div className="flex flex-col gap-1">
         {NAV_ITEMS.map((item) => (
           <RailRow
