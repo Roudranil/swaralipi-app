@@ -7,8 +7,10 @@ import { useNavigate } from 'react-router';
 import { Icon } from '../../../components/Icon';
 import { createNotationWithPages } from '../../../db/repositories/notationPages';
 import { logError } from '../../../lib/log';
+import { rotateCropRect, unrotateCropRect } from '../../../lib/renderGeometry';
 import { draftReducer, initialDraft } from '../draft';
 import { normalizeImports } from '../importImages';
+import { CropOverlay } from '../components/CropOverlay';
 import { MetadataHeader } from '../components/MetadataHeader';
 import { MetadataPanel } from '../components/MetadataPanel';
 import { PageCarousel } from '../components/PageCarousel';
@@ -16,6 +18,8 @@ import { PagePreview } from '../components/PagePreview';
 import { ToolActionRow } from '../components/ToolActionRow';
 import { ToolRow } from '../components/ToolRow';
 import type { ToolMode } from '../toolMode';
+
+const FULL_CROP = { left: 0, top: 0, right: 1, bottom: 1 };
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -108,6 +112,24 @@ export function CaptureScreen(): ReactElement {
           canStepForward={draft.activeIndex < draft.pages.length - 1}
           onStepBack={() => dispatch({ type: 'stepActive', delta: -1 })}
           onStepForward={() => dispatch({ type: 'stepActive', delta: 1 })}
+          renderOverride={
+            toolMode === 'crop' && activePage
+              ? { ...activePage.renderParams, crop: FULL_CROP, pageSize: null }
+              : undefined
+          }
+          overlay={
+            toolMode === 'crop' && activePage ? (
+              <CropOverlay
+                rect={rotateCropRect(activePage.renderParams.crop, activePage.renderParams.rotationDegrees)}
+                onChange={(rect) =>
+                  dispatch({
+                    type: 'setCrop',
+                    crop: unrotateCropRect(rect, activePage.renderParams.rotationDegrees),
+                  })
+                }
+              />
+            ) : undefined
+          }
         />
 
         {toolMode === 'none' ? (
@@ -121,7 +143,7 @@ export function CaptureScreen(): ReactElement {
             mode={toolMode}
             currentPageSize={activePage?.renderParams.pageSize ?? null}
             onCropClear={() => {
-              dispatch({ type: 'setCrop', crop: { left: 0, top: 0, right: 1, bottom: 1 } });
+              dispatch({ type: 'setCrop', crop: FULL_CROP });
               setToolMode('none');
             }}
             onCropSave={() => setToolMode('none')}

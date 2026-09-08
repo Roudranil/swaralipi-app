@@ -4,6 +4,7 @@ import { useEffect, useRef, type ReactElement, type ReactNode } from 'react';
 
 import { Icon } from '../../../components/Icon';
 import { decodeImage, renderToCanvas } from '../../../lib/render';
+import type { RenderParams } from '../../../db/types';
 import type { DraftPage } from '../draft';
 
 type PagePreviewProps = {
@@ -12,6 +13,12 @@ type PagePreviewProps = {
   readonly canStepForward: boolean;
   readonly onStepBack: () => void;
   readonly onStepForward: () => void;
+  /**
+   * Overrides `page.renderParams` for display only — used in crop mode to
+   * show the un-cropped, rotated image while the stored crop rect is
+   * unaffected until the user actually drags the box.
+   */
+  readonly renderOverride?: RenderParams;
   /** Overlaid on top of the canvas, e.g. `CropOverlay` in crop mode. */
   readonly overlay?: ReactNode;
 };
@@ -28,18 +35,20 @@ export function PagePreview({
   canStepForward,
   onStepBack,
   onStepForward,
+  renderOverride,
   overlay,
 }: PagePreviewProps): ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const params = renderOverride ?? page?.renderParams;
 
   useEffect(() => {
-    if (!page) return;
+    if (!page || !params) return;
     let cancelled = false;
 
     decodeImage(page.blob)
       .then((bitmap) => {
         if (cancelled) return;
-        const rendered = renderToCanvas(bitmap, page.renderParams);
+        const rendered = renderToCanvas(bitmap, params);
         bitmap.close();
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -54,7 +63,7 @@ export function PagePreview({
     return () => {
       cancelled = true;
     };
-  }, [page]);
+  }, [page, params]);
 
   return (
     <div className="relative flex items-center justify-center gap-2 px-2 py-4">
