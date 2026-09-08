@@ -11,7 +11,8 @@
 }
 
 @theme {
-  /* M3 breakpoints: bottom nav bar <840px, nav rail 840-1079px, drawer >=1080px */
+  /* M3 breakpoints. Nav tier switch (bottom bar <840px, rail >=840px) uses
+     the md: variant directly — see docs/architecture.md §4. */
   --breakpoint-sm: 600px;
   --breakpoint-md: 840px;
   --breakpoint-lg: 1080px;

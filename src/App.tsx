@@ -1,103 +1,30 @@
-import 'mdui/components/navigation-bar.js';
-import 'mdui/components/navigation-bar-item.js';
-import 'mdui/components/navigation-rail.js';
-import 'mdui/components/navigation-rail-item.js';
-import 'mdui/components/navigation-drawer.js';
-import 'mdui/components/list.js';
-import 'mdui/components/list-item.js';
-import 'mdui/components/top-app-bar.js';
-import 'mdui/components/top-app-bar-title.js';
+import { useState, type ReactElement } from 'react';
+import { Outlet } from 'react-router';
 
-import { useRef, type ReactElement } from 'react';
-import type { MaterialSymbol } from 'material-symbols';
-import { Outlet, useLocation, useNavigate } from 'react-router';
-
-import { Icon } from './components/Icon';
+import { NavBar } from './components/shell/NavBar';
+import { NavRail } from './components/shell/NavRail';
+import { SCROLL_TARGET_ID } from './components/shell/scrollTarget';
 import { useAppliedTheme } from './hooks/useAppliedTheme';
-import { useBreakpoint } from './hooks/useBreakpoint';
-import { useCustomEvent } from './hooks/useCustomEvent';
 
-const NAV_ITEMS: ReadonlyArray<{ value: string; label: string; icon: MaterialSymbol }> = [
-  { value: '/', label: 'Library', icon: 'library_music' },
-  { value: '/settings', label: 'Settings', icon: 'settings' },
-];
-
-/** Adaptive app shell. Nav swaps bar -> rail -> drawer at the M3 breakpoints. */
+/**
+ * App shell: nav (bottom bar on phone, collapsible rail on laptop) +
+ * `<Outlet/>`. The tier switch is pure CSS (`md:` at the 840px breakpoint in
+ * `src/styles/index.css`) — both navs always render, so `<main>` never
+ * remounts and routed screen state survives a resize across the breakpoint.
+ */
 export default function App(): ReactElement {
   useAppliedTheme();
-  const layout = useBreakpoint();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const navRef = useRef<HTMLElement | null>(null);
-
-  useCustomEvent(navRef, 'change', () => {
-    const value = (navRef.current as unknown as { value?: string })?.value;
-    if (value) navigate(value);
-  });
-
-  const activeValue = location.pathname === '/' ? '/' : location.pathname;
-
-  if (layout === 'bar') {
-    return (
-      <div className="flex min-h-svh flex-col">
-        <main className="flex-1 pb-16">
-          <Outlet />
-        </main>
-        <mdui-navigation-bar
-          ref={navRef as never}
-          value={activeValue}
-          className="fixed bottom-0 left-0 right-0"
-        >
-          {NAV_ITEMS.map((item) => (
-            <mdui-navigation-bar-item key={item.value} value={item.value}>
-              <Icon slot="icon" name={item.icon} />
-              <Icon slot="active-icon" name={item.icon} filled />
-              {item.label}
-            </mdui-navigation-bar-item>
-          ))}
-        </mdui-navigation-bar>
-      </div>
-    );
-  }
-
-  if (layout === 'rail') {
-    return (
-      <div className="flex min-h-svh">
-        <mdui-navigation-rail ref={navRef as never} value={activeValue}>
-          {NAV_ITEMS.map((item) => (
-            <mdui-navigation-rail-item key={item.value} value={item.value}>
-              <Icon slot="icon" name={item.icon} />
-              <Icon slot="active-icon" name={item.icon} filled />
-              {item.label}
-            </mdui-navigation-rail-item>
-          ))}
-        </mdui-navigation-rail>
-        <main className="flex-1">
-          <Outlet />
-        </main>
-      </div>
-    );
-  }
+  const [railExpanded, setRailExpanded] = useState(false);
 
   return (
-    <div className="flex min-h-svh">
-      <mdui-navigation-drawer ref={navRef as never} open modal={false}>
-        <mdui-list>
-          {NAV_ITEMS.map((item) => (
-            <mdui-list-item
-              key={item.value}
-              active={item.value === activeValue}
-              onClick={() => navigate(item.value)}
-            >
-              <Icon slot="icon" name={item.icon} filled={item.value === activeValue} />
-              {item.label}
-            </mdui-list-item>
-          ))}
-        </mdui-list>
-      </mdui-navigation-drawer>
-      <main className="flex-1">
+    <div className="grid h-svh grid-rows-[1fr_auto] overflow-hidden md:grid-cols-[auto_1fr] md:grid-rows-[1fr]">
+      <NavRail expanded={railExpanded} onToggle={() => setRailExpanded((value) => !value)} />
+      {/* min-w-0: without it a wide child would push this grid column past
+          the rail's width instead of scrolling internally. */}
+      <main id={SCROLL_TARGET_ID} className="min-w-0 overflow-y-auto">
         <Outlet />
       </main>
+      <NavBar />
     </div>
   );
 }
